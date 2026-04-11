@@ -42,4 +42,4 @@ jobs:
             --no-fail-on-empty-changeset \
             --parameter-overrides \
               "OpenAIApiKey=${{ secrets.OPENAI_API_KEY }}" \
-              "S3BucketName=${{ secrets.S3_BUCKET_NAME || 'tima-dashboard-data' }}"
+              "S3BucketName=${{ secrets.S3_BUCKET_NAME || 'stock-dashboard-data' }}"
