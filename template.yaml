@@ -85,14 +85,13 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Ref S3BucketName
       Events:
-        # 자동 스케줄 비활성화 (수동 실행만 사용)
         ScheduleEvent:
           Type: Schedule
           Properties:
-            Schedule: rate(10 minutes)
+            Schedule: cron(0 0 ? * MON *)
             Name: stock-pipeline-schedule
-            Description: (비활성화됨) 자동 스케줄
-            Enabled: false
+            Description: 매주 월요일 오전 9시(KST) 파이프라인 실행
+            Enabled: true
         # 수동 실행용 HTTP API 엔드포인트
         ManualTrigger:
           Type: Api
