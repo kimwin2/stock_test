@@ -2,6 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   Stock Dashboard Backend
+  # S3 bucket: stock-dashboard-data
   - Lambda: 뉴스 크롤링 + ChatGPT 분석 + 종목 데이터
   - EventBridge: 10분 스케줄러
   - S3: dashboard_data.json 저장
