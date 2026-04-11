@@ -145,7 +145,7 @@ function createThemeCard(theme) {
   headlineDiv.className = 'card-headline';
   if (theme.headlineUrl) {
     const a = document.createElement('a');
-    a.href = theme.headlineUrl;
+    a.href = convertNaverUrl(theme.headlineUrl);
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.textContent = theme.headline || '';
@@ -244,6 +244,28 @@ function escapeHTML(str) {
   if (!str) return '';
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
   return String(str).replace(/[&<>"']/g, c => map[c]);
+}
+
+/**
+ * 네이버 금융 뉴스 URL을 모바일에서도 열리는 직접 URL로 변환
+ * finance.naver.com/news/news_read.naver?article_id=XXX&office_id=YYY
+ * → n.news.naver.com/mnews/article/YYY/XXX
+ */
+function convertNaverUrl(url) {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'finance.naver.com' && u.pathname.includes('news_read')) {
+      const articleId = u.searchParams.get('article_id');
+      const officeId = u.searchParams.get('office_id');
+      if (articleId && officeId) {
+        return `https://n.news.naver.com/mnews/article/${officeId}/${articleId}`;
+      }
+    }
+  } catch (e) {
+    // URL 파싱 실패 시 원본 반환
+  }
+  return url;
 }
 
 // ─────────────────────────────────────────┐

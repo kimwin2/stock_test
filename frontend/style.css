@@ -231,20 +231,24 @@ body {
 
 /* Card Headline */
 .card-headline {
-  padding: 5px 10px;
-  font-size: 0.78rem;
+  padding: 8px 10px;
+  font-size: 0.82rem;
   color: var(--text-secondary);
   line-height: 1.4;
   border-bottom: 1px solid #f0f0f0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
 }
 
 .card-headline a {
   color: var(--text-secondary);
   text-decoration: none;
   transition: color 0.15s;
+  display: block;
+  padding: 2px 0;
+  -webkit-tap-highlight-color: rgba(0,137,123,0.15);
 }
 
 .card-headline a:hover {
