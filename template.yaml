@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Stock Dashboard Backend
+  - Lambda: 뉴스 크롤링 + ChatGPT 분석 + 종목 데이터
+  - EventBridge: 10분 스케줄러
+  - S3: dashboard_data.json 저장
+
+# ─────────────────────────────────────────
+# Parameters
+# ─────────────────────────────────────────
+Parameters:
+  OpenAIApiKey:
+    Type: String
+    NoEcho: true
+    Description: OpenAI API Key (sk-...)
+
+  S3BucketName:
+    Type: String
+    Default: stock-dashboard-data
+    Description: S3 bucket name for storing dashboard JSON
+
+# ─────────────────────────────────────────
+# Globals
+# ─────────────────────────────────────────
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 300           # 5분 (크롤링 + API 호출 시간 확보)
+    MemorySize: 512
+    Architectures:
+      - x86_64
+
+# ─────────────────────────────────────────
+# Resources
+# ─────────────────────────────────────────
+Resources:
+
+  # ── S3 Bucket: 대시보드 데이터 저장소 ──
+  DashboardBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET]
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+
+  # ── S3 Bucket Policy: 퍼블릭 읽기 허용 ──
+  DashboardBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DashboardBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${S3BucketName}/*'
+
+  # ── Lambda Function: 파이프라인 실행 ──
+  StockPipelineFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: stock-pipeline
+      CodeUri: backend/
+      Handler: handler.lambda_handler
+      Description: Stock 뉴스 크롤링 + 테마 분석 + S3 업로드 파이프라인
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OpenAIApiKey
+          S3_BUCKET_NAME: !Ref S3BucketName
+          S3_KEY: dashboard_data.json
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref S3BucketName
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(10 minutes)
+            Name: stock-pipeline-schedule
+            Description: 10분마다 Stock 파이프라인 실행
+            Enabled: true
+
+# ─────────────────────────────────────────
+# Outputs
+# ─────────────────────────────────────────
+Outputs:
+  LambdaFunctionArn:
+    Description: Lambda 함수 ARN
+    Value: !GetAtt StockPipelineFunction.Arn
+
+  S3BucketUrl:
+    Description: S3 대시보드 데이터 URL
+    Value: !Sub 'https://${S3BucketName}.s3.ap-northeast-2.amazonaws.com/dashboard_data.json'
+
+  S3BucketName:
+    Description: S3 버킷 이름
+    Value: !Ref DashboardBucket

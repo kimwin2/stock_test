@@ -1,0 +1,109 @@
+{
+  "themes": [
+    {
+      "themeName": "중동사태",
+      "headline": "중동 사태에 자재 비상 '공사 지연' 혼란",
+      "representativeArticleIndex": 13,
+      "relatedStocks": [
+        "현대건설",
+        "삼성물산",
+        "GS건설",
+        "대우건설",
+        "포스코",
+        "SK건설"
+      ],
+      "reasoning": "중동 사태로 인한 자재 공급 차질과 공사 지연 우려가 커지고 있어 건설 관련 주식에 대한 관심이 집중되고 있습니다.",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0001944117&office_id=057&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1"
+    },
+    {
+      "themeName": "AI 기술",
+      "headline": "허태수 회장 'AI를 잘 쓰는 나라로 도약할 때다'",
+      "representativeArticleIndex": 51,
+      "relatedStocks": [
+        "삼성전자",
+        "LG전자",
+        "카카오",
+        "네이버",
+        "SK텔레콤",
+        "한화시스템"
+      ],
+      "reasoning": "AI 기술의 중요성이 강조되면서 관련 기업들의 주가 상승이 기대되고 있습니다.",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0005505934&office_id=014&mode=LSS2D&type=0&section_id=101&section_id2=261&section_id3=&date=20260411&page=1"
+    },
+    {
+      "themeName": "배당주",
+      "headline": "한국GM, 수조 원대 첫 중간 배당 발표",
+      "representativeArticleIndex": 10,
+      "relatedStocks": [
+        "한국GM",
+        "삼성전자",
+        "SK텔레콤",
+        "신한지주",
+        "하나금융지주",
+        "KB금융"
+      ],
+      "reasoning": "중간 배당 발표로 인해 배당주에 대한 투자자들의 관심이 높아지고 있습니다.",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0003711483&office_id=020&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1"
+    },
+    {
+      "themeName": "비트코인",
+      "headline": "비트코인 상승의 진짜 이유, 중동 긴장 완화",
+      "representativeArticleIndex": 11,
+      "relatedStocks": [
+        "두나무",
+        "빗썸",
+        "코인원",
+        "업비트",
+        "카카오",
+        "삼성전자"
+      ],
+      "reasoning": "비트코인의 가격 상승이 중동의 긴장 완화와 관련이 있어 암호화폐 관련 주식에 대한 관심이 증가하고 있습니다.",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0005664347&office_id=009&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1"
+    },
+    {
+      "themeName": "추경",
+      "headline": "전쟁 추경 26.2조 국회 통과",
+      "representativeArticleIndex": 22,
+      "relatedStocks": [
+        "현대건설",
+        "삼성중공업",
+        "LG화학",
+        "SK이노베이션",
+        "포스코",
+        "한화"
+      ],
+      "reasoning": "대규모 추경이 통과되면서 관련 산업에 대한 투자 기대감이 커지고 있습니다.",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0008883322&office_id=421&mode=LSS2D&type=0&section_id=101&section_id2=259&section_id3=&date=20260411&page=1"
+    },
+    {
+      "themeName": "환율",
+      "headline": "환율 못 잡고 떠나는 이창용, 시장 불안감↑",
+      "representativeArticleIndex": 26,
+      "relatedStocks": [
+        "신한은행",
+        "우리은행",
+        "하나은행",
+        "KB국민은행",
+        "NH농협은행",
+        "기업은행"
+      ],
+      "reasoning": "환율 변동성이 커지면서 금융주에 대한 관심이 높아지고 있습니다.",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0000173545&office_id=656&mode=LSS2D&type=0&section_id=101&section_id2=259&section_id3=&date=20260411&page=1"
+    },
+    {
+      "themeName": "소비자 물가",
+      "headline": "美 3월 CPI 예상치 하회, 불확실성↑",
+      "representativeArticleIndex": 5,
+      "relatedStocks": [
+        "이마트",
+        "롯데쇼핑",
+        "신세계",
+        "CJ제일제당",
+        "하이트진로",
+        "오리온"
+      ],
+      "reasoning": "소비자 물가 상승 우려가 커지면서 소비 관련 주식에 대한 관심이 집중되고 있습니다.",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0000490436&office_id=629&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1"
+    }
+  ]
+}

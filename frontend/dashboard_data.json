@@ -1,0 +1,593 @@
+{
+  "updatedAt": "2026-04-11T01:12:09.394472",
+  "themes": [
+    {
+      "themeName": "중동사태",
+      "totalVolume": "5,446억",
+      "headline": "중동 사태에 자재 비상 '공사 지연' 혼란",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0001944117&office_id=057&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1",
+      "stocks": [
+        {
+          "name": "GS건설",
+          "price": 37650,
+          "time": "16:10",
+          "changeRate": 5.91,
+          "volume": "377억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "대우건설",
+          "price": 24300,
+          "time": "16:10",
+          "changeRate": 4.07,
+          "volume": "244억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "삼성물산",
+          "price": 302500,
+          "time": "16:10",
+          "changeRate": 0.83,
+          "volume": "3,030억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "현대건설",
+          "price": 179500,
+          "time": "16:10",
+          "changeRate": -2.13,
+          "volume": "1,796억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "AI 기술",
+      "totalVolume": "5,746억",
+      "headline": "허태수 회장 'AI를 잘 쓰는 나라로 도약할 때다'",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0005505934&office_id=014&mode=LSS2D&type=0&section_id=101&section_id2=261&section_id3=&date=20260411&page=1",
+      "stocks": [
+        {
+          "name": "LG전자",
+          "price": 118400,
+          "time": "16:10",
+          "changeRate": 1.02,
+          "volume": "1,184억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "삼성전자",
+          "price": 206000,
+          "time": "16:10",
+          "changeRate": 0.98,
+          "volume": "2,060억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "카카오",
+          "price": 47700,
+          "time": "16:10",
+          "changeRate": 0.85,
+          "volume": "477억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "NAVER",
+          "price": 202000,
+          "time": "16:10",
+          "changeRate": 0.25,
+          "volume": "2,025억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "배당주",
+      "totalVolume": "3,978억",
+      "headline": "한국GM, 수조 원대 첫 중간 배당 발표",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0003711483&office_id=020&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1",
+      "stocks": [
+        {
+          "name": "신한지주",
+          "price": 98700,
+          "time": "16:10",
+          "changeRate": 2.17,
+          "volume": "987억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "삼성전자",
+          "price": 206000,
+          "time": "16:10",
+          "changeRate": 0.98,
+          "volume": "2,060억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "한국GM",
+          "price": 0,
+          "time": "",
+          "changeRate": 0.0,
+          "volume": "0억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              40,
+              60
+            ],
+            "baseline": 50
+          }
+        },
+        {
+          "name": "SK텔레콤",
+          "price": 93000,
+          "time": "16:10",
+          "changeRate": -0.85,
+          "volume": "931억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "비트코인",
+      "totalVolume": "0억",
+      "headline": "비트코인 상승의 진짜 이유, 중동 긴장 완화",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0005664347&office_id=009&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1",
+      "stocks": [
+        {
+          "name": "두나무",
+          "price": 0,
+          "time": "",
+          "changeRate": 0.0,
+          "volume": "0억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              40,
+              60
+            ],
+            "baseline": 50
+          }
+        },
+        {
+          "name": "빗썸",
+          "price": 0,
+          "time": "",
+          "changeRate": 0.0,
+          "volume": "0억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              40,
+              60
+            ],
+            "baseline": 50
+          }
+        },
+        {
+          "name": "코인원",
+          "price": 0,
+          "time": "",
+          "changeRate": 0.0,
+          "volume": "0억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              40,
+              60
+            ],
+            "baseline": 50
+          }
+        },
+        {
+          "name": "업비트",
+          "price": 0,
+          "time": "",
+          "changeRate": 0.0,
+          "volume": "0억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              40,
+              60
+            ],
+            "baseline": 50
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "추경",
+      "totalVolume": "6,866억",
+      "headline": "전쟁 추경 26.2조 국회 통과",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0008883322&office_id=421&mode=LSS2D&type=0&section_id=101&section_id2=259&section_id3=&date=20260411&page=1",
+      "stocks": [
+        {
+          "name": "삼성중공업",
+          "price": 28550,
+          "time": "16:10",
+          "changeRate": 1.42,
+          "volume": "286억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "LG화학",
+          "price": 356000,
+          "time": "16:10",
+          "changeRate": 0.28,
+          "volume": "3,560억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "SK이노베이션",
+          "price": 122400,
+          "time": "16:10",
+          "changeRate": -1.29,
+          "volume": "1,225억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        },
+        {
+          "name": "현대건설",
+          "price": 179500,
+          "time": "16:10",
+          "changeRate": -2.13,
+          "volume": "1,796억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "환율",
+      "totalVolume": "4,106억",
+      "headline": "환율 못 잡고 떠나는 이창용, 시장 불안감↑",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0000173545&office_id=656&mode=LSS2D&type=0&section_id=101&section_id2=259&section_id3=&date=20260411&page=1",
+      "stocks": [
+        {
+          "name": "우리금융지주",
+          "price": 34150,
+          "time": "16:10",
+          "changeRate": 3.17,
+          "volume": "342억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "KB금융",
+          "price": 158300,
+          "time": "16:10",
+          "changeRate": 2.66,
+          "volume": "1,583억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "신한지주",
+          "price": 98700,
+          "time": "16:10",
+          "changeRate": 2.17,
+          "volume": "987억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "하나금융지주",
+          "price": 119500,
+          "time": "16:10",
+          "changeRate": 2.05,
+          "volume": "1,195억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "소비자 물가",
+      "totalVolume": "7,814억",
+      "headline": "美 3월 CPI 예상치 하회, 불확실성↑",
+      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0000490436&office_id=629&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1",
+      "stocks": [
+        {
+          "name": "CJ제일제당",
+          "price": 238500,
+          "time": "16:10",
+          "changeRate": 2.58,
+          "volume": "2,385억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "이마트",
+          "price": 94400,
+          "time": "16:10",
+          "changeRate": -0.11,
+          "volume": "944억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        },
+        {
+          "name": "신세계",
+          "price": 341000,
+          "time": "16:10",
+          "changeRate": -1.59,
+          "volume": "3,415억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        },
+        {
+          "name": "롯데쇼핑",
+          "price": 106800,
+          "time": "16:10",
+          "changeRate": -3.96,
+          "volume": "1,070억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+# SAM CLI 배포 설정
+# 사용법: sam deploy (--guided 없이 바로 실행 가능)
+
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "stock-dashboard-stack"
+resolve_s3 = true
+s3_prefix = "stock-dashboard"
+region = "ap-northeast-2"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "S3BucketName=\"stock-dashboard-data\""
+
+# Note: OpenAIApiKey는 보안을 위해 커맨드라인에서 전달합니다.
+# sam deploy --parameter-overrides "OpenAIApiKey=sk-..."

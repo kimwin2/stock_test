@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Premium - 주식 테마 대시보드</title>
+  <meta name="description" content="실시간 주식 테마 분석 대시보드. 오늘의 주도 테마와 관련 종목을 한눈에 확인하세요.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ===== Top Header ===== -->
+  <header id="app-header">
+    <div class="header-top">
+      <div class="logo">
+        <span class="logo-stock">Stock</span>
+        <span class="logo-premium">Premium</span>
+        <span class="header-datetime" id="header-datetime">--:--</span>
+      </div>
+      <div class="header-icons">
+        <button class="icon-btn" title="뉴스">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        </button>
+        <button class="icon-btn" title="히스토리">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </button>
+        <button class="icon-btn" title="캘린더">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="종목, 테마명을 입력하세요." readonly>
+      <button class="search-icon" title="검색">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="menu-icon" title="메뉴">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== Main Content ===== -->
+  <main id="theme-grid">
+    <!-- Theme cards will be rendered here by JS -->
+    <div class="loading-state" id="loading-state">
+      <div class="spinner"></div>
+      <p>테마 데이터를 불러오는 중...</p>
+    </div>
+  </main>
+
+  <!-- ===== Bottom Ticker ===== -->
+  <footer id="news-ticker">
+    <div class="ticker-label">TODAY</div>
+    <div class="ticker-track" id="ticker-track">
+      <div class="ticker-content" id="ticker-content">
+        <!-- Headlines scroll here -->
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
