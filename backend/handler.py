@@ -1,7 +1,7 @@
 """
 AWS Lambda Handler for Stock Dashboard Backend Pipeline
 
-EventBridge (10분 스케줄) → 이 함수 실행 → S3에 dashboard_data.json 업로드
+POST /run (수동 실행) → 이 함수 실행 → S3에 dashboard_data.json 업로드
 
 환경변수:
     - OPENAI_API_KEY: OpenAI API 키

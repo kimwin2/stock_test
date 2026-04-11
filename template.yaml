@@ -85,13 +85,20 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Ref S3BucketName
       Events:
+        # 자동 스케줄 비활성화 (수동 실행만 사용)
         ScheduleEvent:
           Type: Schedule
           Properties:
             Schedule: rate(10 minutes)
             Name: stock-pipeline-schedule
-            Description: 10분마다 Stock 파이프라인 실행
-            Enabled: true
+            Description: (비활성화됨) 자동 스케줄
+            Enabled: false
+        # 수동 실행용 HTTP API 엔드포인트
+        ManualTrigger:
+          Type: Api
+          Properties:
+            Path: /run
+            Method: post
 
 # ─────────────────────────────────────────
 # Outputs
@@ -100,6 +107,10 @@ Outputs:
   LambdaFunctionArn:
     Description: Lambda 함수 ARN
     Value: !GetAtt StockPipelineFunction.Arn
+
+  ManualTriggerUrl:
+    Description: 수동 실행 API URL (POST 요청)
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/run'
 
   S3BucketUrl:
     Description: S3 대시보드 데이터 URL
