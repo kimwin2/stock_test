@@ -9,8 +9,13 @@ import sys
 import io
 import json
 import os
+import html
+from functools import lru_cache
 from urllib.parse import urlparse, parse_qs
+
+import requests
 from openai import OpenAI
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 try:
@@ -27,13 +32,41 @@ if sys.stdout.encoding != 'utf-8':
 
 load_dotenv()
 
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+}
+
+
+@lru_cache(maxsize=256)
+def _resolve_original_article_url(naver_article_url: str) -> str:
+    """네이버 뉴스 페이지에서 언론사 원문 링크를 추출합니다."""
+    if not naver_article_url:
+        return ""
+
+    try:
+        resp = requests.get(naver_article_url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "lxml")
+
+        origin_link = soup.select_one("a.media_end_head_origin_link")
+        if origin_link:
+            href = html.unescape(origin_link.get("href", "")).strip()
+            if href:
+                return href
+    except Exception:
+        pass
+
+    return naver_article_url
+
 
 def _convert_to_article_url(url: str) -> str:
     """
-    네이버 금융 뉴스 URL을 원본 기사 URL(네이버뉴스)로 변환합니다.
+    네이버 금융 뉴스 URL을 언론사 원문 기사 URL로 변환합니다.
 
     finance.naver.com/news/news_read.naver?article_id=XXX&office_id=YYY
     → https://n.news.naver.com/mnews/article/YYY/XXX
+    → 언론사 원문 URL
     """
     if not url:
         return ""
@@ -44,7 +77,10 @@ def _convert_to_article_url(url: str) -> str:
             article_id = params.get("article_id", [""])[0]
             office_id = params.get("office_id", [""])[0]
             if article_id and office_id:
-                return f"https://n.news.naver.com/mnews/article/{office_id}/{article_id}"
+                naver_article_url = f"https://n.news.naver.com/mnews/article/{office_id}/{article_id}"
+                return _resolve_original_article_url(naver_article_url)
+        if "n.news.naver.com" in (parsed.hostname or ""):
+            return _resolve_original_article_url(url)
     except Exception:
         pass
     return url
