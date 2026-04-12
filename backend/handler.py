@@ -24,9 +24,14 @@ if sys.stdout.encoding != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # 모듈 임포트
-from crawler import crawl_naver_finance_news, crawl_market_news_list
-from analyzer import analyze_themes
-from stock_data import get_stock_details_for_themes
+try:
+    from crawler import crawl_naver_finance_news_with_fallback
+    from analyzer import analyze_themes
+    from stock_data import get_stock_details_for_themes
+except ModuleNotFoundError:
+    from .crawler import crawl_naver_finance_news_with_fallback
+    from .analyzer import analyze_themes
+    from .stock_data import get_stock_details_for_themes
 
 
 def upload_to_s3(data: dict, bucket: str, key: str) -> str:
@@ -75,13 +80,7 @@ def lambda_handler(event, context):
     try:
         # ── Step 1: 뉴스 크롤링 ──
         print("\n[Step 1] 네이버 금융 뉴스 크롤링")
-        articles = crawl_naver_finance_news(200)
-
-        if len(articles) < 100:
-            print(f"  [!] {len(articles)}개만 수집됨. 시장뉴스로 보충합니다.")
-            more = crawl_market_news_list(200 - len(articles))
-            articles.extend(more)
-            articles = articles[:200]
+        articles = crawl_naver_finance_news_with_fallback(200)
 
         if not articles:
             return {

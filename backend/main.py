@@ -20,9 +20,14 @@ if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-from crawler import crawl_naver_finance_news, crawl_market_news_list, save_articles, load_articles
-from analyzer import analyze_themes, save_analysis, load_analysis
-from stock_data import get_stock_details_for_themes
+try:
+    from crawler import crawl_naver_finance_news_with_fallback, save_articles, load_articles
+    from analyzer import analyze_themes, save_analysis, load_analysis
+    from stock_data import get_stock_details_for_themes
+except ModuleNotFoundError:
+    from .crawler import crawl_naver_finance_news_with_fallback, save_articles, load_articles
+    from .analyzer import analyze_themes, save_analysis, load_analysis
+    from .stock_data import get_stock_details_for_themes
 
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -53,14 +58,7 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
         print(f"   로드된 기사: {len(articles)}개")
     else:
         print("\n[Step 1] 네이버 금융 뉴스 크롤링")
-        articles = crawl_naver_finance_news(200)
-
-        # 기사가 부족하면 보충
-        if len(articles) < 100:
-            print(f"\n   [!] 메인뉴스에서 {len(articles)}개만 수집됨. 시장뉴스로 보충합니다.")
-            more = crawl_market_news_list(200 - len(articles))
-            articles.extend(more)
-            articles = articles[:200]
+        articles = crawl_naver_finance_news_with_fallback(200)
 
         save_articles(articles)
 
