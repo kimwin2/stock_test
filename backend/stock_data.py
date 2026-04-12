@@ -14,6 +14,8 @@ import time
 import re
 import os
 from functools import lru_cache
+from datetime import datetime, time as dt_time
+from zoneinfo import ZoneInfo
 from typing import Optional, List, Dict
 
 # Windows cp949 콘솔 인코딩 문제 해결
@@ -26,6 +28,8 @@ HEADERS = {
                   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Referer": "https://finance.naver.com/",
 }
+
+KST = ZoneInfo("Asia/Seoul")
 
 THEME_STOCK_UNIVERSE = {
     "반도체": [
@@ -357,6 +361,26 @@ def get_stock_detail_mobile(stock_code: str) -> Optional[dict]:
             match = re.search(r"(\d{2}):(\d{2})", local_traded_at)
             if match:
                 time_str = f"{match.group(1)}:{match.group(2)}"
+
+        # 15:30 이후에는 NXT(시간외 단일가/대체거래) 가격이 있으면 우선 반영
+        now_kst = datetime.now(KST).time()
+        over_market_info = data.get("overMarketPriceInfo") or {}
+        if now_kst >= dt_time(15, 30) and over_market_info.get("overPrice"):
+            over_price = int(over_market_info.get("overPrice", "0").replace(",", ""))
+            over_change_price = int(over_market_info.get("compareToPreviousClosePrice", "0").replace(",", ""))
+            over_change_rate = float(over_market_info.get("fluctuationsRatio", "0").replace(",", ""))
+            over_local_traded_at = over_market_info.get("localTradedAt", "")
+
+            if over_price > 0:
+                price = over_price
+                change_price = over_change_price
+                change_rate = over_change_rate
+                prev_close = price - change_price
+
+                if over_local_traded_at:
+                    match = re.search(r"(\d{2}):(\d{2})", over_local_traded_at)
+                    if match:
+                        time_str = f"{match.group(1)}:{match.group(2)}"
 
         # 시가/고가/저가 추정 (basic API에는 없으므로 등락률 기반 추정)
         # 상승종목: 시가 < 현재가, 하락종목: 시가 > 현재가
