@@ -105,5 +105,64 @@
       "reasoning": "소비자 물가 상승 우려가 커지면서 소비 관련 주식에 대한 관심이 집중되고 있습니다.",
       "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0000490436&office_id=629&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1"
     }
+  ],
+  "youtubeSignals": [
+    {
+      "signal_type": "내일",
+      "title": "내일 관심테마! 햇지,반도체,광통신,2차전지,원전,재건,개별주/ 삼성전자,SK하이닉스,삼천당제약,대한광통신,대우건설,신성이엔지,퍼스텍대한해운,흥아해운,삼성전기,GS건설,LIG넥스원",
+      "video_url": "https://www.youtube.com/watch?v=aFqPYqx_IU4",
+      "upload_date": "20260412",
+      "sectors": [
+        "햇지",
+        "반도체",
+        "광통신",
+        "2차전지",
+        "원전",
+        "재건",
+        "개별주"
+      ],
+      "stocks": [
+        "삼성전자",
+        "SK하이닉스",
+        "삼천당제약",
+        "대한광통신",
+        "대우건설",
+        "신성이엔지",
+        "흥아해운",
+        "삼성전기",
+        "GS건설",
+        "LIG넥스원",
+        "퍼스텍",
+        "대한해운"
+      ]
+    },
+    {
+      "signal_type": "당일",
+      "title": "당일 관심테마! 반도체,광통신,2차전지,원전,재건,개별주/ 삼성전자,SK하이닉스,삼천당제약대우건설,광전자LIG넥스원,퍼스텍,SK이터닉스,넥스틸,삼성E&A,삼성SDI,한화솔루션",
+      "video_url": "https://www.youtube.com/watch?v=ok9GKvD6UsQ",
+      "upload_date": "20260409",
+      "sectors": [
+        "반도체",
+        "광통신",
+        "2차전지",
+        "원전",
+        "재건",
+        "개별주"
+      ],
+      "stocks": [
+        "삼성전자",
+        "SK하이닉스",
+        "퍼스텍",
+        "SK이터닉스",
+        "넥스틸",
+        "삼성E&A",
+        "삼성SDI",
+        "한화솔루션",
+        "삼천당제약",
+        "대우건설",
+        "광전자",
+        "LIG넥스원"
+      ]
+    }
   ]
 }

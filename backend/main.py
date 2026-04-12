@@ -99,6 +99,7 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
     print("\n[Step 4] 최종 JSON 조립")
     dashboard_data = {
         "updatedAt": datetime.now().isoformat(),
+        "youtubeSignals": analysis.get("youtubeSignals", []),
         "themes": completed_themes,
     }
 
