@@ -19,10 +19,12 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 try:
+    from mover_signals import fetch_mover_signals
     from stock_data import STOCK_CODE_MAP
     from stock_data import THEME_STOCK_UNIVERSE
     from youtube_signals import fetch_latest_youtube_theme_signals
 except ModuleNotFoundError:
+    from .mover_signals import fetch_mover_signals
     from .stock_data import STOCK_CODE_MAP
     from .stock_data import THEME_STOCK_UNIVERSE
     from .youtube_signals import fetch_latest_youtube_theme_signals
@@ -112,6 +114,7 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
    - ◆ 표시가 된 기사는 유튜브 외부 시그널과 직접 겹치는 기사이므로 매우 높은 가중치를 부여하세요
    - `심플 관심종목 TV`의 최신 `내일 관심테마!` 및 `당일 관심테마!` 영상은 고신뢰 선행 시그널입니다. 뉴스와 겹치면 최우선 반영하고, 일부만 겹쳐도 강하게 반영하세요
    - 상한가, 20% 이상 급등, 특징주, 거래대금 급증이 확인되는 기사/종목은 반드시 강하게 반영하세요
+   - 별도로 제공되는 `상한가/초급등 종목 시그널`은 무조건 먼저 검토하세요. 해당 종목의 당일 관련 뉴스가 있으면 그 뉴스에서 테마를 추론해 주도 섹터 후보에 포함하세요
    
 2. **테마 배제 기준 (반드시 준수)**:
    - 단순 정부 정책 발표나 사회적 갈등 이슈는 테마로 선정하지 마세요
@@ -138,6 +141,9 @@ USER_PROMPT_TEMPLATE = """아래는 오늘({date}) 수집된 증권 뉴스 기�
 
 === 외부 고신뢰 시그널: 심플 관심종목 TV ===
 {youtube_text}
+
+=== 상한가/초급등 종목 시그널 ===
+{mover_text}
 
 === 뉴스 기사 목록 ===
 {articles_text}
@@ -212,11 +218,54 @@ def _sanitize_related_stocks(theme: dict) -> None:
     theme["relatedStocks"] = sanitized
 
 
+def merge_mover_signals_into_themes(themes: list[dict], mover_signals: list[dict]) -> None:
+    for theme in themes:
+        theme_name = theme.get("themeName", "").replace(" ", "")
+        stocks = theme.get("relatedStocks", [])
+
+        for signal in mover_signals:
+            stock_name = signal.get("stock_name", "")
+            suggested_themes = [t.replace(" ", "") for t in signal.get("suggested_themes", [])]
+            universe_matches = any(
+                stock_name in universe
+                for key, universe in THEME_STOCK_UNIVERSE.items()
+                if key.replace(" ", "") in theme_name or theme_name in key.replace(" ", "")
+            )
+            signal_matches_theme = any(
+                suggested in theme_name or theme_name in suggested
+                for suggested in suggested_themes
+            )
+
+            if (universe_matches or signal_matches_theme) and stock_name not in stocks:
+                stocks.insert(0, stock_name)
+
+        deduped = []
+        for stock in stocks:
+            if stock not in deduped:
+                deduped.append(stock)
+        theme["relatedStocks"] = deduped
+
+
 def build_stock_candidate_prompt_block() -> str:
     lines = []
     for theme_name, stocks in THEME_STOCK_UNIVERSE.items():
         stock_text = ", ".join(stocks)
         lines.append(f"- {theme_name}: {stock_text}")
+    return "\n".join(lines)
+
+
+def format_mover_signals_for_prompt(mover_signals: list[dict]) -> str:
+    if not mover_signals:
+        return "해당 없음"
+
+    lines = []
+    for signal in mover_signals:
+        matched_articles = " / ".join(signal.get("matched_articles", [])[:2]) or "관련 기사 없음"
+        suggested_themes = ", ".join(signal.get("suggested_themes", [])) or "추론 전"
+        lines.append(
+            f"- {signal['stock_name']} ({signal['market']}, {signal['change_rate']:.2f}%, {signal['status']})"
+            f" | 추정테마: {suggested_themes} | 당일뉴스: {matched_articles}"
+        )
     return "\n".join(lines)
 
 
@@ -332,14 +381,17 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
     client = get_openai_client()
 
     youtube_signals = _get_youtube_signals()
+    mover_signals = fetch_mover_signals(articles)
     stock_candidate_block = build_stock_candidate_prompt_block()
     youtube_text = format_youtube_signals_for_prompt(youtube_signals)
+    mover_text = format_mover_signals_for_prompt(mover_signals)
     sorted_articles = sort_articles_for_prompt(articles, youtube_signals)
     articles_text = format_articles_for_prompt(sorted_articles, youtube_signals)
     user_prompt = USER_PROMPT_TEMPLATE.format(
         date=date_str,
         count=len(sorted_articles),
         youtube_text=youtube_text,
+        mover_text=mover_text,
         articles_text=articles_text,
         stock_candidate_block=stock_candidate_block,
     )
@@ -365,6 +417,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
         result = json.loads(result_text)
         result["youtubeSignals"] = youtube_signals
+        result["moverSignals"] = mover_signals
 
         # 검증: themes 키 존재 및 5개인지
         if "themes" not in result:
@@ -375,6 +428,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
             print(f"  [!] 테마가 {len(themes)}개만 추출되었습니다 (목표: 7개)")
 
          # 각 테마 검증 및 대표 기사 URL 매핑
+        merge_mover_signals_into_themes(themes, mover_signals)
         for theme in themes:
             _sanitize_related_stocks(theme)
             if "themeName" not in theme:
