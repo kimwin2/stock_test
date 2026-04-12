@@ -306,6 +306,81 @@ def get_theme_stock_candidates(theme_name: str, related_stocks: list[str] | None
 
     return candidates
 
+def _max_overlap_with_previous_themes(stock_names: list[str], previous_theme_sets: list[set[str]]) -> int:
+    if not previous_theme_sets:
+        return 0
+    current = set(stock_names)
+    return max(len(current & previous) for previous in previous_theme_sets)
+
+
+def _select_theme_stocks(
+    stock_details: list[dict],
+    used_stock_counts: dict[str, int],
+    previous_theme_sets: list[set[str]],
+    limit: int = 4,
+) -> list[dict]:
+    if not stock_details:
+        return []
+
+    ordered_pool = sorted(
+        stock_details,
+        key=lambda stock: (
+            used_stock_counts.get(stock["name"], 0),
+            -stock["changeRate"],
+            -stock.get("volumeRaw", 0),
+        ),
+    )
+
+    selected = []
+    selected_names = set()
+
+    for stock in ordered_pool:
+        if stock["name"] in selected_names:
+            continue
+        selected.append(stock)
+        selected_names.add(stock["name"])
+        if len(selected) == limit:
+            break
+
+    if len(selected) < limit:
+        for stock in stock_details:
+            if stock["name"] in selected_names:
+                continue
+            selected.append(stock)
+            selected_names.add(stock["name"])
+            if len(selected) == limit:
+                break
+
+    while previous_theme_sets and _max_overlap_with_previous_themes([stock["name"] for stock in selected], previous_theme_sets) >= 3:
+        overlap_before = _max_overlap_with_previous_themes([stock["name"] for stock in selected], previous_theme_sets)
+        replaced = False
+
+        for index, existing in enumerate(selected):
+            for candidate in ordered_pool:
+                if candidate["name"] in selected_names:
+                    continue
+
+                trial = list(selected)
+                trial[index] = candidate
+                trial_names = [stock["name"] for stock in trial]
+                overlap_after = _max_overlap_with_previous_themes(trial_names, previous_theme_sets)
+
+                if overlap_after < overlap_before:
+                    selected_names.remove(existing["name"])
+                    selected_names.add(candidate["name"])
+                    selected = trial
+                    replaced = True
+                    break
+
+            if replaced:
+                break
+
+        if not replaced:
+            break
+
+    return selected[:limit]
+
+
 def get_stock_detail(stock_code: str) -> Optional[dict]:
     """
     네이버 금융에서 종목 상세 데이터를 조회합니다.
@@ -362,10 +437,11 @@ def get_stock_detail_mobile(stock_code: str) -> Optional[dict]:
             if match:
                 time_str = f"{match.group(1)}:{match.group(2)}"
 
-        # 15:30 이후에는 NXT(시간외 단일가/대체거래) 가격이 있으면 우선 반영
+        # NXT 장 시간(08:00~09:00, 15:30 이후)에는 NXT 가격이 있으면 우선 반영
         now_kst = datetime.now(KST).time()
         over_market_info = data.get("overMarketPriceInfo") or {}
-        if now_kst >= dt_time(15, 30) and over_market_info.get("overPrice"):
+        is_nxt_session = dt_time(8, 0) <= now_kst < dt_time(9, 0) or now_kst >= dt_time(15, 30)
+        if is_nxt_session and over_market_info.get("overPrice"):
             over_price = int(over_market_info.get("overPrice", "0").replace(",", ""))
             over_change_price = int(over_market_info.get("compareToPreviousClosePrice", "0").replace(",", ""))
             over_change_rate = float(over_market_info.get("fluctuationsRatio", "0").replace(",", ""))
@@ -625,6 +701,8 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
     """
     result_themes = []
     detail_cache: dict[str, dict | None] = {}
+    used_stock_counts: dict[str, int] = {}
+    previous_theme_sets: list[set[str]] = []
 
     for theme in themes:
         theme_name = theme["themeName"]
@@ -684,12 +762,19 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
         # 급등주를 더 강하게 반영하도록 등락률 우선, 거래대금 보조 정렬
         stock_details.sort(key=lambda x: (x["changeRate"], x.get("volumeRaw", 0)), reverse=True)
 
-        # 너무 많을 수 있으니 상위 6개 후보까지만 유지
-        stock_details = stock_details[:6]
+        # 너무 많을 수 있으니 상위 10개 후보까지만 유지
+        stock_details = stock_details[:10]
+        selected_stocks = _select_theme_stocks(stock_details, used_stock_counts, previous_theme_sets)
 
         # 1위 종목은 isTop = True
-        if stock_details:
-            stock_details[0]["isTop"] = True
+        if selected_stocks:
+            selected_stocks[0]["isTop"] = True
+
+        selected_names = {stock["name"] for stock in selected_stocks}
+        for stock_name in selected_names:
+            used_stock_counts[stock_name] = used_stock_counts.get(stock_name, 0) + 1
+        if selected_names:
+            previous_theme_sets.append(selected_names)
 
         # 4개 미만이면 패스하지 않고 있는 만큼만
         result_themes.append({
@@ -699,7 +784,7 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
             "headlineUrl": theme.get("headlineUrl", ""),
             "stocks": [
                 {k: v for k, v in stock.items() if k != "volumeRaw"}
-                for stock in stock_details[:4]
+                for stock in selected_stocks
             ],
         })
 
