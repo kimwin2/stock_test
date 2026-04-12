@@ -26,6 +26,51 @@ HEADERS = {
     "Referer": "https://finance.naver.com/",
 }
 
+THEME_STOCK_UNIVERSE = {
+    "반도체": [
+        "삼성전자", "SK하이닉스", "한미반도체", "하나마이크론", "원익IPS",
+        "주성엔지니어링", "피에스케이", "리노공업", "이오테크닉스", "삼성전기",
+        "DB하이텍", "넥스틴", "서진시스템", "티에스이",
+    ],
+    "AI 반도체": [
+        "삼성전자", "SK하이닉스", "한미반도체", "리노공업", "이오테크닉스",
+        "하나마이크론", "원익IPS", "주성엔지니어링", "피에스케이", "DB하이텍",
+        "삼성전기", "넥스틴",
+    ],
+    "광통신": [
+        "대한광통신", "기산텔레콤", "티엠씨", "오이솔루션", "쏠리드",
+        "옵티시스", "코위버", "광전자", "머큐리", "빛과전자", "이노와이어리스",
+    ],
+    "2차전지": [
+        "삼성SDI", "LG에너지솔루션", "LG화학", "엘앤에프", "에코프로",
+        "에코프로머티", "포스코퓨처엠", "한화솔루션",
+    ],
+    "원전": [
+        "두산에너빌리티", "한국전력", "한전KPS", "현대건설",
+        "GS건설", "대우건설", "삼성물산", "LS일렉트릭", "효성중공업",
+    ],
+    "건설": [
+        "대우건설", "GS건설", "현대건설", "삼성물산", "DL이앤씨",
+        "삼성E&A", "한신공영", "전진건설", "전진건설로봇",
+    ],
+    "재건": [
+        "대우건설", "GS건설", "현대건설", "삼성물산", "DL이앤씨",
+        "삼성E&A", "한신공영", "전진건설", "전진건설로봇",
+    ],
+    "방산": [
+        "LIG넥스원", "한화에어로스페이스", "한화시스템", "현대로템",
+        "퍼스텍", "풍산", "풍산홀딩스", "한국항공우주",
+    ],
+    "에너지": [
+        "한화솔루션", "두산에너빌리티", "효성중공업", "LS일렉트릭",
+        "HD현대일렉트릭", "일진전기", "SK이터닉스", "신성이엔지",
+    ],
+    "바이오": [
+        "삼천당제약", "알테오젠", "HLB", "셀트리온", "유한양행",
+        "녹십자", "삼성바이오로직스",
+    ],
+}
+
 
 # 주요 한국 상장종목 코드 매핑 (자주 사용되는 종목)
 STOCK_CODE_MAP = {
@@ -172,6 +217,29 @@ def search_stock_code_online(stock_name: str) -> Optional[str]:
 
     print(f"  [!] {stock_name} 종목코드를 찾을 수 없습니다.")
     return None
+
+
+def get_theme_stock_candidates(theme_name: str, related_stocks: list[str] | None = None) -> list[str]:
+    """테마명에 맞는 한국 상장 종목 후보군을 반환합니다."""
+    related_stocks = related_stocks or []
+    candidates = []
+
+    for stock in related_stocks:
+        if stock in STOCK_CODE_MAP and stock not in candidates:
+            candidates.append(stock)
+
+    matched_universe = []
+    lowered_theme = theme_name.replace(" ", "")
+    for key, stocks in THEME_STOCK_UNIVERSE.items():
+        key_compact = key.replace(" ", "")
+        if key_compact in lowered_theme or lowered_theme in key_compact:
+            matched_universe.extend(stocks)
+
+    for stock in matched_universe:
+        if stock not in candidates:
+            candidates.append(stock)
+
+    return candidates
 
 def get_stock_detail(stock_code: str) -> Optional[dict]:
     """
@@ -471,18 +539,20 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
         프론트엔드용 완성된 테마 데이터 리스트
     """
     result_themes = []
+    detail_cache: dict[str, dict | None] = {}
 
     for theme in themes:
         theme_name = theme["themeName"]
         headline = theme.get("headline", "")
         related_stocks = theme.get("relatedStocks", [])
+        candidate_stocks = get_theme_stock_candidates(theme_name, related_stocks)
 
         print(f"\n[INFO] 테마 '{theme_name}' 종목 데이터 조회 중...")
 
         stock_details = []
         total_volume = 0
 
-        for stock_name in related_stocks:
+        for stock_name in candidate_stocks:
             print(f"  [>] {stock_name} 검색 중...")
 
             # 1. 종목코드 검색
@@ -492,7 +562,11 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
                 continue
 
             # 2. 종목 상세 데이터 조회
-            detail = get_stock_detail(code)
+            if code in detail_cache:
+                detail = detail_cache[code]
+            else:
+                detail = get_stock_detail(code)
+                detail_cache[code] = detail
             if not detail:
                 continue
 
@@ -511,20 +585,22 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
                 "time": detail.get("time", ""),
                 "changeRate": detail["changeRate"],
                 "volume": detail["volume"],
+                "volumeRaw": detail.get("volumeRaw", 0),
                 "isTop": False,  # 나중에 정렬 후 설정
                 "barData": bar_data,
             }
 
-            stock_details.append(stock_item)
+            if not any(item["name"] == stock_item["name"] for item in stock_details):
+                stock_details.append(stock_item)
             total_volume += detail.get("volumeRaw", 0)
 
             time.sleep(0.1)  # 요청 간격
 
-            if len(stock_details) >= 4:
-                break  # 테마당 4개만
+        # 급등주를 더 강하게 반영하도록 등락률 우선, 거래대금 보조 정렬
+        stock_details.sort(key=lambda x: (x["changeRate"], x.get("volumeRaw", 0)), reverse=True)
 
-        # 등락률 기준 정렬 (높은 순)
-        stock_details.sort(key=lambda x: x["changeRate"], reverse=True)
+        # 너무 많을 수 있으니 상위 6개 후보까지만 유지
+        stock_details = stock_details[:6]
 
         # 1위 종목은 isTop = True
         if stock_details:
@@ -536,7 +612,10 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
             "totalVolume": format_volume(total_volume),
             "headline": headline,
             "headlineUrl": theme.get("headlineUrl", ""),
-            "stocks": stock_details[:4],
+            "stocks": [
+                {k: v for k, v in stock.items() if k != "volumeRaw"}
+                for stock in stock_details[:4]
+            ],
         })
 
         print(f"  [OK] {theme_name}: {len(stock_details)}개 종목 데이터 수집 완료")
