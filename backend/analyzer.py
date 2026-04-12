@@ -13,6 +13,13 @@ from urllib.parse import urlparse, parse_qs
 from openai import OpenAI
 from dotenv import load_dotenv
 
+try:
+    from stock_data import STOCK_CODE_MAP
+    from youtube_signals import fetch_latest_youtube_theme_signals
+except ModuleNotFoundError:
+    from .stock_data import STOCK_CODE_MAP
+    from .youtube_signals import fetch_latest_youtube_theme_signals
+
 # Windows cp949 콘솔 인코딩 문제 해결
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
@@ -57,12 +64,14 @@ def get_openai_client() -> OpenAI:
 SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다. 단타 트레이딩에 특화되어 있으며, 
 뉴스를 분석하여 당일 주도 테마를 정확히 파악하는 능력이 뛰어납니다.
 
-오늘 수집된 증권 뉴스 기사들을 분석하여 다음을 수행하세요:
+오늘 수집된 증권 뉴스 기사들과 외부 고신뢰 시그널을 분석하여 다음을 수행하세요:
 
 1. **테마 7개 추출**: 오늘 가장 주목받는 투자 테마 7개를 선정합니다.
    - 기사에서 반복적으로 언급되는 섹터/이슈를 테마로 선정
    - 거래대금이 몰릴 만한 핫한 테마를 우선 선정
    - ★ 표시가 된 기사는 실제 주가 움직임이 확인된 기사이므로 테마 선정 시 더 높은 가중치를 부여하세요
+   - ◆ 표시가 된 기사는 유튜브 외부 시그널과 직접 겹치는 기사이므로 매우 높은 가중치를 부여하세요
+   - `심플 관심종목 TV`의 최신 `내일 관심테마!` 및 `당일 관심테마!` 영상은 고신뢰 선행 시그널입니다. 뉴스와 겹치면 최우선 반영하고, 일부만 겹쳐도 강하게 반영하세요
    
 2. **테마 배제 기준 (반드시 준수)**:
    - 단순 정부 정책 발표나 사회적 갈등 이슈는 테마로 선정하지 마세요
@@ -82,6 +91,9 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
 
 USER_PROMPT_TEMPLATE = """아래는 오늘({date}) 수집된 증권 뉴스 기사 {count}개입니다. 
 분석하여 오늘의 주도 테마 7개를 추출해주세요.
+
+=== 외부 고신뢰 시그널: 심플 관심종목 TV ===
+{youtube_text}
 
 === 뉴스 기사 목록 ===
 {articles_text}
@@ -109,35 +121,84 @@ def _is_priority_article(title: str) -> bool:
     return any(kw in title for kw in PRIORITY_KEYWORDS)
 
 
-def format_articles_for_prompt(articles: list[dict]) -> str:
+def _get_youtube_signals() -> list[dict]:
+    try:
+        return fetch_latest_youtube_theme_signals(list(STOCK_CODE_MAP.keys()))
+    except Exception as e:
+        print(f"  [!] 유튜브 시그널 수집 실패: {e}")
+        return []
+
+
+def _get_youtube_keywords(youtube_signals: list[dict]) -> set[str]:
+    keywords = set()
+    for signal in youtube_signals:
+        keywords.update(signal.get("sectors", []))
+        keywords.update(signal.get("stocks", []))
+    return {keyword for keyword in keywords if keyword}
+
+
+def _is_youtube_weighted_article(article: dict, youtube_keywords: set[str]) -> bool:
+    haystack = " ".join([
+        article.get("title", ""),
+        article.get("summary", ""),
+        article.get("source", ""),
+    ])
+    return any(keyword in haystack for keyword in youtube_keywords)
+
+
+def format_youtube_signals_for_prompt(youtube_signals: list[dict]) -> str:
+    if not youtube_signals:
+        return "수집 실패 또는 해당 영상 없음"
+
+    lines = []
+    for signal in youtube_signals:
+        sectors = ", ".join(signal.get("sectors", []))
+        stocks = ", ".join(signal.get("stocks", []))
+        lines.append(
+            f"- {signal['signal_type']} 관심테마"
+            f" (업로드일 {signal.get('upload_date', '미상')}, URL: {signal.get('video_url', '')})"
+            f" | 섹터: {sectors} | 종목: {stocks}"
+        )
+    return "\n".join(lines)
+
+
+def format_articles_for_prompt(articles: list[dict], youtube_signals: list[dict] | None = None) -> str:
     """
     기사 리스트를 프롬프트에 넣을 텍스트로 변환합니다.
     [특징주], 강세, 상한가, 급등 등의 키워드가 포함된 기사를 최상단에 배치하고
     ★ 마커를 붙여 ChatGPT가 가중치를 줄 수 있도록 합니다.
     """
+    youtube_keywords = _get_youtube_keywords(youtube_signals or [])
+
     # 우선순위 기사와 일반 기사 분리
+    youtube_priority = []
     priority = []
     normal = []
     for article in articles:
         title = article.get("title", "").strip()
-        if _is_priority_article(title):
+        if _is_youtube_weighted_article(article, youtube_keywords):
+            youtube_priority.append(article)
+        elif _is_priority_article(title):
             priority.append(article)
         else:
             normal.append(article)
 
-    # 우선순위 기사를 앞에 배치
-    sorted_articles = priority + normal
+    # 유튜브 겹침 기사 > 우선순위 기사 > 일반 기사 순으로 배치
+    sorted_articles = youtube_priority + priority + normal
 
     lines = []
     for i, article in enumerate(sorted_articles, 1):
         title = article.get("title", "").strip()
         summary = article.get("summary", "").strip()
-        marker = "★" if _is_priority_article(title) else ""
+        is_youtube_weighted = _is_youtube_weighted_article(article, youtube_keywords)
+        marker = "◆" if is_youtube_weighted else ("★" if _is_priority_article(title) else "")
         if summary:
             lines.append(f"{i}. {marker}[{title}] {summary}")
         else:
             lines.append(f"{i}. {marker}{title}")
 
+    if youtube_priority:
+        print(f"  [◆] 유튜브 시그널 연관 기사 {len(youtube_priority)}개를 최상단에 배치했습니다.")
     if priority:
         print(f"  [★] 우선순위 기사 {len(priority)}개를 최상단에 배치했습니다.")
 
@@ -170,10 +231,13 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
     client = get_openai_client()
 
-    articles_text = format_articles_for_prompt(articles)
+    youtube_signals = _get_youtube_signals()
+    youtube_text = format_youtube_signals_for_prompt(youtube_signals)
+    articles_text = format_articles_for_prompt(articles, youtube_signals)
     user_prompt = USER_PROMPT_TEMPLATE.format(
         date=date_str,
         count=len(articles),
+        youtube_text=youtube_text,
         articles_text=articles_text,
     )
 
@@ -197,6 +261,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         print(f"  [>] 토큰 사용: input={response.usage.prompt_tokens}, output={response.usage.completion_tokens}")
 
         result = json.loads(result_text)
+        result["youtubeSignals"] = youtube_signals
 
         # 검증: themes 키 존재 및 5개인지
         if "themes" not in result:
