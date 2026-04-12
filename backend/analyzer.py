@@ -10,6 +10,7 @@ import io
 import json
 import os
 import html
+import re
 from functools import lru_cache
 from urllib.parse import urlparse, parse_qs
 
@@ -216,6 +217,62 @@ def _sanitize_related_stocks(theme: dict) -> None:
         if _is_korean_listed_stock(stock) and stock not in sanitized:
             sanitized.append(stock)
     theme["relatedStocks"] = sanitized
+
+
+def _normalize_theme_name(theme_name: str) -> str:
+    compact = re.sub(r"\s+", "", (theme_name or "")).lower()
+    replacements = {
+        "\uc778\uacf5\uc9c0\ub2a5": "ai",
+        "\uc5d0\uc774\uc544\uc774": "ai",
+        "\ubc18\ub3c4\uccb4": "semiconductor",
+        "\uad11\ud1b5\uc2e0": "optical",
+        "\uc18c\ubd80\uc7a5": "materials",
+    }
+    for source, target in replacements.items():
+        compact = compact.replace(source, target)
+    return compact
+
+
+def _theme_family_key(theme_name: str) -> str:
+    normalized = _normalize_theme_name(theme_name)
+    if "semiconductor" in normalized and "ai" in normalized:
+        return "ai_semiconductor"
+    if "semiconductor" in normalized:
+        return "semiconductor"
+    return normalized
+
+
+def _should_skip_as_duplicate_theme(theme: dict, kept_themes: list[dict]) -> bool:
+    current_name = theme.get("themeName", "")
+    current_family = _theme_family_key(current_name)
+    current_normalized = _normalize_theme_name(current_name)
+    current_stocks = set(theme.get("relatedStocks", []))
+
+    for kept_theme in kept_themes:
+        kept_name = kept_theme.get("themeName", "")
+        kept_stocks = set(kept_theme.get("relatedStocks", []))
+        overlap_count = len(current_stocks & kept_stocks)
+        min_size = min(len(current_stocks), len(kept_stocks))
+        overlap_ratio = overlap_count / min_size if min_size else 0
+
+        if current_normalized == _normalize_theme_name(kept_name):
+            return True
+        if current_family == _theme_family_key(kept_name) and overlap_count >= 2:
+            return True
+        if overlap_count >= 4 and overlap_ratio >= 0.8:
+            return True
+
+    return False
+
+
+def prune_duplicate_themes(themes: list[dict]) -> list[dict]:
+    pruned = []
+    for theme in themes:
+        if _should_skip_as_duplicate_theme(theme, pruned):
+            print(f"  [!] 중복 테마 제외: {theme.get('themeName', '')}")
+            continue
+        pruned.append(theme)
+    return pruned
 
 
 def merge_mover_signals_into_themes(themes: list[dict], mover_signals: list[dict]) -> None:
@@ -445,6 +502,9 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
             theme["headlineUrl"] = _convert_to_article_url(raw_url)
 
         print(f"\n[INFO] 추출된 테마:")
+        themes = prune_duplicate_themes(themes)
+        result["themes"] = themes
+
         for i, theme in enumerate(themes, 1):
             stocks_str = ", ".join(theme.get("relatedStocks", [])[:4])
             print(f"  {i}. {theme['themeName']}: {theme.get('headline', '')} → [{stocks_str}]")
