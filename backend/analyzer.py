@@ -86,6 +86,7 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
    - representativeArticleIndex: 이 테마를 가장 잘 대표하는 기사 번호 (1부터 시작하는 정수)
    - relatedStocks: 해당 테마의 대장주 후보 종목명 6개 (한국 상장종목만, 정확한 종목명)
    - reasoning: 이 테마를 선정한 이유 (1-2문장)
+   - 미국주식, ADR, ETF, 비상장사, 지수, 해외기업명(NVIDIA, AMD, Intel, Qualcomm 등)은 절대 넣지 마세요
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요."""
 
@@ -127,6 +128,29 @@ def _get_youtube_signals() -> list[dict]:
     except Exception as e:
         print(f"  [!] 유튜브 시그널 수집 실패: {e}")
         return []
+
+
+def _is_korean_listed_stock(stock_name: str) -> bool:
+    if not stock_name:
+        return False
+
+    if stock_name in STOCK_CODE_MAP:
+        return True
+
+    for name in STOCK_CODE_MAP:
+        if stock_name.startswith(name) or name.startswith(stock_name):
+            return True
+
+    return False
+
+
+def _sanitize_related_stocks(theme: dict) -> None:
+    stocks = theme.get("relatedStocks", [])
+    sanitized = []
+    for stock in stocks:
+        if _is_korean_listed_stock(stock) and stock not in sanitized:
+            sanitized.append(stock)
+    theme["relatedStocks"] = sanitized
 
 
 def _get_youtube_keywords(youtube_signals: list[dict]) -> set[str]:
@@ -273,6 +297,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
          # 각 테마 검증 및 대표 기사 URL 매핑
         for theme in themes:
+            _sanitize_related_stocks(theme)
             if "themeName" not in theme:
                 raise ValueError(f"테마에 'themeName'이 없습니다: {theme}")
             if "relatedStocks" not in theme or len(theme["relatedStocks"]) < 4:
