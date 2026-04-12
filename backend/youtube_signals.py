@@ -36,16 +36,6 @@ def _extract_playlist_entries(limit: int = 20) -> list[dict]:
     return info.get("entries", [])
 
 
-def _extract_video_metadata(video_id: str) -> dict:
-    options = {
-        "quiet": True,
-        "skip_download": True,
-        "socket_timeout": 20,
-    }
-    with yt_dlp.YoutubeDL(options) as ydl:
-        return ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-
-
 def _split_sectors(title: str) -> list[str]:
     section = title.split("/", 1)[0]
     section = section.replace("내일 관심테마!", "").replace("당일 관심테마!", "").strip()
@@ -119,12 +109,11 @@ def fetch_latest_youtube_theme_signals(known_stocks: list[str], limit: int = 20)
             if not video_id:
                 continue
 
-            metadata = _extract_video_metadata(video_id)
             latest[prefix] = YoutubeThemeSignal(
                 signal_type="내일" if prefix.startswith("내일") else "당일",
-                title=metadata.get("title", title),
-                video_url=metadata.get("webpage_url", f"https://www.youtube.com/watch?v={video_id}"),
-                upload_date=metadata.get("upload_date", ""),
+                title=title,
+                video_url=entry.get("url") or f"https://www.youtube.com/watch?v={video_id}",
+                upload_date="",
                 sectors=_split_sectors(title),
                 stocks=_split_stocks(title, known_stocks),
             ).to_dict()
