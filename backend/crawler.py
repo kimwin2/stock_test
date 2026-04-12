@@ -13,6 +13,7 @@ import json
 import time
 import os
 from datetime import datetime
+from daum_crawler import crawl_daum_finance_news
 
 # Windows cp949 콘솔 인코딩 문제 해결
 if sys.stdout.encoding != 'utf-8':
@@ -268,6 +269,17 @@ def load_articles(filepath: str = None) -> list[dict]:
         data = json.load(f)
 
     return data.get("articles", [])
+
+def crawl_all_news(keyword="\ud2b9\uc9d5\uc8fc", target_count=400):
+        """Naver(200) and Daum(200) news crawling."""
+        print(f"[INFO] {keyword} crawling start...")
+
+    naver_articles = crawl_naver_finance_news(200)
+    daum_articles = crawl_daum_finance_news(keyword=keyword, max_count=200)
+
+    all_articles = naver_articles + daum_articles
+    save_articles(all_articles)
+    return all_articles
 
 
 if __name__ == "__main__":
