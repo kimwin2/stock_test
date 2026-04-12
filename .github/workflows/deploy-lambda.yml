@@ -13,6 +13,9 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   STACK_NAME: stock-dashboard-stack
+  LAMBDA_FUNCTION_NAME: stock-pipeline
+  S3_BUCKET_NAME: stock-dashboard-data
+  S3_OBJECT_URL: https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com/dashboard_data.json
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -50,17 +53,31 @@ jobs:
               "OpenAIApiKey=${{ secrets.OPENAI_API_KEY }}" \
               "S3BucketName=${{ secrets.S3_BUCKET_NAME || 'stock-dashboard-data' }}"
 
-      - name: Invoke Manual Refresh API
+      - name: Invoke Lambda Async Refresh
         run: |
-          MANUAL_TRIGGER_URL=$(aws cloudformation describe-stacks \
-            --stack-name "$STACK_NAME" \
+          aws lambda invoke \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
             --region "$AWS_REGION" \
-            --query "Stacks[0].Outputs[?OutputKey=='ManualTriggerUrl'].OutputValue" \
-            --output text)
+            --invocation-type Event \
+            --cli-binary-format raw-in-base64-out \
+            --payload '{"source":"github-actions-post-deploy"}' \
+            response.json
+          cat response.json
 
-          echo "Manual trigger URL: $MANUAL_TRIGGER_URL"
-          curl --fail --show-error --silent \
-            -X POST \
-            -H "Content-Type: application/json" \
-            -d '{"source":"github-actions-post-deploy"}' \
-            "$MANUAL_TRIGGER_URL"
+      - name: Wait For S3 Refresh
+        run: |
+          PREV_UPDATED_AT=$(curl --silent "$S3_OBJECT_URL" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("updatedAt",""))')
+          echo "Previous updatedAt: $PREV_UPDATED_AT"
+
+          for i in $(seq 1 24); do
+            sleep 15
+            CURRENT_UPDATED_AT=$(curl --silent "$S3_OBJECT_URL" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("updatedAt",""))')
+            echo "Attempt $i updatedAt=$CURRENT_UPDATED_AT"
+            if [ -n "$CURRENT_UPDATED_AT" ] && [ "$CURRENT_UPDATED_AT" != "$PREV_UPDATED_AT" ]; then
+              echo "S3 dashboard data refreshed."
+              exit 0
+            fi
+          done
+
+          echo "S3 dashboard_data.json was not refreshed within the expected time."
+          exit 1
