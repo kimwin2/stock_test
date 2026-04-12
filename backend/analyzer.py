@@ -186,15 +186,10 @@ def format_youtube_signals_for_prompt(youtube_signals: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def format_articles_for_prompt(articles: list[dict], youtube_signals: list[dict] | None = None) -> str:
-    """
-    기사 리스트를 프롬프트에 넣을 텍스트로 변환합니다.
-    [특징주], 강세, 상한가, 급등 등의 키워드가 포함된 기사를 최상단에 배치하고
-    ★ 마커를 붙여 ChatGPT가 가중치를 줄 수 있도록 합니다.
-    """
+def sort_articles_for_prompt(articles: list[dict], youtube_signals: list[dict] | None = None) -> list[dict]:
+    """프롬프트에 넣을 우선순위 순서로 기사 리스트를 정렬합니다."""
     youtube_keywords = _get_youtube_keywords(youtube_signals or [])
 
-    # 우선순위 기사와 일반 기사 분리
     youtube_priority = []
     priority = []
     normal = []
@@ -207,8 +202,21 @@ def format_articles_for_prompt(articles: list[dict], youtube_signals: list[dict]
         else:
             normal.append(article)
 
-    # 유튜브 겹침 기사 > 우선순위 기사 > 일반 기사 순으로 배치
-    sorted_articles = youtube_priority + priority + normal
+    if youtube_priority:
+        print(f"  [◆] 유튜브 시그널 연관 기사 {len(youtube_priority)}개를 최상단에 배치했습니다.")
+    if priority:
+        print(f"  [★] 우선순위 기사 {len(priority)}개를 최상단에 배치했습니다.")
+
+    return youtube_priority + priority + normal
+
+
+def format_articles_for_prompt(sorted_articles: list[dict], youtube_signals: list[dict] | None = None) -> str:
+    """
+    기사 리스트를 프롬프트에 넣을 텍스트로 변환합니다.
+    [특징주], 강세, 상한가, 급등 등의 키워드가 포함된 기사를 최상단에 배치하고
+    ★ 마커를 붙여 ChatGPT가 가중치를 줄 수 있도록 합니다.
+    """
+    youtube_keywords = _get_youtube_keywords(youtube_signals or [])
 
     lines = []
     for i, article in enumerate(sorted_articles, 1):
@@ -220,11 +228,6 @@ def format_articles_for_prompt(articles: list[dict], youtube_signals: list[dict]
             lines.append(f"{i}. {marker}[{title}] {summary}")
         else:
             lines.append(f"{i}. {marker}{title}")
-
-    if youtube_priority:
-        print(f"  [◆] 유튜브 시그널 연관 기사 {len(youtube_priority)}개를 최상단에 배치했습니다.")
-    if priority:
-        print(f"  [★] 우선순위 기사 {len(priority)}개를 최상단에 배치했습니다.")
 
     return "\n".join(lines)
 
@@ -257,7 +260,8 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
     youtube_signals = _get_youtube_signals()
     youtube_text = format_youtube_signals_for_prompt(youtube_signals)
-    articles_text = format_articles_for_prompt(articles, youtube_signals)
+    sorted_articles = sort_articles_for_prompt(articles, youtube_signals)
+    articles_text = format_articles_for_prompt(sorted_articles, youtube_signals)
     user_prompt = USER_PROMPT_TEMPLATE.format(
         date=date_str,
         count=len(articles),
@@ -305,10 +309,10 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
             # 대표 기사 URL 매핑 → 원본 기사 URL로 변환
             article_idx = theme.get("representativeArticleIndex", 1)
-            if isinstance(article_idx, int) and 1 <= article_idx <= len(articles):
-                raw_url = articles[article_idx - 1].get("url", "")
+            if isinstance(article_idx, int) and 1 <= article_idx <= len(sorted_articles):
+                raw_url = sorted_articles[article_idx - 1].get("url", "")
             else:
-                raw_url = articles[0].get("url", "") if articles else ""
+                raw_url = sorted_articles[0].get("url", "") if sorted_articles else ""
             theme["headlineUrl"] = _convert_to_article_url(raw_url)
 
         print(f"\n[INFO] 추출된 테마:")
