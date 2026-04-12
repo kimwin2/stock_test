@@ -13,6 +13,7 @@ import json
 import time
 import re
 import os
+from functools import lru_cache
 from typing import Optional, List, Dict
 
 # Windows cp949 콘솔 인코딩 문제 해결
@@ -95,7 +96,7 @@ STOCK_CODE_MAP = {
     
     # 광통신
     "대한광통신": "010170", "기산텔레콤": "035460", "오이솔루션": "138080",
-    "쏠리드": "050890", "티엠씨": "950190", "LG이노텍": "011070",
+    "쏠리드": "050890", "티엠씨": "217590", "LG이노텍": "011070",
     "옵티시스": "109080", "이노와이어리스": "073490", "넥스트칩": "405100",
     "남선알미늄": "008350", "코위버": "056360", "광전자": "017900",
     "머큐리": "100590", "빛과전자": "069540",
@@ -116,7 +117,7 @@ STOCK_CODE_MAP = {
     "한화에어로스페이스": "012450", "LIG넥스원": "079550",
     "한화시스템": "272210", "현대로템": "064350",
     "풍산": "103140", "풍산홀딩스": "005810",
-    "한화오션": "042660", "퍼스텍": "226340",
+    "한화오션": "042660", "퍼스텍": "010820",
     
     # 에너지/전력
     "효성중공업": "298040", "LS일렉트릭": "010120", "두산에너빌리티": "034020",
@@ -153,6 +154,44 @@ STOCK_CODE_MAP = {
 }
 
 
+def _normalize_stock_name(stock_name: str) -> str:
+    return re.sub(r"[^0-9A-Za-z가-힣]", "", (stock_name or "")).upper()
+
+
+@lru_cache(maxsize=2048)
+def get_stock_name_by_code(stock_code: str) -> str:
+    """종목코드가 실제 어떤 종목명을 가리키는지 확인합니다."""
+    try:
+        url = f"https://m.stock.naver.com/api/stock/{stock_code}/basic"
+        resp = requests.get(url, headers={
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)",
+        }, timeout=5)
+        if resp.status_code != 200:
+            return ""
+        data = resp.json()
+        return (data.get("stockName") or "").strip()
+    except Exception:
+        return ""
+
+
+def _is_matching_stock_name(requested_name: str, actual_name: str) -> bool:
+    requested = _normalize_stock_name(requested_name)
+    actual = _normalize_stock_name(actual_name)
+    if not requested or not actual:
+        return False
+    return requested == actual or requested in actual or actual in requested
+
+
+def _verify_or_refresh_mapped_code(stock_name: str, code: str) -> Optional[str]:
+    """하드코딩/캐시된 코드가 실제 종목명과 맞는지 검증하고 틀리면 폐기합니다."""
+    actual_name = get_stock_name_by_code(code)
+    if _is_matching_stock_name(stock_name, actual_name):
+        return code
+
+    print(f"  [!] 코드 검증 실패 ({stock_name} -> {code}, 실제: {actual_name or '미상'})")
+    return None
+
+
 def search_stock_code(stock_name: str) -> Optional[str]:
     """
     종목명으로 종목코드를 검색합니다.
@@ -167,12 +206,17 @@ def search_stock_code(stock_name: str) -> Optional[str]:
     """
     # 1. 하드코딩 매핑에서 찾기
     if stock_name in STOCK_CODE_MAP:
-        return STOCK_CODE_MAP[stock_name]
+        verified = _verify_or_refresh_mapped_code(stock_name, STOCK_CODE_MAP[stock_name])
+        if verified:
+            return verified
 
     # 부분 매칭 시도 (예: "삼성전자우" → "삼성전자")
     for name, code in STOCK_CODE_MAP.items():
         if stock_name.startswith(name) or name.startswith(stock_name):
-            return code
+            verified = _verify_or_refresh_mapped_code(stock_name, code)
+            if verified:
+                STOCK_CODE_MAP[stock_name] = verified
+                return verified
 
     # 2. 네이버 증권 검색 시도
     return search_stock_code_online(stock_name)
@@ -189,11 +233,28 @@ def search_stock_code_online(stock_name: str) -> Optional[str]:
         if resp.status_code == 200:
             data = resp.json()
             stocks = data.get("stocks", [])
-            if stocks:
-                code = stocks[0].get("stockCode") or stocks[0].get("code")
-                if code:
-                    STOCK_CODE_MAP[stock_name] = code  # 캐싱
-                    return code
+            exact_match = None
+            partial_match = None
+            for stock in stocks:
+                candidate_name = (stock.get("stockName") or stock.get("name") or "").strip()
+                candidate_code = stock.get("stockCode") or stock.get("code")
+                if not candidate_code:
+                    continue
+                if _is_matching_stock_name(stock_name, candidate_name):
+                    exact_match = candidate_code
+                    break
+                if partial_match is None:
+                    partial_match = candidate_code
+
+            code = exact_match or partial_match
+            if code:
+                actual_name = get_stock_name_by_code(code)
+                if not _is_matching_stock_name(stock_name, actual_name):
+                    print(f"  [!] 모바일 검색 불일치 ({stock_name} -> {code}, 실제: {actual_name})")
+                else:
+                    if code:
+                        STOCK_CODE_MAP[stock_name] = code  # 캐싱
+                        return code
     except Exception as e:
         print(f"  [!] 모바일 검색 실패 ({stock_name}): {e}")
 
