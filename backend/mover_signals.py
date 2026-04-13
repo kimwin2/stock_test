@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
+import re
 
 import requests
 from bs4 import BeautifulSoup
@@ -10,6 +11,11 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Referer": "https://finance.naver.com/",
+}
+
+GENERIC_THEME_STOPWORDS = {
+    "관련주", "테마", "업종", "섹터", "수혜주", "급등", "강세", "상한가", "주가",
+    "증시", "시장", "코스피", "코스닥", "국내", "오늘", "정치", "실적", "이슈",
 }
 
 
@@ -72,7 +78,6 @@ def _infer_themes_from_articles(stock_name: str, articles: list[dict]) -> tuple[
     theme_keywords = []
 
     keyword_map = {
-        "\uc54c\ub8e8\ubbf8\ub284": ["\uc54c\ub8e8\ubbf8\ub284", "\ube44\ucca0", "\uc6d0\uc790\uc7ac", "\uad00\uc138"],
         "중동전쟁": ["중동", "이란", "호르무즈", "전쟁", "휴전"],
         "해운": ["해운", "유조선", "운임", "항로", "호르무즈"],
         "광통신": ["광통신", "통신", "광케이블", "광섬유"],
@@ -85,6 +90,11 @@ def _infer_themes_from_articles(stock_name: str, articles: list[dict]) -> tuple[
         "에너지": ["에너지", "태양광", "전력", "전기", "풍력"],
     }
 
+    dynamic_patterns = [
+        r"([가-힣A-Za-z0-9·\-/]{2,20})\s*(?:관련주|테마|업종|섹터|수혜주)",
+        r"(?:관련주|테마|업종|섹터|수혜주)\s*([가-힣A-Za-z0-9·\-/]{2,20})",
+    ]
+
     for article in articles:
         text = " ".join([article.get("title", ""), article.get("summary", "")])
         if stock_name not in text:
@@ -93,6 +103,17 @@ def _infer_themes_from_articles(stock_name: str, articles: list[dict]) -> tuple[
         for theme, keywords in keyword_map.items():
             if any(keyword in text for keyword in keywords) and theme not in theme_keywords:
                 theme_keywords.append(theme)
+        for pattern in dynamic_patterns:
+            for raw_candidate in re.findall(pattern, text):
+                candidate = re.sub(r"[^\w가-힣]+", "", raw_candidate).strip()
+                if len(candidate) < 2 or len(candidate) > 12:
+                    continue
+                if stock_name in candidate or candidate in stock_name:
+                    continue
+                if candidate in GENERIC_THEME_STOPWORDS:
+                    continue
+                if candidate not in theme_keywords:
+                    theme_keywords.append(candidate)
 
     return matched_articles[:3], theme_keywords
 
