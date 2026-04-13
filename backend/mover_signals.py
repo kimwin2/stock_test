@@ -72,6 +72,7 @@ def _infer_themes_from_articles(stock_name: str, articles: list[dict]) -> tuple[
     theme_keywords = []
 
     keyword_map = {
+        "\uc54c\ub8e8\ubbf8\ub284": ["\uc54c\ub8e8\ubbf8\ub284", "\ube44\ucca0", "\uc6d0\uc790\uc7ac", "\uad00\uc138"],
         "중동전쟁": ["중동", "이란", "호르무즈", "전쟁", "휴전"],
         "해운": ["해운", "유조선", "운임", "항로", "호르무즈"],
         "광통신": ["광통신", "통신", "광케이블", "광섬유"],

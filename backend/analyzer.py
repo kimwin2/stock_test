@@ -219,6 +219,85 @@ def _sanitize_related_stocks(theme: dict) -> None:
     theme["relatedStocks"] = sanitized
 
 
+def _theme_matches_name(theme: dict, theme_name: str) -> bool:
+    current = _normalize_theme_name(theme.get("themeName", ""))
+    target = _normalize_theme_name(theme_name)
+    return current == target or target in current or current in target
+
+
+def _find_representative_article_index(
+    theme_name: str,
+    related_stocks: list[str],
+    sorted_articles: list[dict],
+) -> int:
+    keywords = [theme_name, *related_stocks]
+    for idx, article in enumerate(sorted_articles, 1):
+        haystack = " ".join([article.get("title", ""), article.get("summary", "")])
+        if any(keyword and keyword in haystack for keyword in keywords):
+            return idx
+    return 1
+
+
+def supplement_missing_mover_themes(
+    themes: list[dict],
+    mover_signals: list[dict],
+    sorted_articles: list[dict],
+) -> list[dict]:
+    weak_theme_keywords = ["금리", "환율", "물가", "CPI", "추경"]
+    supplemented = list(themes)
+
+    for theme_name, universe in THEME_STOCK_UNIVERSE.items():
+        if any(_theme_matches_name(theme, theme_name) for theme in supplemented):
+            continue
+
+        mover_cluster = [
+            signal for signal in mover_signals
+            if signal.get("stock_name") in universe
+        ]
+        if len(mover_cluster) < 2:
+            continue
+
+        strong_cluster = any("상한가" in signal.get("status", "") for signal in mover_cluster)
+        avg_change = sum(signal.get("change_rate", 0.0) for signal in mover_cluster) / len(mover_cluster)
+        if not strong_cluster and avg_change < 18:
+            continue
+
+        ordered_stocks = []
+        for signal in sorted(mover_cluster, key=lambda item: item.get("change_rate", 0.0), reverse=True):
+            stock_name = signal.get("stock_name", "")
+            if stock_name and stock_name not in ordered_stocks:
+                ordered_stocks.append(stock_name)
+        for stock_name in universe:
+            if stock_name not in ordered_stocks:
+                ordered_stocks.append(stock_name)
+
+        new_theme = {
+            "themeName": theme_name,
+            "headline": f"{theme_name} 관련주 강세",
+            "representativeArticleIndex": _find_representative_article_index(theme_name, ordered_stocks, sorted_articles),
+            "relatedStocks": ordered_stocks[:6],
+            "reasoning": f"{theme_name} 관련 종목이 상한가/급등 흐름으로 동시 부각돼 독립 테마로 보강했습니다.",
+        }
+
+        replace_index = next(
+            (
+                index for index, theme in enumerate(supplemented)
+                if any(keyword in theme.get("themeName", "") for keyword in weak_theme_keywords)
+            ),
+            None,
+        )
+
+        if replace_index is not None:
+            replaced_name = supplemented[replace_index].get("themeName", "")
+            print(f"  [!] 급등주 기반 테마 보강: {replaced_name} -> {theme_name}")
+            supplemented[replace_index] = new_theme
+        else:
+            print(f"  [!] 급등주 기반 테마 추가: {theme_name}")
+            supplemented.append(new_theme)
+
+    return supplemented
+
+
 def _normalize_theme_name(theme_name: str) -> str:
     compact = re.sub(r"\s+", "", (theme_name or "")).lower()
     replacements = {
@@ -486,6 +565,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
          # 각 테마 검증 및 대표 기사 URL 매핑
         merge_mover_signals_into_themes(themes, mover_signals)
+        themes = supplement_missing_mover_themes(themes, mover_signals, sorted_articles)
         for theme in themes:
             _sanitize_related_stocks(theme)
             if "themeName" not in theme:
