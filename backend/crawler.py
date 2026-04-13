@@ -7,8 +7,10 @@
 from __future__ import annotations
 
 import io
+import html
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime, timedelta
@@ -19,8 +21,10 @@ from bs4 import BeautifulSoup
 
 try:
     from daum_crawler import crawl_daum_finance_news
+    from daum_crawler import crawl_daum_finance_news_multi
 except ModuleNotFoundError:
     from .daum_crawler import crawl_daum_finance_news
+    from .daum_crawler import crawl_daum_finance_news_multi
 
 # Windows cp949 콘솔 인코딩 문제 해결
 if sys.stdout.encoding != 'utf-8':
@@ -30,6 +34,7 @@ if sys.stdout.encoding != 'utf-8':
 
 NAVER_FINANCE_NEWS_URL = "https://finance.naver.com/news/mainnews.naver"
 NAVER_NEWS_LIST_URL = "https://finance.naver.com/news/news_list.naver"
+NAVER_NEWS_SEARCH_URL = "https://finance.naver.com/news/news_search.naver"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -284,6 +289,78 @@ def crawl_market_news_list(target_count: int = 100, recent_days: int = 7) -> lis
     return all_articles[:target_count]
 
 
+def _parse_keyword_search_results(html_text: str, keyword: str) -> list[dict]:
+    """Parse Naver Finance keyword-search pages for stock-focused article links."""
+    pattern = re.compile(
+        r'<a[^>]+href="(?P<href>/news/news_read\.naver\?article_id=\d+&office_id=\d+[^"]*)"[^>]*title="(?P<title>[^"]+)"',
+        re.IGNORECASE,
+    )
+
+    articles = []
+    for match in pattern.finditer(html_text):
+        href = html.unescape(match.group("href")).strip()
+        title = html.unescape(match.group("title")).strip()
+        if not href or not title:
+            continue
+
+        articles.append({
+            "title": title,
+            "summary": f"{keyword} 검색 결과 기사",
+            "url": _normalize_article_url(href),
+            "date": "",
+            "source": "NaverKeyword",
+        })
+
+    return _dedupe_articles(articles)
+
+
+def crawl_keyword_news_search(keywords: list[str], target_count: int = 150, max_pages: int = 10) -> list[dict]:
+    articles = []
+
+    for keyword in keywords:
+        previous_page_urls: set[str] = set()
+        for page in range(1, max_pages + 1):
+            if len(_dedupe_articles(articles)) >= target_count:
+                break
+
+            try:
+                resp = requests.get(
+                    NAVER_NEWS_SEARCH_URL,
+                    params={"query": keyword, "page": page},
+                    headers=HEADERS,
+                    timeout=10,
+                )
+                resp.raise_for_status()
+            except requests.RequestException as e:
+                print(f"[WARN] 키워드 검색 실패 ({keyword}, page={page}): {e}")
+                break
+
+            page_articles = _parse_keyword_search_results(resp.text, keyword)
+            page_urls = {article["url"] for article in page_articles}
+            if not page_articles or page_urls == previous_page_urls:
+                break
+
+            articles.extend(page_articles)
+            articles = _dedupe_articles(articles)
+            previous_page_urls = page_urls
+            time.sleep(0.3)
+
+    return articles[:target_count]
+
+
+def crawl_stock_focus_news(target_count: int = 150) -> list[dict]:
+    """Collect stock-focused articles directly from Naver Finance keyword search."""
+    stock_keywords = [
+        "특징주",
+        "급등",
+        "상한가",
+        "강세",
+        "핫종목",
+        "종목Pick",
+    ]
+    return crawl_keyword_news_search(stock_keywords, target_count=target_count, max_pages=12)
+
+
 def crawl_naver_finance_news_with_fallback(target_count: int = 200) -> list[dict]:
     """메인뉴스 우선, 부족하면 네이버 news_list 섹션으로 보충합니다."""
     articles = crawl_naver_finance_news(target_count)
@@ -339,14 +416,35 @@ def crawl_all_news(keyword="특징주", target_count=400):
     """Naver와 Daum 뉴스를 함께 크롤링합니다."""
     print(f"[INFO] {keyword} crawling start...")
 
-    naver_target = min(200, target_count)
-    daum_target = max(0, target_count - naver_target)
+    naver_target = target_count
 
     naver_articles = crawl_naver_finance_news_with_fallback(naver_target)
+    all_articles = list(naver_articles)
 
-    daum_articles = crawl_daum_finance_news(keyword=keyword, max_count=daum_target) if daum_target else []
+    if len(_dedupe_articles(all_articles)) < target_count:
+        missing_count = target_count - len(_dedupe_articles(all_articles))
+        stock_focus_articles = crawl_stock_focus_news(target_count=missing_count)
+        all_articles.extend(stock_focus_articles)
+        all_articles = _dedupe_articles(all_articles)
 
-    all_articles = naver_articles + daum_articles
+    if len(_dedupe_articles(all_articles)) < target_count:
+        missing_count = target_count - len(_dedupe_articles(all_articles))
+        daum_keywords = [keyword, "급등", "상한가", "강세"]
+        daum_articles = crawl_daum_finance_news_multi(daum_keywords, max_count=missing_count)
+        all_articles.extend(daum_articles)
+        all_articles = _dedupe_articles(all_articles)
+
+    if len(_dedupe_articles(all_articles)) < target_count:
+        missing_count = target_count - len(_dedupe_articles(all_articles))
+        all_articles.extend(crawl_market_news_list(missing_count, recent_days=14))
+        all_articles = _dedupe_articles(all_articles)
+
+    if len(_dedupe_articles(all_articles)) < target_count:
+        missing_count = target_count - len(_dedupe_articles(all_articles))
+        all_articles.extend(crawl_mainnews_archive(missing_count, recent_days=30))
+        all_articles = _dedupe_articles(all_articles)
+
+    all_articles = all_articles[:target_count]
     save_articles(all_articles)
     return all_articles
 

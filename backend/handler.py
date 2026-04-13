@@ -25,11 +25,11 @@ if sys.stdout.encoding != 'utf-8':
 
 # 모듈 임포트
 try:
-    from crawler import crawl_naver_finance_news_with_fallback
+    from crawler import crawl_all_news
     from analyzer import analyze_themes
     from stock_data import get_stock_details_for_themes
 except ModuleNotFoundError:
-    from .crawler import crawl_naver_finance_news_with_fallback
+    from .crawler import crawl_all_news
     from .analyzer import analyze_themes
     from .stock_data import get_stock_details_for_themes
 
@@ -80,7 +80,7 @@ def lambda_handler(event, context):
     try:
         # ── Step 1: 뉴스 크롤링 ──
         print("\n[Step 1] 네이버 금융 뉴스 크롤링")
-        articles = crawl_naver_finance_news_with_fallback(200)
+        articles = crawl_all_news(target_count=400)
 
         if not articles:
             return {

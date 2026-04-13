@@ -21,11 +21,11 @@ if sys.stdout.encoding != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 try:
-    from crawler import crawl_naver_finance_news_with_fallback, save_articles, load_articles
+    from crawler import crawl_all_news, save_articles, load_articles
     from analyzer import analyze_themes, save_analysis, load_analysis
     from stock_data import get_stock_details_for_themes
 except ModuleNotFoundError:
-    from .crawler import crawl_naver_finance_news_with_fallback, save_articles, load_articles
+    from .crawler import crawl_all_news, save_articles, load_articles
     from .analyzer import analyze_themes, save_analysis, load_analysis
     from .stock_data import get_stock_details_for_themes
 
@@ -58,7 +58,7 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
         print(f"   로드된 기사: {len(articles)}개")
     else:
         print("\n[Step 1] 네이버 금융 뉴스 크롤링")
-        articles = crawl_naver_finance_news_with_fallback(200)
+        articles = crawl_all_news(target_count=400)
 
         save_articles(articles)
 
