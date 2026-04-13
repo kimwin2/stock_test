@@ -3,7 +3,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, asdict
 
-import yt_dlp
+try:
+    import yt_dlp
+except ImportError:  # Optional in local tests
+    yt_dlp = None
 
 
 CHANNEL_VIDEOS_URL = "https://www.youtube.com/@%EC%8B%AC%ED%94%8C%EA%B4%80%EC%8B%AC%EC%A2%85%EB%AA%A9TV/videos"
@@ -24,6 +27,8 @@ class YoutubeThemeSignal:
 
 
 def _extract_playlist_entries(limit: int = 20) -> list[dict]:
+    if yt_dlp is None:
+        return []
     options = {
         "quiet": True,
         "extract_flat": True,
@@ -93,6 +98,8 @@ def _split_stocks(title: str, known_stocks: list[str]) -> list[str]:
 
 
 def fetch_latest_youtube_theme_signals(known_stocks: list[str], limit: int = 20) -> list[dict]:
+    if yt_dlp is None:
+        return []
     entries = _extract_playlist_entries(limit=limit)
     latest = {}
 
