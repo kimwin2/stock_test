@@ -10,7 +10,7 @@
 
 import json
 import os
-import sys
+import sys 
 import io
 import argparse
 from datetime import datetime
@@ -23,11 +23,13 @@ if sys.stdout.encoding != 'utf-8':
 try:
     from crawler import crawl_all_news, save_articles, load_articles
     from analyzer import analyze_themes, save_analysis, load_analysis
-    from stock_data import get_stock_details_for_themes
+    from stock_data import get_stock_details_for_themes, THEME_STOCK_UNIVERSE
+    from theme_engine import detect_theme_signals, merge_theme_signals_into_themes, build_fallback_signals_from_themes
 except ModuleNotFoundError:
     from .crawler import crawl_all_news, save_articles, load_articles
     from .analyzer import analyze_themes, save_analysis, load_analysis
-    from .stock_data import get_stock_details_for_themes
+    from .stock_data import get_stock_details_for_themes, THEME_STOCK_UNIVERSE
+    from .theme_engine import detect_theme_signals, merge_theme_signals_into_themes, build_fallback_signals_from_themes
 
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -93,6 +95,12 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
     print("\n[Step 3] 테마별 종목 데이터 조회")
     completed_themes = get_stock_details_for_themes(themes)
 
+    mover_signals = analysis.get("moverSignals", [])
+    theme_signals = detect_theme_signals(mover_signals, articles, THEME_STOCK_UNIVERSE)
+    if not theme_signals:
+        theme_signals = build_fallback_signals_from_themes(themes)
+    merge_theme_signals_into_themes(completed_themes, theme_signals)
+
     # ─────────────────────────────────────────────
     # Step 4: 최종 JSON 조립 및 저장
     # ─────────────────────────────────────────────
@@ -100,6 +108,7 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
     dashboard_data = {
         "updatedAt": datetime.now().isoformat(),
         "youtubeSignals": analysis.get("youtubeSignals", []),
+        "themeSignals": theme_signals,
         "themes": completed_themes,
     }
 

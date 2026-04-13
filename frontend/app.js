@@ -48,6 +48,47 @@ function getChangeText(rate) {
   return `${rate.toFixed(2)}%`;
 }
 
+function getSignalLabel(state) {
+  switch (state) {
+    case 'THEME_CONFIRMED':
+      return 'CONFIRMED';
+    case 'THEME_FORMING':
+      return 'FORMING';
+    case 'LEADER_DETECTED':
+      return 'LEADER';
+    case 'THEME_WEAKENING':
+      return 'WEAKENING';
+    case 'THEME_ENDED':
+      return 'ENDED';
+    default:
+      return '';
+  }
+}
+
+function getSignalClass(state) {
+  switch (state) {
+    case 'THEME_CONFIRMED':
+      return 'confirmed';
+    case 'THEME_FORMING':
+      return 'forming';
+    case 'LEADER_DETECTED':
+      return 'leader';
+    case 'THEME_WEAKENING':
+      return 'weakening';
+    case 'THEME_ENDED':
+      return 'ended';
+    default:
+      return '';
+  }
+}
+
+function getSourceBadge(source) {
+  if (source === 'FALLBACK') {
+    return '<span class="signal-badge fallback">FALLBACK</span>';
+  }
+  return '';
+}
+
 // ─────────────────────────────────────────┐
 // Components                                │
 // ─────────────────────────────────────────┘
@@ -134,8 +175,15 @@ function createThemeCard(theme) {
   // Header
   const header = document.createElement('div');
   header.className = 'card-header';
+  const signalState = theme.signal && theme.signal.state ? theme.signal.state : '';
+  const signalLabel = getSignalLabel(signalState);
+  const signalClass = getSignalClass(signalState);
+  const sourceBadge = theme.signal ? getSourceBadge(theme.signal.source) : '';
+  const signalBadge = signalLabel
+    ? `<span class="signal-badge ${signalClass}">${escapeHTML(signalLabel)}</span>`
+    : '';
   header.innerHTML = `
-    <span class="card-theme-name">${escapeHTML(theme.themeName)}</span>
+    <span class="card-theme-name">${escapeHTML(theme.themeName)}${signalBadge}${sourceBadge}</span>
     <span class="card-volume">${escapeHTML(theme.totalVolume)}</span>
   `;
   card.appendChild(header);

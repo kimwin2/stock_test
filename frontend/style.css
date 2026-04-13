@@ -220,6 +220,45 @@ body {
   font-weight: 700;
 }
 
+.signal-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.signal-badge.confirmed {
+  background: #ff7043;
+}
+
+.signal-badge.forming {
+  background: #ffd54f;
+  color: #3e3e3e;
+}
+
+.signal-badge.leader {
+  background: #29b6f6;
+}
+
+.signal-badge.weakening {
+  background: #8d6e63;
+}
+
+.signal-badge.ended {
+  background: #9e9e9e;
+}
+
+.signal-badge.fallback {
+  background: #455a64;
+}
+
 .card-volume {
   color: var(--red-bright);
   font-size: 0.85rem;
