@@ -344,7 +344,7 @@ python stock_data.py    # → 삼성전자 시세 테스트 출력
 
 | 항목 | 설정값 |
 |------|--------|
-| 스케줄 | 매주 월요일 09:00 KST (`cron(0 0 ? * MON *)`) |
+| 스케줄 | 10분마다 (`rate(10 minutes)`) |
 | 함수명 | `stock-pipeline` |
 | 런타임 | Python 3.12 |
 | 타임아웃 | 300초 (5분) |
@@ -399,7 +399,7 @@ sam deploy --parameter-overrides "OpenAIApiKey=sk-..."
 ## 7. AWS 인프라 구성 (template.yaml)
 
 ```
- EventBridge ──(매주 월요일)──→ Lambda (stock-pipeline)
+ EventBridge ──(10분마다)──→ Lambda (stock-pipeline)
                                   │
  API Gateway ──(POST /run)──→ Lambda (stock-pipeline)
                                   │
