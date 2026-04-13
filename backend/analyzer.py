@@ -238,51 +238,77 @@ def _find_representative_article_index(
     return 1
 
 
+def _is_weak_macro_theme(theme_name: str) -> bool:
+    return any(keyword in theme_name for keyword in ["금리", "환율", "물가", "CPI", "추경"])
+
+
+def _build_dynamic_mover_theme_candidates(mover_signals: list[dict]) -> list[dict]:
+    clusters: dict[str, list[dict]] = {}
+
+    for signal in mover_signals:
+        for theme_name in signal.get("suggested_themes", []):
+            normalized = theme_name.strip()
+            if len(normalized) < 2 or len(normalized) > 12:
+                continue
+            clusters.setdefault(normalized, []).append(signal)
+
+    candidates = []
+    for theme_name, signals in clusters.items():
+        unique_by_stock = {}
+        for signal in signals:
+            stock_name = signal.get("stock_name", "")
+            if stock_name and stock_name not in unique_by_stock:
+                unique_by_stock[stock_name] = signal
+
+        unique_signals = list(unique_by_stock.values())
+        if len(unique_signals) < 2:
+            continue
+
+        strong_cluster = any("상한가" in signal.get("status", "") for signal in unique_signals)
+        avg_change = sum(signal.get("change_rate", 0.0) for signal in unique_signals) / len(unique_signals)
+        if not strong_cluster and avg_change < 18:
+            continue
+
+        ordered_stocks = [
+            signal.get("stock_name", "")
+            for signal in sorted(unique_signals, key=lambda item: item.get("change_rate", 0.0), reverse=True)
+            if signal.get("stock_name", "")
+        ]
+
+        candidates.append({
+            "themeName": theme_name,
+            "relatedStocks": ordered_stocks[:6],
+            "reasoning": f"{theme_name} 관련 급등주가 동시다발적으로 포착돼 독립 테마로 보강했습니다.",
+        })
+
+    candidates.sort(key=lambda item: len(item["relatedStocks"]), reverse=True)
+    return candidates
+
+
 def supplement_missing_mover_themes(
     themes: list[dict],
     mover_signals: list[dict],
     sorted_articles: list[dict],
 ) -> list[dict]:
-    weak_theme_keywords = ["금리", "환율", "물가", "CPI", "추경"]
     supplemented = list(themes)
 
-    for theme_name, universe in THEME_STOCK_UNIVERSE.items():
+    for candidate in _build_dynamic_mover_theme_candidates(mover_signals):
+        theme_name = candidate["themeName"]
         if any(_theme_matches_name(theme, theme_name) for theme in supplemented):
             continue
-
-        mover_cluster = [
-            signal for signal in mover_signals
-            if signal.get("stock_name") in universe
-        ]
-        if len(mover_cluster) < 2:
-            continue
-
-        strong_cluster = any("상한가" in signal.get("status", "") for signal in mover_cluster)
-        avg_change = sum(signal.get("change_rate", 0.0) for signal in mover_cluster) / len(mover_cluster)
-        if not strong_cluster and avg_change < 18:
-            continue
-
-        ordered_stocks = []
-        for signal in sorted(mover_cluster, key=lambda item: item.get("change_rate", 0.0), reverse=True):
-            stock_name = signal.get("stock_name", "")
-            if stock_name and stock_name not in ordered_stocks:
-                ordered_stocks.append(stock_name)
-        for stock_name in universe:
-            if stock_name not in ordered_stocks:
-                ordered_stocks.append(stock_name)
 
         new_theme = {
             "themeName": theme_name,
             "headline": f"{theme_name} 관련주 강세",
-            "representativeArticleIndex": _find_representative_article_index(theme_name, ordered_stocks, sorted_articles),
-            "relatedStocks": ordered_stocks[:6],
-            "reasoning": f"{theme_name} 관련 종목이 상한가/급등 흐름으로 동시 부각돼 독립 테마로 보강했습니다.",
+            "representativeArticleIndex": _find_representative_article_index(theme_name, candidate["relatedStocks"], sorted_articles),
+            "relatedStocks": candidate["relatedStocks"],
+            "reasoning": candidate["reasoning"],
         }
 
         replace_index = next(
             (
                 index for index, theme in enumerate(supplemented)
-                if any(keyword in theme.get("themeName", "") for keyword in weak_theme_keywords)
+                if _is_weak_macro_theme(theme.get("themeName", ""))
             ),
             None,
         )
