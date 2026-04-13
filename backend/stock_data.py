@@ -158,6 +158,25 @@ STOCK_CODE_MAP = {
 }
 
 
+THEME_STOCK_UNIVERSE.update({
+    "\uc54c\ub8e8\ubbf8\ub284": [
+        "\ub0a8\uc120\uc54c\ubbf8\ub284",
+        "\uc870\uc77c\uc54c\ubbf8\ub284",
+        "\uc54c\ub8e8\ucf54",
+        "\uc0bc\uc544\uc54c\ubbf8\ub284",
+        "\ud53c\uc81c\uc774\uba54\ud0c8",
+    ],
+})
+
+STOCK_CODE_MAP.update({
+    "\ub0a8\uc120\uc54c\ubbf8\ub284": "008350",
+    "\uc870\uc77c\uc54c\ubbf8\ub284": "018470",
+    "\uc54c\ub8e8\ucf54": "001780",
+    "\uc0bc\uc544\uc54c\ubbf8\ub284": "006110",
+    "\ud53c\uc81c\uc774\uba54\ud0c8": "128660",
+})
+
+
 def _normalize_stock_name(stock_name: str) -> str:
     return re.sub(r"[^0-9A-Za-z가-힣]", "", (stock_name or "")).upper()
 
