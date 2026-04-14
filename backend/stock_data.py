@@ -13,9 +13,6 @@ import json
 import time
 import re
 import os
-from functools import lru_cache
-from datetime import datetime, time as dt_time
-from zoneinfo import ZoneInfo
 from typing import Optional, List, Dict
 
 # Windows cp949 콘솔 인코딩 문제 해결
@@ -27,53 +24,6 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Referer": "https://finance.naver.com/",
-}
-
-KST = ZoneInfo("Asia/Seoul")
-
-THEME_STOCK_UNIVERSE = {
-    "반도체": [
-        "삼성전자", "SK하이닉스", "한미반도체", "하나마이크론", "원익IPS",
-        "주성엔지니어링", "피에스케이", "리노공업", "이오테크닉스", "삼성전기",
-        "DB하이텍", "넥스틴", "서진시스템", "티에스이",
-    ],
-    "AI 반도체": [
-        "삼성전자", "SK하이닉스", "한미반도체", "리노공업", "이오테크닉스",
-        "하나마이크론", "원익IPS", "주성엔지니어링", "피에스케이", "DB하이텍",
-        "삼성전기", "넥스틴",
-    ],
-    "광통신": [
-        "대한광통신", "기산텔레콤", "티엠씨", "오이솔루션", "쏠리드",
-        "옵티시스", "코위버", "광전자", "머큐리", "빛과전자", "이노와이어리스",
-    ],
-    "2차전지": [
-        "삼성SDI", "LG에너지솔루션", "LG화학", "엘앤에프", "에코프로",
-        "에코프로머티", "포스코퓨처엠", "한화솔루션",
-    ],
-    "원전": [
-        "두산에너빌리티", "한국전력", "한전KPS", "현대건설",
-        "GS건설", "대우건설", "삼성물산", "LS일렉트릭", "효성중공업",
-    ],
-    "건설": [
-        "대우건설", "GS건설", "현대건설", "삼성물산", "DL이앤씨",
-        "삼성E&A", "한신공영", "전진건설", "전진건설로봇",
-    ],
-    "재건": [
-        "대우건설", "GS건설", "현대건설", "삼성물산", "DL이앤씨",
-        "삼성E&A", "한신공영", "전진건설", "전진건설로봇",
-    ],
-    "방산": [
-        "LIG넥스원", "한화에어로스페이스", "한화시스템", "현대로템",
-        "퍼스텍", "풍산", "풍산홀딩스", "한국항공우주",
-    ],
-    "에너지": [
-        "한화솔루션", "두산에너빌리티", "효성중공업", "LS일렉트릭",
-        "HD현대일렉트릭", "일진전기", "SK이터닉스", "신성이엔지",
-    ],
-    "바이오": [
-        "삼천당제약", "알테오젠", "HLB", "셀트리온", "유한양행",
-        "녹십자", "삼성바이오로직스",
-    ],
 }
 
 
@@ -99,8 +49,8 @@ STOCK_CODE_MAP = {
     "세미파이브": "530017",
     
     # 광통신
-    "대한광통신": "010170", "기산텔레콤": "035460", "오이솔루션": "138080",
-    "쏠리드": "050890", "티엠씨": "217590", "LG이노텍": "011070",
+    "대한광통신": "010170", "기산텔레콤": "092440", "오이솔루션": "138080",
+    "쏠리드": "050890", "티엠씨": "950190", "LG이노텍": "011070",
     "옵티시스": "109080", "이노와이어리스": "073490", "넥스트칩": "405100",
     "남선알미늄": "008350", "코위버": "056360", "광전자": "017900",
     "머큐리": "100590", "빛과전자": "069540",
@@ -121,7 +71,7 @@ STOCK_CODE_MAP = {
     "한화에어로스페이스": "012450", "LIG넥스원": "079550",
     "한화시스템": "272210", "현대로템": "064350",
     "풍산": "103140", "풍산홀딩스": "005810",
-    "한화오션": "042660", "퍼스텍": "010820",
+    "한화오션": "042660", "퍼스텍": "226340",
     
     # 에너지/전력
     "효성중공업": "298040", "LS일렉트릭": "010120", "두산에너빌리티": "034020",
@@ -158,44 +108,6 @@ STOCK_CODE_MAP = {
 }
 
 
-def _normalize_stock_name(stock_name: str) -> str:
-    return re.sub(r"[^0-9A-Za-z가-힣]", "", (stock_name or "")).upper()
-
-
-@lru_cache(maxsize=2048)
-def get_stock_name_by_code(stock_code: str) -> str:
-    """종목코드가 실제 어떤 종목명을 가리키는지 확인합니다."""
-    try:
-        url = f"https://m.stock.naver.com/api/stock/{stock_code}/basic"
-        resp = requests.get(url, headers={
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)",
-        }, timeout=5)
-        if resp.status_code != 200:
-            return ""
-        data = resp.json()
-        return (data.get("stockName") or "").strip()
-    except Exception:
-        return ""
-
-
-def _is_matching_stock_name(requested_name: str, actual_name: str) -> bool:
-    requested = _normalize_stock_name(requested_name)
-    actual = _normalize_stock_name(actual_name)
-    if not requested or not actual:
-        return False
-    return requested == actual or requested in actual or actual in requested
-
-
-def _verify_or_refresh_mapped_code(stock_name: str, code: str) -> Optional[str]:
-    """하드코딩/캐시된 코드가 실제 종목명과 맞는지 검증하고 틀리면 폐기합니다."""
-    actual_name = get_stock_name_by_code(code)
-    if _is_matching_stock_name(stock_name, actual_name):
-        return code
-
-    print(f"  [!] 코드 검증 실패 ({stock_name} -> {code}, 실제: {actual_name or '미상'})")
-    return None
-
-
 def search_stock_code(stock_name: str) -> Optional[str]:
     """
     종목명으로 종목코드를 검색합니다.
@@ -210,17 +122,12 @@ def search_stock_code(stock_name: str) -> Optional[str]:
     """
     # 1. 하드코딩 매핑에서 찾기
     if stock_name in STOCK_CODE_MAP:
-        verified = _verify_or_refresh_mapped_code(stock_name, STOCK_CODE_MAP[stock_name])
-        if verified:
-            return verified
+        return STOCK_CODE_MAP[stock_name]
 
     # 부분 매칭 시도 (예: "삼성전자우" → "삼성전자")
     for name, code in STOCK_CODE_MAP.items():
         if stock_name.startswith(name) or name.startswith(stock_name):
-            verified = _verify_or_refresh_mapped_code(stock_name, code)
-            if verified:
-                STOCK_CODE_MAP[stock_name] = verified
-                return verified
+            return code
 
     # 2. 네이버 증권 검색 시도
     return search_stock_code_online(stock_name)
@@ -237,28 +144,11 @@ def search_stock_code_online(stock_name: str) -> Optional[str]:
         if resp.status_code == 200:
             data = resp.json()
             stocks = data.get("stocks", [])
-            exact_match = None
-            partial_match = None
-            for stock in stocks:
-                candidate_name = (stock.get("stockName") or stock.get("name") or "").strip()
-                candidate_code = stock.get("stockCode") or stock.get("code")
-                if not candidate_code:
-                    continue
-                if _is_matching_stock_name(stock_name, candidate_name):
-                    exact_match = candidate_code
-                    break
-                if partial_match is None:
-                    partial_match = candidate_code
-
-            code = exact_match or partial_match
-            if code:
-                actual_name = get_stock_name_by_code(code)
-                if not _is_matching_stock_name(stock_name, actual_name):
-                    print(f"  [!] 모바일 검색 불일치 ({stock_name} -> {code}, 실제: {actual_name})")
-                else:
-                    if code:
-                        STOCK_CODE_MAP[stock_name] = code  # 캐싱
-                        return code
+            if stocks:
+                code = stocks[0].get("stockCode") or stocks[0].get("code")
+                if code:
+                    STOCK_CODE_MAP[stock_name] = code  # 캐싱
+                    return code
     except Exception as e:
         print(f"  [!] 모바일 검색 실패 ({stock_name}): {e}")
 
@@ -282,104 +172,6 @@ def search_stock_code_online(stock_name: str) -> Optional[str]:
 
     print(f"  [!] {stock_name} 종목코드를 찾을 수 없습니다.")
     return None
-
-
-def get_theme_stock_candidates(theme_name: str, related_stocks: list[str] | None = None) -> list[str]:
-    """테마명에 맞는 한국 상장 종목 후보군을 반환합니다."""
-    related_stocks = related_stocks or []
-    candidates = []
-
-    for stock in related_stocks:
-        if stock in STOCK_CODE_MAP and stock not in candidates:
-            candidates.append(stock)
-
-    matched_universe = []
-    lowered_theme = theme_name.replace(" ", "")
-    for key, stocks in THEME_STOCK_UNIVERSE.items():
-        key_compact = key.replace(" ", "")
-        if key_compact in lowered_theme or lowered_theme in key_compact:
-            matched_universe.extend(stocks)
-
-    for stock in matched_universe:
-        if stock not in candidates:
-            candidates.append(stock)
-
-    return candidates
-
-def _max_overlap_with_previous_themes(stock_names: list[str], previous_theme_sets: list[set[str]]) -> int:
-    if not previous_theme_sets:
-        return 0
-    current = set(stock_names)
-    return max(len(current & previous) for previous in previous_theme_sets)
-
-
-def _select_theme_stocks(
-    stock_details: list[dict],
-    used_stock_counts: dict[str, int],
-    previous_theme_sets: list[set[str]],
-    limit: int = 4,
-) -> list[dict]:
-    if not stock_details:
-        return []
-
-    ordered_pool = sorted(
-        stock_details,
-        key=lambda stock: (
-            used_stock_counts.get(stock["name"], 0),
-            -stock["changeRate"],
-            -stock.get("volumeRaw", 0),
-        ),
-    )
-
-    selected = []
-    selected_names = set()
-
-    for stock in ordered_pool:
-        if stock["name"] in selected_names:
-            continue
-        selected.append(stock)
-        selected_names.add(stock["name"])
-        if len(selected) == limit:
-            break
-
-    if len(selected) < limit:
-        for stock in stock_details:
-            if stock["name"] in selected_names:
-                continue
-            selected.append(stock)
-            selected_names.add(stock["name"])
-            if len(selected) == limit:
-                break
-
-    while previous_theme_sets and _max_overlap_with_previous_themes([stock["name"] for stock in selected], previous_theme_sets) >= 3:
-        overlap_before = _max_overlap_with_previous_themes([stock["name"] for stock in selected], previous_theme_sets)
-        replaced = False
-
-        for index, existing in enumerate(selected):
-            for candidate in ordered_pool:
-                if candidate["name"] in selected_names:
-                    continue
-
-                trial = list(selected)
-                trial[index] = candidate
-                trial_names = [stock["name"] for stock in trial]
-                overlap_after = _max_overlap_with_previous_themes(trial_names, previous_theme_sets)
-
-                if overlap_after < overlap_before:
-                    selected_names.remove(existing["name"])
-                    selected_names.add(candidate["name"])
-                    selected = trial
-                    replaced = True
-                    break
-
-            if replaced:
-                break
-
-        if not replaced:
-            break
-
-    return selected[:limit]
-
 
 def get_stock_detail(stock_code: str) -> Optional[dict]:
     """
@@ -436,27 +228,6 @@ def get_stock_detail_mobile(stock_code: str) -> Optional[dict]:
             match = re.search(r"(\d{2}):(\d{2})", local_traded_at)
             if match:
                 time_str = f"{match.group(1)}:{match.group(2)}"
-
-        # NXT 장 시간(08:00~09:00, 15:30 이후)에는 NXT 가격이 있으면 우선 반영
-        now_kst = datetime.now(KST).time()
-        over_market_info = data.get("overMarketPriceInfo") or {}
-        is_nxt_session = dt_time(8, 0) <= now_kst < dt_time(9, 0) or now_kst >= dt_time(15, 30)
-        if is_nxt_session and over_market_info.get("overPrice"):
-            over_price = int(over_market_info.get("overPrice", "0").replace(",", ""))
-            over_change_price = int(over_market_info.get("compareToPreviousClosePrice", "0").replace(",", ""))
-            over_change_rate = float(over_market_info.get("fluctuationsRatio", "0").replace(",", ""))
-            over_local_traded_at = over_market_info.get("localTradedAt", "")
-
-            if over_price > 0:
-                price = over_price
-                change_price = over_change_price
-                change_rate = over_change_rate
-                prev_close = price - change_price
-
-                if over_local_traded_at:
-                    match = re.search(r"(\d{2}):(\d{2})", over_local_traded_at)
-                    if match:
-                        time_str = f"{match.group(1)}:{match.group(2)}"
 
         # 시가/고가/저가 추정 (basic API에는 없으므로 등락률 기반 추정)
         # 상승종목: 시가 < 현재가, 하락종목: 시가 > 현재가
@@ -700,22 +471,18 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
         프론트엔드용 완성된 테마 데이터 리스트
     """
     result_themes = []
-    detail_cache: dict[str, dict | None] = {}
-    used_stock_counts: dict[str, int] = {}
-    previous_theme_sets: list[set[str]] = []
 
     for theme in themes:
         theme_name = theme["themeName"]
         headline = theme.get("headline", "")
         related_stocks = theme.get("relatedStocks", [])
-        candidate_stocks = get_theme_stock_candidates(theme_name, related_stocks)
 
         print(f"\n[INFO] 테마 '{theme_name}' 종목 데이터 조회 중...")
 
         stock_details = []
         total_volume = 0
 
-        for stock_name in candidate_stocks:
+        for stock_name in related_stocks:
             print(f"  [>] {stock_name} 검색 중...")
 
             # 1. 종목코드 검색
@@ -725,11 +492,7 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
                 continue
 
             # 2. 종목 상세 데이터 조회
-            if code in detail_cache:
-                detail = detail_cache[code]
-            else:
-                detail = get_stock_detail(code)
-                detail_cache[code] = detail
+            detail = get_stock_detail(code)
             if not detail:
                 continue
 
@@ -748,33 +511,24 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
                 "time": detail.get("time", ""),
                 "changeRate": detail["changeRate"],
                 "volume": detail["volume"],
-                "volumeRaw": detail.get("volumeRaw", 0),
                 "isTop": False,  # 나중에 정렬 후 설정
                 "barData": bar_data,
             }
 
-            if not any(item["name"] == stock_item["name"] for item in stock_details):
-                stock_details.append(stock_item)
+            stock_details.append(stock_item)
             total_volume += detail.get("volumeRaw", 0)
 
             time.sleep(0.1)  # 요청 간격
 
-        # 급등주를 더 강하게 반영하도록 등락률 우선, 거래대금 보조 정렬
-        stock_details.sort(key=lambda x: (x["changeRate"], x.get("volumeRaw", 0)), reverse=True)
+            if len(stock_details) >= 4:
+                break  # 테마당 4개만
 
-        # 너무 많을 수 있으니 상위 10개 후보까지만 유지
-        stock_details = stock_details[:10]
-        selected_stocks = _select_theme_stocks(stock_details, used_stock_counts, previous_theme_sets)
+        # 등락률 기준 정렬 (높은 순)
+        stock_details.sort(key=lambda x: x["changeRate"], reverse=True)
 
         # 1위 종목은 isTop = True
-        if selected_stocks:
-            selected_stocks[0]["isTop"] = True
-
-        selected_names = {stock["name"] for stock in selected_stocks}
-        for stock_name in selected_names:
-            used_stock_counts[stock_name] = used_stock_counts.get(stock_name, 0) + 1
-        if selected_names:
-            previous_theme_sets.append(selected_names)
+        if stock_details:
+            stock_details[0]["isTop"] = True
 
         # 4개 미만이면 패스하지 않고 있는 만큼만
         result_themes.append({
@@ -782,10 +536,7 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
             "totalVolume": format_volume(total_volume),
             "headline": headline,
             "headlineUrl": theme.get("headlineUrl", ""),
-            "stocks": [
-                {k: v for k, v in stock.items() if k != "volumeRaw"}
-                for stock in selected_stocks
-            ],
+            "stocks": stock_details[:4],
         })
 
         print(f"  [OK] {theme_name}: {len(stock_details)}개 종목 데이터 수집 완료")

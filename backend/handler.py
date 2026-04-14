@@ -25,15 +25,13 @@ if sys.stdout.encoding != 'utf-8':
 
 # 모듈 임포트
 try:
-    from crawler import crawl_all_news
+    from crawler import crawl_naver_finance_news_with_fallback
     from analyzer import analyze_themes
-    from stock_data import get_stock_details_for_themes, THEME_STOCK_UNIVERSE
-    from theme_engine import detect_theme_signals, merge_theme_signals_into_themes, build_fallback_signals_from_themes
+    from stock_data import get_stock_details_for_themes
 except ModuleNotFoundError:
-    from .crawler import crawl_all_news
+    from .crawler import crawl_naver_finance_news_with_fallback
     from .analyzer import analyze_themes
-    from .stock_data import get_stock_details_for_themes, THEME_STOCK_UNIVERSE
-    from .theme_engine import detect_theme_signals, merge_theme_signals_into_themes, build_fallback_signals_from_themes
+    from .stock_data import get_stock_details_for_themes
 
 
 def upload_to_s3(data: dict, bucket: str, key: str) -> str:
@@ -82,7 +80,7 @@ def lambda_handler(event, context):
     try:
         # ── Step 1: 뉴스 크롤링 ──
         print("\n[Step 1] 네이버 금융 뉴스 크롤링")
-        articles = crawl_all_news(target_count=400)
+        articles = crawl_naver_finance_news_with_fallback(200)
 
         if not articles:
             return {
@@ -108,18 +106,11 @@ def lambda_handler(event, context):
         print("\n[Step 3] 테마별 종목 데이터 조회")
         completed_themes = get_stock_details_for_themes(themes)
 
-        mover_signals = analysis.get("moverSignals", [])
-        theme_signals = detect_theme_signals(mover_signals, articles, THEME_STOCK_UNIVERSE)
-        if not theme_signals:
-            theme_signals = build_fallback_signals_from_themes(themes)
-        merge_theme_signals_into_themes(completed_themes, theme_signals)
-
         # ── Step 4: JSON 조립 및 S3 업로드 ──
         print("\n[Step 4] JSON 조립 및 S3 업로드")
         dashboard_data = {
             "updatedAt": datetime.now().isoformat(),
             "youtubeSignals": analysis.get("youtubeSignals", []),
-            "themeSignals": theme_signals,
             "themes": completed_themes,
         }
 
