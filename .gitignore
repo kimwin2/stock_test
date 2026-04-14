@@ -27,3 +27,4 @@ node_modules/
 # Local data (optional - 테스트용 데이터는 커밋 가능)
 # backend/crawled_articles.json
 # backend/theme_analysis.json
+backend/telegram/dev/*.json

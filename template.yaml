@@ -21,6 +21,29 @@ Parameters:
     Default: stock-dashboard-data
     Description: S3 bucket name for storing dashboard JSON
 
+  TelegramApiId:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: Telegram API ID for signal collector
+
+  TelegramApiHash:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: Telegram API hash for signal collector
+
+  TelegramStringSession:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: Telegram StringSession for signal collector
+
+  TelegramChannelUsername:
+    Type: String
+    Default: '@faststocknews'
+    Description: Telegram channel username to collect
+
 # ─────────────────────────────────────────
 # Globals
 # ─────────────────────────────────────────
@@ -81,6 +104,8 @@ Resources:
           OPENAI_API_KEY: !Ref OpenAIApiKey
           S3_BUCKET_NAME: !Ref S3BucketName
           S3_KEY: dashboard_data.json
+          TELEGRAM_SIGNAL_S3_KEY: signals/telegram_faststocknews_latest.json
+          TELEGRAM_STATE_S3_KEY: signals/telegram_faststocknews_state.json
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref S3BucketName
@@ -99,6 +124,48 @@ Resources:
             Path: /run
             Method: post
 
+  TelegramSignalCollectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: telegram-signal-collector
+      CodeUri: backend/
+      Handler: telegram.handler.lambda_handler
+      Description: Telegram faststocknews signal collector
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref S3BucketName
+          TELEGRAM_SIGNAL_S3_KEY: signals/telegram_faststocknews_latest.json
+          TELEGRAM_STATE_S3_KEY: signals/telegram_faststocknews_state.json
+          TG_API_ID: !Ref TelegramApiId
+          TG_API_HASH: !Ref TelegramApiHash
+          TG_STRING_SESSION: !Ref TelegramStringSession
+          TG_CHANNEL_USERNAME: !Ref TelegramChannelUsername
+          TG_LOOKBACK_MINUTES: '60'
+          TG_MAX_ITEMS: '20'
+          TG_MIN_SCORE: '0.35'
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref S3BucketName
+      Events:
+        ScheduleEvent:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: cron(0/5 8-17 ? * MON-FRI *)
+            ScheduleExpressionTimezone: Asia/Seoul
+            Name: telegram-faststocknews-collector
+            Description: Collect Telegram signals every 5 minutes during KST market hours
+            State: ENABLED
+            Input: !Sub '{"source":"eventbridge-scheduler","channel":"${TelegramChannelUsername}"}'
+        FinalCloseEvent:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: cron(0 18 ? * MON-FRI *)
+            ScheduleExpressionTimezone: Asia/Seoul
+            Name: telegram-faststocknews-collector-close
+            Description: Collect Telegram signals at 18:00 KST close
+            State: ENABLED
+            Input: !Sub '{"source":"eventbridge-scheduler-close","channel":"${TelegramChannelUsername}"}'
+
 # ─────────────────────────────────────────
 # Outputs
 # ─────────────────────────────────────────
@@ -106,6 +173,10 @@ Outputs:
   LambdaFunctionArn:
     Description: Lambda 함수 ARN
     Value: !GetAtt StockPipelineFunction.Arn
+
+  TelegramCollectorFunctionArn:
+    Description: Telegram collector Lambda 함수 ARN
+    Value: !GetAtt TelegramSignalCollectorFunction.Arn
 
   ManualTriggerUrl:
     Description: 수동 실행 API URL (POST 요청)
