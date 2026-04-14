@@ -111,6 +111,7 @@ def lambda_handler(event, context):
         dashboard_data = {
             "updatedAt": datetime.now().isoformat(),
             "youtubeSignals": analysis.get("youtubeSignals", []),
+            "telegramSignals": analysis.get("telegramSignals", []),
             "themes": completed_themes,
         }
 

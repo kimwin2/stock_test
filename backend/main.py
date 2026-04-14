@@ -100,6 +100,7 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
     dashboard_data = {
         "updatedAt": datetime.now().isoformat(),
         "youtubeSignals": analysis.get("youtubeSignals", []),
+        "telegramSignals": analysis.get("telegramSignals", []),
         "themes": completed_themes,
     }
 
