@@ -3,18 +3,6 @@ import time
 import requests
 
 
-def _dedupe_articles(articles: list[dict]) -> list[dict]:
-    seen = set()
-    deduped = []
-    for article in articles:
-        key = article.get("url") or article.get("title")
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(article)
-    return deduped
-
-
 def crawl_daum_finance_news(keyword="특징주", per_page=100, max_count=200):
     url = "https://finance.daum.net/api/news/search"
     headers = {
@@ -61,26 +49,5 @@ def crawl_daum_finance_news(keyword="특징주", per_page=100, max_count=200):
 
         page += 1
         time.sleep(0.5)
-
-    return articles[:max_count]
-
-
-def crawl_daum_finance_news_multi(keywords: list[str], per_page=100, max_count=200):
-    if not keywords:
-        return []
-
-    per_keyword_target = max(1, (max_count + len(keywords) - 1) // len(keywords))
-    articles = []
-
-    for keyword in keywords:
-        fetched = crawl_daum_finance_news(
-            keyword=keyword,
-            per_page=per_page,
-            max_count=per_keyword_target,
-        )
-        articles.extend(fetched)
-        articles = _dedupe_articles(articles)
-        if len(articles) >= max_count:
-            break
 
     return articles[:max_count]
