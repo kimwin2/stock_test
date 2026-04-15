@@ -65,22 +65,16 @@ function createRangeBar(barData, changeRate) {
   bg.className = 'range-bar-bg';
   container.appendChild(bg);
 
-  // Colored fill bar
-  const [start, end] = barData.currentRange || [40, 60];
+  // Colored fill bar — 30%가 풀(100%) 바, 비례 계산
+  const MAX_RATE = 30;
+  const absRate = Math.abs(changeRate || 0);
+  const widthPct = Math.min(100, (absRate / MAX_RATE) * 100);
+
   const fill = document.createElement('div');
   fill.className = `range-bar-fill ${getChangeClass(changeRate)}`;
-  fill.style.left = `${Math.max(0, Math.min(100, start))}%`;
-  fill.style.width = `${Math.max(1, Math.min(100, end - start))}%`;
+  fill.style.left = '0%';
+  fill.style.width = `${Math.max(1, widthPct)}%`;
   container.appendChild(fill);
-
-  // Baseline tick
-  const baseline = barData.baseline;
-  if (baseline !== undefined && baseline !== null) {
-    const tick = document.createElement('div');
-    tick.className = 'range-bar-tick';
-    tick.style.left = `${Math.max(0, Math.min(100, baseline))}%`;
-    container.appendChild(tick);
-  }
 
   return container;
 }
