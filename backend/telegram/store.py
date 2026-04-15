@@ -113,7 +113,7 @@ def load_telegram_signal_payload(
         return build_empty_signal_payload(
             channel=channel,
             collected_at="",
-            window_minutes=int(os.getenv("TG_LOOKBACK_MINUTES", "60")),
+            window_minutes=int(os.getenv("TG_LOOKBACK_MINUTES", "180")),
         )
 
     return payload
