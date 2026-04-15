@@ -152,6 +152,7 @@ THEME_CANDIDATE_RULES = [
 ]
 
 PRICE_SIGNAL_RESCUE_SCORE = 150.0
+THEME_OVERLAP_MERGE_THRESHOLD = 0.75
 POSTPROCESS_REPLACEABLE_THEMES = {
     "햇지",
     "헤지",
@@ -160,6 +161,13 @@ POSTPROCESS_REPLACEABLE_THEMES = {
     "지수방어",
     "위험회피",
 }
+THEME_MERGE_RULES = [
+    {
+        "primary": "양자컴퓨터",
+        "secondary": "보안",
+        "threshold": THEME_OVERLAP_MERGE_THRESHOLD,
+    },
+]
 
 
 def _is_priority_article(title: str) -> bool:
@@ -387,6 +395,94 @@ def _find_replaceable_theme_index(themes: list[dict], price_candidates: list[dic
     return fallback_idx
 
 
+def _merge_overlapping_themes(themes: list[dict]) -> tuple[list[dict], set[str]]:
+    merged = list(themes)
+    removed_names: set[str] = set()
+
+    for rule in THEME_MERGE_RULES:
+        primary_idx = next(
+            (idx for idx, theme in enumerate(merged) if _normalize_theme_name(theme.get("themeName", "")) == _normalize_theme_name(rule["primary"])),
+            None,
+        )
+        secondary_idx = next(
+            (idx for idx, theme in enumerate(merged) if _normalize_theme_name(theme.get("themeName", "")) == _normalize_theme_name(rule["secondary"])),
+            None,
+        )
+
+        if primary_idx is None or secondary_idx is None or primary_idx == secondary_idx:
+            continue
+
+        primary = merged[primary_idx]
+        secondary = merged[secondary_idx]
+        primary_stocks = {stock for stock in primary.get("relatedStocks", []) if stock}
+        secondary_stocks = {stock for stock in secondary.get("relatedStocks", []) if stock}
+        if not primary_stocks or not secondary_stocks:
+            continue
+
+        overlap = primary_stocks & secondary_stocks
+        overlap_ratio = len(overlap) / min(len(primary_stocks), len(secondary_stocks))
+        if overlap_ratio < float(rule.get("threshold", THEME_OVERLAP_MERGE_THRESHOLD)):
+            continue
+
+        merged_stocks = []
+        for stock in list(primary.get("relatedStocks", [])) + list(secondary.get("relatedStocks", [])):
+            if stock and stock not in merged_stocks:
+                merged_stocks.append(stock)
+        primary["relatedStocks"] = merged_stocks[:6]
+
+        merged_from = list(primary.get("mergedFromThemes", []))
+        if secondary.get("themeName") not in merged_from:
+            merged_from.append(secondary.get("themeName"))
+        primary["mergedFromThemes"] = merged_from
+        primary["mergeNote"] = (
+            f"{secondary.get('themeName')} 테마와 종목 겹침 {len(overlap)}개로 높아 "
+            f"{primary.get('themeName')}로 통합했습니다."
+        )
+
+        print(
+            f"  [병합] '{secondary.get('themeName', '')}' 테마를 "
+            f"'{primary.get('themeName', '')}' 테마로 통합했습니다. "
+            f"(겹침 {len(overlap)}개, 비율 {overlap_ratio:.2f})"
+        )
+
+        removed_names.add(_normalize_theme_name(secondary.get("themeName", "")))
+        del merged[secondary_idx]
+        if secondary_idx < primary_idx:
+            primary_idx -= 1
+
+    return merged, removed_names
+
+
+def _refill_themes_after_merge(
+    themes: list[dict],
+    price_candidates: list[dict],
+    articles: list[dict],
+    target_count: int = 7,
+    excluded_names: set[str] | None = None,
+) -> list[dict]:
+    refilled = list(themes)
+    existing_names = {_normalize_theme_name(theme.get("themeName", "")) for theme in refilled}
+    excluded = set(excluded_names or set())
+
+    for candidate in price_candidates:
+        if len(refilled) >= target_count:
+            break
+
+        normalized = _normalize_theme_name(candidate.get("themeName", ""))
+        if normalized in existing_names:
+            continue
+        if normalized in excluded:
+            continue
+        if len(candidate.get("matchedStocks", [])) < 4:
+            continue
+
+        refilled.append(_build_theme_from_price_candidate(candidate, articles))
+        existing_names.add(normalized)
+        print(f"  [보강] 병합 후 부족한 슬롯에 가격 기반 후보 '{candidate.get('themeName', '')}'를 추가했습니다.")
+
+    return refilled
+
+
 def apply_price_signal_postprocess(result: dict, articles: list[dict]) -> dict:
     themes = list(result.get("themes", []))
     price_candidates = list(result.get("priceSignalCandidates", []))
@@ -417,19 +513,21 @@ def apply_price_signal_postprocess(result: dict, articles: list[dict]) -> dict:
             )
         existing_names.add(_normalize_theme_name(candidate.get("themeName", "")))
 
+    themes, removed_names = _merge_overlapping_themes(themes)
+    themes = _refill_themes_after_merge(
+        themes,
+        price_candidates,
+        articles,
+        target_count=7,
+        excluded_names=removed_names,
+    )
     result["themes"] = themes[:7]
     return result
 
 
-def format_articles_for_prompt(articles: list[dict], youtube_signals: list[dict] | None = None) -> str:
-    """
-    기사 리스트를 프롬프트에 넣을 텍스트로 변환합니다.
-    [특징주], 강세, 상한가, 급등 등의 키워드가 포함된 기사를 최상단에 배치하고
-    ★ 마커를 붙여 ChatGPT가 가중치를 줄 수 있도록 합니다.
-    """
+def sort_articles_for_prompt(articles: list[dict], youtube_signals: list[dict] | None = None) -> list[dict]:
     youtube_keywords = _get_youtube_keywords(youtube_signals or [])
 
-    # 우선순위 기사와 일반 기사 분리
     youtube_priority = []
     priority = []
     normal = []
@@ -442,8 +540,23 @@ def format_articles_for_prompt(articles: list[dict], youtube_signals: list[dict]
         else:
             normal.append(article)
 
-    # 유튜브 겹침 기사 > 우선순위 기사 > 일반 기사 순으로 배치
-    sorted_articles = youtube_priority + priority + normal
+    return youtube_priority + priority + normal
+
+
+def format_articles_for_prompt(articles: list[dict], youtube_signals: list[dict] | None = None) -> str:
+    """
+    기사 리스트를 프롬프트에 넣을 텍스트로 변환합니다.
+    [특징주], 강세, 상한가, 급등 등의 키워드가 포함된 기사를 최상단에 배치하고
+    ★ 마커를 붙여 ChatGPT가 가중치를 줄 수 있도록 합니다.
+    """
+    youtube_keywords = _get_youtube_keywords(youtube_signals or [])
+    sorted_articles = sort_articles_for_prompt(articles, youtube_signals)
+    youtube_priority_count = sum(1 for article in sorted_articles if _is_youtube_weighted_article(article, youtube_keywords))
+    priority_count = sum(
+        1 for article in sorted_articles
+        if not _is_youtube_weighted_article(article, youtube_keywords)
+        and _is_priority_article(article.get("title", "").strip())
+    )
 
     lines = []
     for i, article in enumerate(sorted_articles, 1):
@@ -456,10 +569,10 @@ def format_articles_for_prompt(articles: list[dict], youtube_signals: list[dict]
         else:
             lines.append(f"{i}. {marker}{title}")
 
-    if youtube_priority:
-        print(f"  [◆] 유튜브 시그널 연관 기사 {len(youtube_priority)}개를 최상단에 배치했습니다.")
-    if priority:
-        print(f"  [★] 우선순위 기사 {len(priority)}개를 최상단에 배치했습니다.")
+    if youtube_priority_count:
+        print(f"  [◆] 유튜브 시그널 연관 기사 {youtube_priority_count}개를 최상단에 배치했습니다.")
+    if priority_count:
+        print(f"  [★] 우선순위 기사 {priority_count}개를 최상단에 배치했습니다.")
 
     return "\n".join(lines)
 
@@ -493,6 +606,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
     youtube_signals = _get_youtube_signals()
     telegram_signals = _get_telegram_signals()
     price_signal_payload = _get_price_signal_payload()
+    sorted_articles = sort_articles_for_prompt(articles, youtube_signals)
     youtube_text = format_youtube_signals_for_prompt(youtube_signals)
     telegram_text = format_telegram_signals_for_prompt(telegram_signals)
     price_signal_text = format_price_signal_candidates_for_prompt(price_signal_payload)
@@ -532,7 +646,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         result["telegramSignals"] = telegram_signals
         result["priceSignalPayload"] = price_signal_payload
         result["priceSignalCandidates"] = price_signal_payload.get("candidates", [])
-        result = apply_price_signal_postprocess(result, articles)
+        result = apply_price_signal_postprocess(result, sorted_articles)
 
         # 검증: themes 키 존재 및 5개인지
         if "themes" not in result:
@@ -551,10 +665,10 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
             # 대표 기사 URL 매핑 → 원본 기사 URL로 변환
             article_idx = theme.get("representativeArticleIndex", 1)
-            if isinstance(article_idx, int) and 1 <= article_idx <= len(articles):
-                raw_url = articles[article_idx - 1].get("url", "")
+            if isinstance(article_idx, int) and 1 <= article_idx <= len(sorted_articles):
+                raw_url = sorted_articles[article_idx - 1].get("url", "")
             else:
-                raw_url = articles[0].get("url", "") if articles else ""
+                raw_url = sorted_articles[0].get("url", "") if sorted_articles else ""
             theme["headlineUrl"] = _convert_to_article_url(raw_url)
 
         print(f"\n[INFO] 추출된 테마:")

@@ -31,6 +31,19 @@ def _telegram_text(signal: dict) -> str:
     ])
 
 
+def _score_rule_match(text: str, rule: dict) -> tuple[float, list[str]]:
+    hits: list[str] = []
+    stock_hits = [stock for stock in rule["stock_names"] if stock and stock in text]
+    keyword_hits = [keyword for keyword in rule["keywords"] if keyword and keyword in text]
+
+    for item in stock_hits + keyword_hits:
+        if item not in hits:
+            hits.append(item)
+
+    score = (len(stock_hits) * 3.0) + (len(keyword_hits) * 1.0)
+    return score, hits
+
+
 def discover_theme_candidates(
     movers: list[dict],
     articles: list[dict],
@@ -40,8 +53,20 @@ def discover_theme_candidates(
 
     for rule in THEME_RULES:
         matched_movers = [item for item in movers if item.get("name") in rule["stock_names"]]
-        article_hits = [article for article in articles if any(keyword in _article_text(article) for keyword in rule["keywords"] + rule["stock_names"])]
-        telegram_hits = [signal for signal in telegram_signals if any(keyword in _telegram_text(signal) for keyword in rule["keywords"] + rule["stock_names"])]
+        scored_articles: list[tuple[float, dict, list[str]]] = []
+        for article in articles:
+            score, hits = _score_rule_match(_article_text(article), rule)
+            if score >= 2.0:
+                scored_articles.append((score, article, hits))
+
+        scored_telegram: list[tuple[float, dict, list[str]]] = []
+        for signal in telegram_signals:
+            score, hits = _score_rule_match(_telegram_text(signal), rule)
+            if score >= 2.0:
+                scored_telegram.append((score, signal, hits))
+
+        article_hits = [article for _, article, _ in scored_articles]
+        telegram_hits = [signal for _, signal, _ in scored_telegram]
 
         if not matched_movers and not article_hits and not telegram_hits:
             continue
@@ -62,9 +87,13 @@ def discover_theme_candidates(
         )
 
         matched_stocks = _unique_preserve_order([item.get("name", "") for item in matched_movers] + rule["stock_names"], limit=6)
-        matched_articles = _unique_preserve_order([article.get("title", "") for article in article_hits], limit=4)
+        scored_articles.sort(key=lambda item: item[0], reverse=True)
+        matched_articles = _unique_preserve_order([article.get("title", "") for _, article, _ in scored_articles], limit=4)
         matched_messages = _unique_preserve_order([signal.get("text", "")[:140] for signal in telegram_hits], limit=3)
-        keywords = _unique_preserve_order(rule["keywords"], limit=6)
+        matched_terms = []
+        for _, _, hits in scored_articles[:3] + scored_telegram[:3]:
+            matched_terms.extend(hits)
+        keywords = _unique_preserve_order(matched_terms + rule["keywords"], limit=6)
 
         reasoning_parts = []
         if matched_movers:

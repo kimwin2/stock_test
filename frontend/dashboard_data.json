@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-16T00:21:55.744488",
+  "updatedAt": "2026-04-16T00:36:19.695263",
   "youtubeSignals": [
     {
       "signal_type": "내일",
@@ -425,7 +425,7 @@
   "priceSignalCandidates": [
     {
       "themeName": "보안",
-      "score": 254.61,
+      "score": 249.61,
       "matchedStocks": [
         "아이씨티케이",
         "엑스게이트",
@@ -433,10 +433,7 @@
         "케이씨에스",
         "아톤"
       ],
-      "matchedArticles": [
-        "마침내 ‘10만레콤’ 등극…AI·실적·배당 삼박자에 시총 21조 돌파",
-        "생성형AI 금융서비스 모델 교체 빨라진다…금융위, 변경 절차 간소화"
-      ],
+      "matchedArticles": [],
       "matchedTelegramMessages": [],
       "keywords": [
         "보안",
@@ -446,35 +443,7 @@
         "인증",
         "양자암호"
       ],
-      "reasoning": "급등주 5종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 5개가 포함됐습니다. 연관 기사 2건이 감지됐습니다."
-    },
-    {
-      "themeName": "건설",
-      "score": 219.26,
-      "matchedStocks": [
-        "대우건설",
-        "GS건설",
-        "현대건설",
-        "DL이앤씨",
-        "삼성E&A",
-        "한텍"
-      ],
-      "matchedArticles": [
-        "트럼프 \"4월 말 합의 가능성 높다\"…3대 지수 모두 ↑[뉴욕증시]",
-        "\"버티길 잘했다\" 개미 '환호'…코스피, 전쟁 후 처음으로 6000선 복귀",
-        "전쟁 이전으로 돌아온 코스피…이달중 7000 낙관론도",
-        "트럼프 \"전쟁 거의 끝나간다\" 한 마디에 코스피 '6000선' 안착"
-      ],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "재건",
-        "재건축",
-        "복구",
-        "플랜트",
-        "수주",
-        "건설"
-      ],
-      "reasoning": "급등주 2종목이 묶였고 평균 상승률은 15.4%입니다. 연관 기사 69건이 감지됐습니다."
+      "reasoning": "급등주 5종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 5개가 포함됐습니다."
     },
     {
       "themeName": "양자컴퓨터",
@@ -501,7 +470,7 @@
     },
     {
       "themeName": "반도체",
-      "score": 135.0,
+      "score": 75.0,
       "matchedStocks": [
         "삼성전자",
         "SK하이닉스",
@@ -511,25 +480,107 @@
         "원익IPS"
       ],
       "matchedArticles": [
-        "올해 7억·내년 13억 '하이닉스 현상'에 들썩…입시판도 바꾸고 베스트셀러에도 등극[뉴스추적]",
+        "삼전닉스 시총합산 2000조…\"다음은 3000조 겨냥\"[클릭 e종목]",
+        "“아직 싸다” 반도체株 랠리 시작…SK하이닉스 또 최고가 경신·삼성전자도 동반 강세 [종목Pick]",
         "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
-        "전쟁 이전으로 돌아온 코스피…이달중 7000 낙관론도",
-        "“반도체 테마 이어 로봇·우주·방산…연금 머니무브 타고 연내 500조”"
+        "SK하닉, 이틀 연속 신고가…삼전 '21만전자' 안착[핫스탁](종합)"
       ],
       "matchedTelegramMessages": [],
       "keywords": [
+        "삼성전자",
+        "SK하이닉스",
         "반도체",
         "HBM",
         "메모리",
-        "DDR",
-        "파운드리",
-        "장비"
+        "DDR"
       ],
-      "reasoning": "연관 기사 54건이 감지됐습니다."
+      "reasoning": "연관 기사 30건이 감지됐습니다."
+    },
+    {
+      "themeName": "AI반도체",
+      "score": 72.5,
+      "matchedStocks": [
+        "SK하이닉스",
+        "삼성전자",
+        "한미반도체",
+        "이오테크닉스",
+        "리노공업"
+      ],
+      "matchedArticles": [
+        "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
+        "삼전닉스 시총합산 2000조…\"다음은 3000조 겨냥\"[클릭 e종목]",
+        "SK하닉, 이틀 연속 신고가…삼전 '21만전자' 안착[핫스탁](종합)",
+        "190만닉스 넘어 200만닉스까지…깜짝 전망의 이유"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "SK하이닉스",
+        "삼성전자",
+        "AI",
+        "HBM",
+        "AI 서버",
+        "GPU"
+      ],
+      "reasoning": "연관 기사 29건이 감지됐습니다."
+    },
+    {
+      "themeName": "건설",
+      "score": 64.26,
+      "matchedStocks": [
+        "대우건설",
+        "GS건설",
+        "현대건설",
+        "DL이앤씨",
+        "삼성E&A",
+        "한텍"
+      ],
+      "matchedArticles": [
+        "올해만 646% 뛴 대우건설…이란 '재건 기대' 21% 또 급등[핫종목](종합)",
+        "올해 수익률 515%, 오늘도 20% 더 올랐다…믿기 힘든 대우건설 주가 [종목Pick]",
+        "K원전·LNG액화플랜트 시공능력 모두 갖췄다…대우건설, 장중 20%대 급등",
+        "美 EPC 기업들, 이란 재건 초기 주도 전망…韓기업 수주 가능성은? [fn마켓워치]"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "대우건설",
+        "재건",
+        "건설",
+        "이란",
+        "플랜트",
+        "재건축"
+      ],
+      "reasoning": "급등주 2종목이 묶였고 평균 상승률은 15.4%입니다. 연관 기사 7건이 감지됐습니다."
+    },
+    {
+      "themeName": "원전",
+      "score": 44.28,
+      "matchedStocks": [
+        "대우건설",
+        "두산에너빌리티",
+        "한전KPS",
+        "한국전력",
+        "현대건설"
+      ],
+      "matchedArticles": [
+        "SK하이닉스, 1분기 영업익 38조 사상 최대·목표가 180만원↑…대우건설, K-원전 수혜에 목표가 4배↑ [株토피아]",
+        "K원전·LNG액화플랜트 시공능력 모두 갖췄다…대우건설, 장중 20%대 급등",
+        "유진證 “두산에너빌리티, 원전 수주 가시화로 성장 기대…목표가 15만원”",
+        "올해만 646% 뛴 대우건설…이란 '재건 기대' 21% 또 급등[핫종목](종합)"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "대우건설",
+        "원전",
+        "K-원전",
+        "두산에너빌리티",
+        "SMR",
+        "원자로"
+      ],
+      "reasoning": "급등주 1종목이 묶였고 평균 상승률은 21.3%입니다. 연관 기사 6건이 감지됐습니다."
     },
     {
       "themeName": "방산",
-      "score": 120.0,
+      "score": 7.5,
       "matchedStocks": [
         "한화에어로스페이스",
         "LIG넥스원",
@@ -539,10 +590,9 @@
         "한국항공우주"
       ],
       "matchedArticles": [
-        "“다시 서학개미 웃을 차례?”…종전 기대감에 월가 큰손들 줄줄이 美증시 ‘상향 조정’",
-        "\"버티길 잘했다\" 개미 '환호'…코스피, 전쟁 후 처음으로 6000선 복귀",
-        "전쟁 이전으로 돌아온 코스피…이달중 7000 낙관론도",
-        "트럼프 \"전쟁 거의 끝나간다\" 한 마디에 코스피 '6000선' 안착"
+        "“전쟁 피크 지나도 오른다”…K건설·방산으로 이동하는 투자 흐름",
+        "외국인 큰손, 움직이나…'전쟁 수혜주' 4조5천억원 매수세 '전환'",
+        "외국인, 반도체 버리고 비중 늘린 종목은…코스피 '전쟁수혜주', 코스닥 '테마주'"
       ],
       "matchedTelegramMessages": [],
       "keywords": [
@@ -553,110 +603,6 @@
         "국방",
         "무기체계"
       ],
-      "reasoning": "연관 기사 48건이 감지됐습니다."
-    },
-    {
-      "themeName": "AI반도체",
-      "score": 102.5,
-      "matchedStocks": [
-        "SK하이닉스",
-        "삼성전자",
-        "한미반도체",
-        "이오테크닉스",
-        "리노공업"
-      ],
-      "matchedArticles": [
-        "올해 7억·내년 13억 '하이닉스 현상'에 들썩…입시판도 바꾸고 베스트셀러에도 등극[뉴스추적]",
-        "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
-        "삼전닉스 시총합산 2000조…\"다음은 3000조 겨냥\"[클릭 e종목]",
-        "AI發 메모리 수요 폭증 … 외국인 \"삼전닉스 베팅\""
-      ],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "AI",
-        "HBM",
-        "AI 서버",
-        "GPU",
-        "NPU",
-        "AI 반도체"
-      ],
-      "reasoning": "연관 기사 41건이 감지됐습니다."
-    },
-    {
-      "themeName": "원전",
-      "score": 51.78,
-      "matchedStocks": [
-        "대우건설",
-        "두산에너빌리티",
-        "한전KPS",
-        "한국전력",
-        "현대건설"
-      ],
-      "matchedArticles": [
-        "반도체ETF '뭉칫돈'…원자력ETF 수익률 100%",
-        "올해만 646% 뛴 대우건설…이란 '재건 기대' 21% 또 급등[핫종목](종합)",
-        "코스피 휩쓰는 외국인 5조… 삼성·하이닉스 주도 속 '원방조' 랠리 온다 [하창봉 <시크릿 투자>]",
-        "SK하이닉스, 1분기 영업익 38조 사상 최대·목표가 180만원↑…대우건설, K-원전 수혜에 목표가 4배↑ [株토피아]"
-      ],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "원전",
-        "SMR",
-        "원자로",
-        "원자력",
-        "K-원전"
-      ],
-      "reasoning": "급등주 1종목이 묶였고 평균 상승률은 21.3%입니다. 연관 기사 9건이 감지됐습니다."
-    },
-    {
-      "themeName": "광통신",
-      "score": 15.0,
-      "matchedStocks": [
-        "대한광통신",
-        "오이솔루션",
-        "기산텔레콤",
-        "쏠리드",
-        "코위버",
-        "머큐리"
-      ],
-      "matchedArticles": [
-        "“한 달 만에 600% 폭주” 엔비디아가 콕 찍은 ‘광통신’…또 개미 잡을까 우려도",
-        "엔비디아·AMD, 10일 연속 상승…AI 투자심리 되살아나나",
-        "올해 수익률 515%, 오늘도 20% 더 올랐다…믿기 힘든 대우건설 주가 [종목Pick]",
-        "네이버 '소버린 AI' 속도낸다… 국민성장펀드, 4천억 금융지원"
-      ],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "광통신",
-        "광모듈",
-        "광케이블",
-        "실리콘포토닉스",
-        "데이터센터",
-        "800G"
-      ],
-      "reasoning": "연관 기사 6건이 감지됐습니다."
-    },
-    {
-      "themeName": "로봇",
-      "score": 7.5,
-      "matchedStocks": [
-        "두산로보틱스",
-        "레인보우로보틱스",
-        "유일로보틱스",
-        "뉴로메카"
-      ],
-      "matchedArticles": [
-        "이번엔 로봇이다…삼성·타임폴리오, 액티브 ETF 재격돌",
-        "“반도체 테마 이어 로봇·우주·방산…연금 머니무브 타고 연내 500조”",
-        "전쟁 분쟁 국면 지나나...로봇株 부활 언제쯤?"
-      ],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "로봇",
-        "협동로봇",
-        "자동화",
-        "휴머노이드"
-      ],
       "reasoning": "연관 기사 3건이 감지됐습니다."
     }
   ],
@@ -665,7 +611,7 @@
       "themeName": "반도체",
       "totalVolume": "17,411억",
       "headline": "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611165",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/014/0005508391",
       "stocks": [
         {
           "name": "한미반도체",
@@ -748,8 +694,8 @@
     {
       "themeName": "건설",
       "totalVolume": "3,511억",
-      "headline": "올해만 646% 뛴 대우건설…이란 '재건 기대' 21% 또 급등",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611121",
+      "headline": "대우건설, 이란 '재건 기대' 21% 또 급등",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/421/0008892006",
       "stocks": [
         {
           "name": "대우건설",
@@ -832,8 +778,8 @@
     {
       "themeName": "AI반도체",
       "totalVolume": "21,145억",
-      "headline": "AI發 메모리 수요 폭증 … 외국인 '삼전닉스' 베팅",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/015/0005275473",
+      "headline": "AI發 메모리 수요 폭증 … 외국인 '삼전닉스 베팅'",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/009/0005666503",
       "stocks": [
         {
           "name": "한미반도체",
@@ -914,17 +860,17 @@
       ]
     },
     {
-      "themeName": "방산",
-      "totalVolume": "27,455억",
-      "headline": "중동 전쟁 종전 기대감 속 방산주 주목",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/119/0003081027",
+      "themeName": "광통신",
+      "totalVolume": "10,219억",
+      "headline": "엔비디아가 콕 찍은 ‘광통신’…또 개미 잡을까 우려도",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004610999",
       "stocks": [
         {
-          "name": "현대로템",
-          "price": 210000,
+          "name": "신성이엔지",
+          "price": 4120,
           "time": "16:10",
-          "changeRate": -0.71,
-          "volume": "2,100억",
+          "changeRate": 10.16,
+          "volume": "41억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -932,18 +878,18 @@
               100
             ],
             "currentRange": [
-              14,
-              71
+              22,
+              89
             ],
-            "baseline": 100
+            "baseline": 0
           }
         },
         {
-          "name": "한화에어로스페이스",
-          "price": 1509000,
+          "name": "삼성전기",
+          "price": 614000,
           "time": "16:10",
-          "changeRate": -0.92,
-          "volume": "15,100억",
+          "changeRate": 5.14,
+          "volume": "6,150억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -951,18 +897,18 @@
               100
             ],
             "currentRange": [
-              14,
-              71
+              22,
+              89
             ],
-            "baseline": 100
+            "baseline": 0
           }
         },
         {
-          "name": "한화시스템",
-          "price": 131500,
+          "name": "LG이노텍",
+          "price": 383000,
           "time": "16:10",
-          "changeRate": -1.2,
-          "volume": "1,315억",
+          "changeRate": 3.37,
+          "volume": "3,830억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -970,18 +916,18 @@
               100
             ],
             "currentRange": [
-              14,
-              71
+              22,
+              89
             ],
-            "baseline": 100
+            "baseline": 0
           }
         },
         {
-          "name": "LIG디펜스앤에어로스페이스",
-          "price": 893000,
+          "name": "대한광통신",
+          "price": 19800,
           "time": "16:10",
-          "changeRate": -4.39,
-          "volume": "8,940억",
+          "changeRate": -1.74,
+          "volume": "198억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1082,94 +1028,10 @@
       ]
     },
     {
-      "themeName": "보안",
-      "totalVolume": "295억",
-      "headline": "파수, 보안→AI 전문기업 도약 선언",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611165",
-      "stocks": [
-        {
-          "name": "아이씨티케이",
-          "price": 22950,
-          "time": "16:10",
-          "changeRate": 29.95,
-          "volume": "115억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "엑스게이트",
-          "price": 12980,
-          "time": "16:10",
-          "changeRate": 29.93,
-          "volume": "65억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "파수",
-          "price": 4690,
-          "time": "16:10",
-          "changeRate": 29.92,
-          "volume": "47억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "케이씨에스",
-          "price": 13680,
-          "time": "16:10",
-          "changeRate": 29.91,
-          "volume": "68억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        }
-      ]
-    },
-    {
       "themeName": "원전",
       "totalVolume": "2,362억",
       "headline": "두산에너빌리티, 원전 수주 가시화로 성장 기대",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/138/0002224605",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/366/0001156921",
       "stocks": [
         {
           "name": "대우건설",
@@ -1245,6 +1107,90 @@
               60
             ],
             "baseline": 50
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "방산",
+      "totalVolume": "27,455억",
+      "headline": "“전쟁 피크 지나도 오른다”…K건설·방산으로 이동하는 투자 흐름",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611120",
+      "stocks": [
+        {
+          "name": "현대로템",
+          "price": 210000,
+          "time": "16:10",
+          "changeRate": -0.71,
+          "volume": "2,100억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        },
+        {
+          "name": "한화에어로스페이스",
+          "price": 1509000,
+          "time": "16:10",
+          "changeRate": -0.92,
+          "volume": "15,100억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        },
+        {
+          "name": "한화시스템",
+          "price": 131500,
+          "time": "16:10",
+          "changeRate": -1.2,
+          "volume": "1,315억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        },
+        {
+          "name": "LIG디펜스앤에어로스페이스",
+          "price": 893000,
+          "time": "16:10",
+          "changeRate": -4.39,
+          "volume": "8,940억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
           }
         }
       ]
