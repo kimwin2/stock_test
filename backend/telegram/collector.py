@@ -163,7 +163,7 @@ def collect_telegram_signals(
     min_score: float | None = None,
 ) -> tuple[dict, dict]:
     resolved_channel = channel_username or get_channel_username()
-    resolved_lookback = lookback_minutes if lookback_minutes is not None else int(os.getenv("TG_LOOKBACK_MINUTES", "60"))
+    resolved_lookback = lookback_minutes if lookback_minutes is not None else int(os.getenv("TG_LOOKBACK_MINUTES", "180"))
     resolved_max_items = max_items if max_items is not None else int(os.getenv("TG_MAX_ITEMS", "20"))
     resolved_min_score = min_score if min_score is not None else float(os.getenv("TG_MIN_SCORE", "0.35"))
 

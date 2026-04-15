@@ -112,6 +112,7 @@ def lambda_handler(event, context):
             "updatedAt": datetime.now().isoformat(),
             "youtubeSignals": analysis.get("youtubeSignals", []),
             "telegramSignals": analysis.get("telegramSignals", []),
+            "priceSignalCandidates": analysis.get("priceSignalCandidates", []),
             "themes": completed_themes,
         }
 

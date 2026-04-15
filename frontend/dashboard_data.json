@@ -1,601 +1,11 @@
 {
-  "updatedAt": "2026-04-11T01:12:09.394472",
-  "themes": [
-    {
-      "themeName": "중동사태",
-      "totalVolume": "5,446억",
-      "headline": "중동 사태에 자재 비상 '공사 지연' 혼란",
-      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0001944117&office_id=057&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1",
-      "stocks": [
-        {
-          "name": "GS건설",
-          "price": 37650,
-          "time": "16:10",
-          "changeRate": 5.91,
-          "volume": "377억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "대우건설",
-          "price": 24300,
-          "time": "16:10",
-          "changeRate": 4.07,
-          "volume": "244억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "삼성물산",
-          "price": 302500,
-          "time": "16:10",
-          "changeRate": 0.83,
-          "volume": "3,030억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "현대건설",
-          "price": 179500,
-          "time": "16:10",
-          "changeRate": -2.13,
-          "volume": "1,796억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              14,
-              71
-            ],
-            "baseline": 100
-          }
-        }
-      ]
-    },
-    {
-      "themeName": "AI 기술",
-      "totalVolume": "5,746억",
-      "headline": "허태수 회장 'AI를 잘 쓰는 나라로 도약할 때다'",
-      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0005505934&office_id=014&mode=LSS2D&type=0&section_id=101&section_id2=261&section_id3=&date=20260411&page=1",
-      "stocks": [
-        {
-          "name": "LG전자",
-          "price": 118400,
-          "time": "16:10",
-          "changeRate": 1.02,
-          "volume": "1,184억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "삼성전자",
-          "price": 206000,
-          "time": "16:10",
-          "changeRate": 0.98,
-          "volume": "2,060억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "카카오",
-          "price": 47700,
-          "time": "16:10",
-          "changeRate": 0.85,
-          "volume": "477억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "NAVER",
-          "price": 202000,
-          "time": "16:10",
-          "changeRate": 0.25,
-          "volume": "2,025억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        }
-      ]
-    },
-    {
-      "themeName": "배당주",
-      "totalVolume": "3,978억",
-      "headline": "한국GM, 수조 원대 첫 중간 배당 발표",
-      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0003711483&office_id=020&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1",
-      "stocks": [
-        {
-          "name": "신한지주",
-          "price": 98700,
-          "time": "16:10",
-          "changeRate": 2.17,
-          "volume": "987억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "삼성전자",
-          "price": 206000,
-          "time": "16:10",
-          "changeRate": 0.98,
-          "volume": "2,060억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "한국GM",
-          "price": 0,
-          "time": "",
-          "changeRate": 0.0,
-          "volume": "0억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              40,
-              60
-            ],
-            "baseline": 50
-          }
-        },
-        {
-          "name": "SK텔레콤",
-          "price": 93000,
-          "time": "16:10",
-          "changeRate": -0.85,
-          "volume": "931억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              14,
-              71
-            ],
-            "baseline": 100
-          }
-        }
-      ]
-    },
-    {
-      "themeName": "비트코인",
-      "totalVolume": "0억",
-      "headline": "비트코인 상승의 진짜 이유, 중동 긴장 완화",
-      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0005664347&office_id=009&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1",
-      "stocks": [
-        {
-          "name": "두나무",
-          "price": 0,
-          "time": "",
-          "changeRate": 0.0,
-          "volume": "0억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              40,
-              60
-            ],
-            "baseline": 50
-          }
-        },
-        {
-          "name": "빗썸",
-          "price": 0,
-          "time": "",
-          "changeRate": 0.0,
-          "volume": "0억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              40,
-              60
-            ],
-            "baseline": 50
-          }
-        },
-        {
-          "name": "코인원",
-          "price": 0,
-          "time": "",
-          "changeRate": 0.0,
-          "volume": "0억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              40,
-              60
-            ],
-            "baseline": 50
-          }
-        },
-        {
-          "name": "업비트",
-          "price": 0,
-          "time": "",
-          "changeRate": 0.0,
-          "volume": "0억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              40,
-              60
-            ],
-            "baseline": 50
-          }
-        }
-      ]
-    },
-    {
-      "themeName": "추경",
-      "totalVolume": "6,866억",
-      "headline": "전쟁 추경 26.2조 국회 통과",
-      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0008883322&office_id=421&mode=LSS2D&type=0&section_id=101&section_id2=259&section_id3=&date=20260411&page=1",
-      "stocks": [
-        {
-          "name": "삼성중공업",
-          "price": 28550,
-          "time": "16:10",
-          "changeRate": 1.42,
-          "volume": "286억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "LG화학",
-          "price": 356000,
-          "time": "16:10",
-          "changeRate": 0.28,
-          "volume": "3,560억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "SK이노베이션",
-          "price": 122400,
-          "time": "16:10",
-          "changeRate": -1.29,
-          "volume": "1,225억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              14,
-              71
-            ],
-            "baseline": 100
-          }
-        },
-        {
-          "name": "현대건설",
-          "price": 179500,
-          "time": "16:10",
-          "changeRate": -2.13,
-          "volume": "1,796억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              14,
-              71
-            ],
-            "baseline": 100
-          }
-        }
-      ]
-    },
-    {
-      "themeName": "환율",
-      "totalVolume": "4,106억",
-      "headline": "환율 못 잡고 떠나는 이창용, 시장 불안감↑",
-      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0000173545&office_id=656&mode=LSS2D&type=0&section_id=101&section_id2=259&section_id3=&date=20260411&page=1",
-      "stocks": [
-        {
-          "name": "우리금융지주",
-          "price": 34150,
-          "time": "16:10",
-          "changeRate": 3.17,
-          "volume": "342억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "KB금융",
-          "price": 158300,
-          "time": "16:10",
-          "changeRate": 2.66,
-          "volume": "1,583억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "신한지주",
-          "price": 98700,
-          "time": "16:10",
-          "changeRate": 2.17,
-          "volume": "987억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "하나금융지주",
-          "price": 119500,
-          "time": "16:10",
-          "changeRate": 2.05,
-          "volume": "1,195억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        }
-      ]
-    },
-    {
-      "themeName": "소비자 물가",
-      "totalVolume": "7,814억",
-      "headline": "美 3월 CPI 예상치 하회, 불확실성↑",
-      "headlineUrl": "https://finance.naver.com/news/news_read.naver?article_id=0000490436&office_id=629&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20260411&page=1",
-      "stocks": [
-        {
-          "name": "CJ제일제당",
-          "price": 238500,
-          "time": "16:10",
-          "changeRate": 2.58,
-          "volume": "2,385억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "이마트",
-          "price": 94400,
-          "time": "16:10",
-          "changeRate": -0.11,
-          "volume": "944억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              14,
-              71
-            ],
-            "baseline": 100
-          }
-        },
-        {
-          "name": "신세계",
-          "price": 341000,
-          "time": "16:10",
-          "changeRate": -1.59,
-          "volume": "3,415억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              14,
-              71
-            ],
-            "baseline": 100
-          }
-        },
-        {
-          "name": "롯데쇼핑",
-          "price": 106800,
-          "time": "16:10",
-          "changeRate": -3.96,
-          "volume": "1,070억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              14,
-              71
-            ],
-            "baseline": 100
-          }
-        }
-      ]
-    }
-  ],
+  "updatedAt": "2026-04-16T00:21:55.744488",
   "youtubeSignals": [
     {
       "signal_type": "내일",
       "title": "내일 관심테마! 햇지,반도체,광통신,2차전지,원전,재건,개별주/ 삼성전자,SK하이닉스,삼천당제약,대한광통신,대우건설,신성이엔지,퍼스텍대한해운,흥아해운,삼성전기,GS건설,LIG넥스원",
       "video_url": "https://www.youtube.com/watch?v=aFqPYqx_IU4",
-      "upload_date": "20260412",
+      "upload_date": "",
       "sectors": [
         "햇지",
         "반도체",
@@ -622,10 +32,11 @@
     },
     {
       "signal_type": "당일",
-      "title": "당일 관심테마! 반도체,광통신,2차전지,원전,재건,개별주/ 삼성전자,SK하이닉스,삼천당제약대우건설,광전자LIG넥스원,퍼스텍,SK이터닉스,넥스틸,삼성E&A,삼성SDI,한화솔루션",
-      "video_url": "https://www.youtube.com/watch?v=ok9GKvD6UsQ",
-      "upload_date": "20260409",
+      "title": "당일 관심테마! 햇지,반도체,광통신,2차전지,원전,재건,개별주/ 삼성전자,SK하이닉스,삼천당제약,대한광통신,대우건설,신성이엔지,퍼스텍대한해운,흥아해운,삼성전기,GS건설,LIG넥스원",
+      "video_url": "https://www.youtube.com/watch?v=FXI5l3UYP3A",
+      "upload_date": "",
       "sectors": [
+        "햇지",
         "반도체",
         "광통신",
         "2차전지",
@@ -636,16 +47,1206 @@
       "stocks": [
         "삼성전자",
         "SK하이닉스",
-        "퍼스텍",
-        "SK이터닉스",
-        "넥스틸",
-        "삼성E&A",
-        "삼성SDI",
-        "한화솔루션",
         "삼천당제약",
+        "대한광통신",
         "대우건설",
-        "광전자",
-        "LIG넥스원"
+        "신성이엔지",
+        "흥아해운",
+        "삼성전기",
+        "GS건설",
+        "LIG넥스원",
+        "퍼스텍",
+        "대한해운"
+      ]
+    }
+  ],
+  "telegramSignals": [
+    {
+      "messageId": 115588,
+      "postedAt": "2026-04-15T12:26:12+09:00",
+      "text": "✅ [속보] 트럼프 “전쟁 곧 끝나”…‘이슬라마바드 2차 회동’ 급물살 https://v.daum.net/v/20260415122003120",
+      "views": 21489,
+      "forwards": 31,
+      "url": "https://t.me/faststocknews/115588",
+      "matchedStocks": [],
+      "keywords": [
+        "속보",
+        "트럼프",
+        "전쟁",
+        "끝나",
+        "이슬라마바드",
+        "2차"
+      ],
+      "score": 0.47
+    },
+    {
+      "messageId": 115590,
+      "postedAt": "2026-04-15T13:00:16+09:00",
+      "text": ">>CCL 가격 인상 본격화…대만 3대 업체 급등 (대만공상시보) •동박적층판(CCL) 업종이 2분기 들어 가격 인상 사이클에 진입하면서 대만 공급망 주가가 강하게 상승했음. TUC (台燿科技)는 장중 상한가를 기록했고, EMC (台光電子)·ITEQ (聯茂電子)도 동반 상승했음. 특히 TUC는 최근 보름간 +66% 급등하며 가장 강한 탄력을 보였음 •가격 상승 배경은 동박, 유리섬유, 에폭시수지, 난연제(TBBA), 에너지 비용 등 원재료 상승과 공급 축소 영향임. 중국 Kingboard Holdings의 가격 인상 이후 대만 업체들도 고객사와 재협상에 돌입했으며, AI 서버·고속 스위치용 고사양 CCL 중심으로 가격 전가가 빠르게 진행 중임. 구체적으로 TUC는 4월 25일부터 일부 제품 가격을 최대 20~40% 인상할 계획이며, EMC는 약 10% 수준, ITEQ도 인상에 동참할 예정임. 업계에서는 공급이 여전히 타이트해 이번 가격 상승이 단기 이벤트가 아닌 중기 트렌드로 이어질 가능성 •실적 측면에서도 3사는 1분기 모두 호조를 기록했으며, AI 서버·800G 스위치·저궤도 위성 수요 확대에 힘입어 고사양 CCL 수급은 계속 빡빡할 전망임. 이에 따라 2분기에는 가격과 수익성 동반 개선, 밸류에이션 상향 여지가 있다는 평가 >銅箔基板漲價潮！CCL三雄股價紅通通 「這檔」半個月飆漲66％ https://www.ctee.com.tw/news/20260415700867-430201",
+      "views": 12590,
+      "forwards": 32,
+      "url": "https://t.me/faststocknews/115590",
+      "matchedStocks": [],
+      "keywords": [
+        "상한가",
+        "급등",
+        "CCL",
+        "가격",
+        "인상",
+        "본격화"
+      ],
+      "score": 0.52
+    },
+    {
+      "messageId": 115591,
+      "postedAt": "2026-04-15T13:15:57+09:00",
+      "text": "✅ [특징주] 미투온, CBDC 스테이블 코인 공존 정책에 ↑…USDC 연동 기술 경쟁력 부각 (상승 이유) https://www.cstimes.com/news/articleView.html?idxno=702051",
+      "views": 13983,
+      "forwards": 23,
+      "url": "https://t.me/faststocknews/115591",
+      "matchedStocks": [],
+      "keywords": [
+        "특징주",
+        "정책",
+        "미투온",
+        "CBDC",
+        "스테이블",
+        "코인"
+      ],
+      "score": 0.51
+    },
+    {
+      "messageId": 115594,
+      "postedAt": "2026-04-15T13:35:03+09:00",
+      "text": "✅ [특징주] 한텍, 美 KBR·벡텔·韓 삼성E&A·DL E&C 고객사 확보…이란 재건 기대감에 강세 https://www.market-ink.co.kr/news/articleView.html?idxno=5485",
+      "views": 14638,
+      "forwards": 33,
+      "url": "https://t.me/faststocknews/115594",
+      "matchedStocks": [],
+      "keywords": [
+        "특징주",
+        "강세",
+        "한텍",
+        "KBR",
+        "벡텔",
+        "삼성E"
+      ],
+      "score": 0.52
+    },
+    {
+      "messageId": 115595,
+      "postedAt": "2026-04-15T13:36:50+09:00",
+      "text": "260415_SK하이닉스 영업이익 추정치 변화[vs. YTD] (1) 1Q26(F): 17.33조 → 32.98조[YTD +90.3%] (2) 2Q26(F) 20.49조 → 46.15조[YTD +125.2%]",
+      "views": 15102,
+      "forwards": 41,
+      "url": "https://t.me/faststocknews/115595",
+      "matchedStocks": [],
+      "keywords": [
+        "SK하이닉스",
+        "영업이익",
+        "추정치",
+        "변화",
+        "vs",
+        "YTD"
+      ],
+      "score": 0.4
+    },
+    {
+      "messageId": 115597,
+      "postedAt": "2026-04-15T13:57:00+09:00",
+      "text": "✅ 에스에너지, 日 태양광 리파워링 시장 공략 속도…대규모 본계약 잇따라 https://www.etoday.co.kr/news/view/2575970",
+      "views": 15610,
+      "forwards": 12,
+      "url": "https://t.me/faststocknews/115597",
+      "matchedStocks": [],
+      "keywords": [
+        "계약",
+        "에스에너지",
+        "태양광",
+        "리파워링",
+        "공략",
+        "속도"
+      ],
+      "score": 0.44
+    },
+    {
+      "messageId": 115598,
+      "postedAt": "2026-04-15T14:04:10+09:00",
+      "text": "✅ 前 FDA 심사관 “정책적 예외 없는 한 삼천당 S-PASS 제네릭 트랙 쉽지 않아” https://www.edaily.co.kr/News/Read?newsId=03896646645416448&mediaCodeNo=257&OutLnkChk=Y",
+      "views": 18682,
+      "forwards": 32,
+      "url": "https://t.me/faststocknews/115598",
+      "matchedStocks": [],
+      "keywords": [
+        "정책",
+        "FDA",
+        "심사관",
+        "정책적",
+        "예외",
+        "없는"
+      ],
+      "score": 0.49
+    },
+    {
+      "messageId": 115599,
+      "postedAt": "2026-04-15T14:11:58+09:00",
+      "text": "✅ [속보]강훈식 \"원유·나프타 호르무즈 무관 대체공급선서 확보…국내 수급 안정 기여\" https://www.newsis.com/view/NISX20260415_0003592350",
+      "views": 13286,
+      "forwards": 11,
+      "url": "https://t.me/faststocknews/115599",
+      "matchedStocks": [],
+      "keywords": [
+        "속보",
+        "강훈식",
+        "원유",
+        "나프타",
+        "호르무즈",
+        "무관"
+      ],
+      "score": 0.49
+    },
+    {
+      "messageId": 115600,
+      "postedAt": "2026-04-15T14:12:16+09:00",
+      "text": "✅ [속보] 강훈식 \"중동 4개국서 원유 2억7천만 배럴 도입…나프타 210만톤 추가 확보\" https://n.news.naver.com/mnews/article/422/0000855316?sid=100",
+      "views": 13168,
+      "forwards": 21,
+      "url": "https://t.me/faststocknews/115600",
+      "matchedStocks": [],
+      "keywords": [
+        "속보",
+        "강훈식",
+        "중동",
+        "4개국서",
+        "원유",
+        "2억7천만"
+      ],
+      "score": 0.51
+    },
+    {
+      "messageId": 115601,
+      "postedAt": "2026-04-15T14:18:11+09:00",
+      "text": ">>글로벌 알루미늄 재고 ‘9일치’…공급 쇼크 경고 •JPMorgan은 중동 분쟁 영향으로 2026년 글로벌 알루미늄 시장에 약 190만 톤 공급 부족이 발생할 것으로 전망했으며, 이는 2000년 이후 최대 규모임. 현재 가시 재고도 약 190만 톤으로 전 세계 수요 기준 약 9일치에 불과한 수준. •이에 따라 알루미늄 가격은 향후 몇 달 내 톤당 4000달러 돌파 가능성이 제기되며, 2분기 평균 가격은 약 3800달러 수준으로 예상 >铝的全球库存只有：9天！ https://wallstreetcn.com/articles/3769995#from=ios",
+      "views": 12726,
+      "forwards": 22,
+      "url": "https://t.me/faststocknews/115601",
+      "matchedStocks": [],
+      "keywords": [
+        "from",
+        "돌파",
+        "글로벌",
+        "알루미늄",
+        "재고",
+        "9일치"
+      ],
+      "score": 0.54
+    },
+    {
+      "messageId": 115602,
+      "postedAt": "2026-04-15T14:19:25+09:00",
+      "text": "✅ [속보] 강훈식 \"중동 산유국과 호르무즈 외부 석유저장시설 구축 논의\" https://n.news.naver.com/mnews/article/001/0016023109?rc=N&ntype=RANKING&sid=001",
+      "views": 13145,
+      "forwards": 11,
+      "url": "https://t.me/faststocknews/115602",
+      "matchedStocks": [],
+      "keywords": [
+        "속보",
+        "강훈식",
+        "중동",
+        "산유국과",
+        "호르무즈",
+        "외부"
+      ],
+      "score": 0.52
+    },
+    {
+      "messageId": 115603,
+      "postedAt": "2026-04-15T14:22:23+09:00",
+      "text": "✅ 음주운전 전력 비판하자 \"대통령도 전과\"…천영미 안산시장 예비후보 발언 파장 더불어민주당 안산시장 예비후보인 천영미 후보가 자신의 음주운전 전력을 언급하며 이재명 대통령의 전과를 비교한 발언으로 논란에 휩싸였다. 이후 해당 발언이 온라인을 통해 퍼지며 비판 여론이 높아지자 천 후보는 공식 사과문을 발표했다. https://n.news.naver.com/mnews/article/277/0005749910?rc=N&ntype=RANKING&sid=100",
+      "views": 12597,
+      "forwards": 13,
+      "url": "https://t.me/faststocknews/115603",
+      "matchedStocks": [],
+      "keywords": [
+        "음주운전",
+        "전력",
+        "비판하자",
+        "대통령도",
+        "전과",
+        "천영미"
+      ],
+      "score": 0.48
+    },
+    {
+      "messageId": 115604,
+      "postedAt": "2026-04-15T14:24:52+09:00",
+      "text": "✅ SK하이닉스 등도 '미토스 쇼크'로 긴급 소집…\"설계도 털릴라\" https://n.news.naver.com/mnews/article/421/0008891407?sid=105",
+      "views": 13935,
+      "forwards": 34,
+      "url": "https://t.me/faststocknews/115604",
+      "matchedStocks": [],
+      "keywords": [
+        "SK하이닉스",
+        "등도",
+        "미토스",
+        "쇼크",
+        "긴급",
+        "소집"
+      ],
+      "score": 0.52
+    },
+    {
+      "messageId": 115605,
+      "postedAt": "2026-04-15T14:27:16+09:00",
+      "text": "✅ LNG 저장탱크 핵심 소재 ‘고망간강’, 국제표준 제정 (아침뉴스 9시 46분) https://www.energy-news.co.kr/news/articleView.html?idxno=224609",
+      "views": 13607,
+      "forwards": 11,
+      "url": "https://t.me/faststocknews/115605",
+      "matchedStocks": [],
+      "keywords": [
+        "LNG",
+        "저장탱크",
+        "핵심",
+        "소재",
+        "고망간강",
+        "국제표준"
+      ],
+      "score": 0.5
+    },
+    {
+      "messageId": 115606,
+      "postedAt": "2026-04-15T14:27:40+09:00",
+      "text": "✅ 하이스틸 상승 이유로 보입니다 (과거뉴스 25년 3월) https://www.financialpost.co.kr/news/articleView.html?idxno=221698",
+      "views": 14405,
+      "forwards": 23,
+      "url": "https://t.me/faststocknews/115606",
+      "matchedStocks": [],
+      "keywords": [
+        "하이스틸",
+        "상승",
+        "이유로",
+        "보입니다",
+        "과거뉴스",
+        "25년"
+      ],
+      "score": 0.52
+    },
+    {
+      "messageId": 115607,
+      "postedAt": "2026-04-15T14:29:54+09:00",
+      "text": "✅ CBDC·스테이블코인 '외국인 대상' 선제적 검증··국내 금융·결제 인프라 구축 속도 https://www.joongangenews.com/news/articleView.html?idxno=511890",
+      "views": 14394,
+      "forwards": 12,
+      "url": "https://t.me/faststocknews/115607",
+      "matchedStocks": [],
+      "keywords": [
+        "CBDC",
+        "스테이블코인",
+        "외국인",
+        "대상",
+        "선제적",
+        "검증"
+      ],
+      "score": 0.52
+    },
+    {
+      "messageId": 115608,
+      "postedAt": "2026-04-15T14:32:26+09:00",
+      "text": "✅ 삼성바이오, 자가면역치료제 미 판매 중단 위기 넘겼다 https://www.kpinews.kr/newsView/1065580256354266",
+      "views": 18162,
+      "forwards": 23,
+      "url": "https://t.me/faststocknews/115608",
+      "matchedStocks": [],
+      "keywords": [
+        "삼성바이오",
+        "자가면역치료제",
+        "판매",
+        "중단",
+        "위기",
+        "넘겼다"
+      ],
+      "score": 0.55
+    },
+    {
+      "messageId": 115609,
+      "postedAt": "2026-04-15T14:40:52+09:00",
+      "text": "✅ 파수, 보안→AI 전문기업 도약 선언…\"앤트로픽 미토스 쇼크', 우리에겐 기회\" https://n.news.naver.com/mnews/article/003/0013889156?sid=105",
+      "views": 15546,
+      "forwards": 23,
+      "url": "https://t.me/faststocknews/115609",
+      "matchedStocks": [],
+      "keywords": [
+        "파수",
+        "보안",
+        "AI",
+        "전문기업",
+        "도약",
+        "선언"
+      ],
+      "score": 0.59
+    },
+    {
+      "messageId": 115610,
+      "postedAt": "2026-04-15T14:42:32+09:00",
+      "text": "파수AI는 이러한 위협 대응을 위해 자회사 '스패로우'를 중심으로 애플리케이션 보안 역량을 강화하고 있다. 스패로우는 정적·동적 분석(SAST·DAST)과 소프트웨어 구성요소 분석(SCA) 등을 통해 AI 기반 취약점 탐지와 대응 기술을 고도화하고 AI를 활용한 코드 생성, 보안 점검 기술도 함께 개발하고 있다. 조 대표는 \"미토스와 같은 기술은 취약점을 더 빠르고 효율적으로 찾을 수 있는 새로운 방식\"이라며 \"AI로 인해 공격 수단뿐 아니라 대응 방식에도 변화가 필요하다\"고 말했다.",
+      "views": 15474,
+      "forwards": 12,
+      "url": "https://t.me/faststocknews/115610",
+      "matchedStocks": [],
+      "keywords": [
+        "파수AI는",
+        "이러한",
+        "위협",
+        "대응을",
+        "위해",
+        "자회사"
+      ],
+      "score": 0.58
+    },
+    {
+      "messageId": 115611,
+      "postedAt": "2026-04-15T14:56:41+09:00",
+      "text": "✅ 삼성SDI, 로봇·UAM 배터리 정조준…나트륨 배터리도 출격 준비 https://www.newspim.com/news/view/20260415000878",
+      "views": 15791,
+      "forwards": 26,
+      "url": "https://t.me/faststocknews/115611",
+      "matchedStocks": [],
+      "keywords": [
+        "삼성SDI",
+        "로봇",
+        "UAM",
+        "배터리",
+        "정조준",
+        "나트륨"
+      ],
+      "score": 0.66
+    }
+  ],
+  "priceSignalCandidates": [
+    {
+      "themeName": "보안",
+      "score": 254.61,
+      "matchedStocks": [
+        "아이씨티케이",
+        "엑스게이트",
+        "파수",
+        "케이씨에스",
+        "아톤"
+      ],
+      "matchedArticles": [
+        "마침내 ‘10만레콤’ 등극…AI·실적·배당 삼박자에 시총 21조 돌파",
+        "생성형AI 금융서비스 모델 교체 빨라진다…금융위, 변경 절차 간소화"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "보안",
+        "해킹",
+        "사이버",
+        "취약점",
+        "인증",
+        "양자암호"
+      ],
+      "reasoning": "급등주 5종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 5개가 포함됐습니다. 연관 기사 2건이 감지됐습니다."
+    },
+    {
+      "themeName": "건설",
+      "score": 219.26,
+      "matchedStocks": [
+        "대우건설",
+        "GS건설",
+        "현대건설",
+        "DL이앤씨",
+        "삼성E&A",
+        "한텍"
+      ],
+      "matchedArticles": [
+        "트럼프 \"4월 말 합의 가능성 높다\"…3대 지수 모두 ↑[뉴욕증시]",
+        "\"버티길 잘했다\" 개미 '환호'…코스피, 전쟁 후 처음으로 6000선 복귀",
+        "전쟁 이전으로 돌아온 코스피…이달중 7000 낙관론도",
+        "트럼프 \"전쟁 거의 끝나간다\" 한 마디에 코스피 '6000선' 안착"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "재건",
+        "재건축",
+        "복구",
+        "플랜트",
+        "수주",
+        "건설"
+      ],
+      "reasoning": "급등주 2종목이 묶였고 평균 상승률은 15.4%입니다. 연관 기사 69건이 감지됐습니다."
+    },
+    {
+      "themeName": "양자컴퓨터",
+      "score": 202.19,
+      "matchedStocks": [
+        "아이씨티케이",
+        "엑스게이트",
+        "케이씨에스",
+        "아톤"
+      ],
+      "matchedArticles": [
+        "젠슨 황까지 발 들이자, 양자컴 관련주 '재부팅'"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "양자",
+        "양자컴퓨터",
+        "양자암호",
+        "양자통신",
+        "PQC",
+        "QKD"
+      ],
+      "reasoning": "급등주 4종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 4개가 포함됐습니다. 연관 기사 1건이 감지됐습니다."
+    },
+    {
+      "themeName": "반도체",
+      "score": 135.0,
+      "matchedStocks": [
+        "삼성전자",
+        "SK하이닉스",
+        "한미반도체",
+        "DB하이텍",
+        "주성엔지니어링",
+        "원익IPS"
+      ],
+      "matchedArticles": [
+        "올해 7억·내년 13억 '하이닉스 현상'에 들썩…입시판도 바꾸고 베스트셀러에도 등극[뉴스추적]",
+        "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
+        "전쟁 이전으로 돌아온 코스피…이달중 7000 낙관론도",
+        "“반도체 테마 이어 로봇·우주·방산…연금 머니무브 타고 연내 500조”"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "반도체",
+        "HBM",
+        "메모리",
+        "DDR",
+        "파운드리",
+        "장비"
+      ],
+      "reasoning": "연관 기사 54건이 감지됐습니다."
+    },
+    {
+      "themeName": "방산",
+      "score": 120.0,
+      "matchedStocks": [
+        "한화에어로스페이스",
+        "LIG넥스원",
+        "한화시스템",
+        "현대로템",
+        "퍼스텍",
+        "한국항공우주"
+      ],
+      "matchedArticles": [
+        "“다시 서학개미 웃을 차례?”…종전 기대감에 월가 큰손들 줄줄이 美증시 ‘상향 조정’",
+        "\"버티길 잘했다\" 개미 '환호'…코스피, 전쟁 후 처음으로 6000선 복귀",
+        "전쟁 이전으로 돌아온 코스피…이달중 7000 낙관론도",
+        "트럼프 \"전쟁 거의 끝나간다\" 한 마디에 코스피 '6000선' 안착"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "방산",
+        "전쟁",
+        "미사일",
+        "방위산업",
+        "국방",
+        "무기체계"
+      ],
+      "reasoning": "연관 기사 48건이 감지됐습니다."
+    },
+    {
+      "themeName": "AI반도체",
+      "score": 102.5,
+      "matchedStocks": [
+        "SK하이닉스",
+        "삼성전자",
+        "한미반도체",
+        "이오테크닉스",
+        "리노공업"
+      ],
+      "matchedArticles": [
+        "올해 7억·내년 13억 '하이닉스 현상'에 들썩…입시판도 바꾸고 베스트셀러에도 등극[뉴스추적]",
+        "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
+        "삼전닉스 시총합산 2000조…\"다음은 3000조 겨냥\"[클릭 e종목]",
+        "AI發 메모리 수요 폭증 … 외국인 \"삼전닉스 베팅\""
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "AI",
+        "HBM",
+        "AI 서버",
+        "GPU",
+        "NPU",
+        "AI 반도체"
+      ],
+      "reasoning": "연관 기사 41건이 감지됐습니다."
+    },
+    {
+      "themeName": "원전",
+      "score": 51.78,
+      "matchedStocks": [
+        "대우건설",
+        "두산에너빌리티",
+        "한전KPS",
+        "한국전력",
+        "현대건설"
+      ],
+      "matchedArticles": [
+        "반도체ETF '뭉칫돈'…원자력ETF 수익률 100%",
+        "올해만 646% 뛴 대우건설…이란 '재건 기대' 21% 또 급등[핫종목](종합)",
+        "코스피 휩쓰는 외국인 5조… 삼성·하이닉스 주도 속 '원방조' 랠리 온다 [하창봉 <시크릿 투자>]",
+        "SK하이닉스, 1분기 영업익 38조 사상 최대·목표가 180만원↑…대우건설, K-원전 수혜에 목표가 4배↑ [株토피아]"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "원전",
+        "SMR",
+        "원자로",
+        "원자력",
+        "K-원전"
+      ],
+      "reasoning": "급등주 1종목이 묶였고 평균 상승률은 21.3%입니다. 연관 기사 9건이 감지됐습니다."
+    },
+    {
+      "themeName": "광통신",
+      "score": 15.0,
+      "matchedStocks": [
+        "대한광통신",
+        "오이솔루션",
+        "기산텔레콤",
+        "쏠리드",
+        "코위버",
+        "머큐리"
+      ],
+      "matchedArticles": [
+        "“한 달 만에 600% 폭주” 엔비디아가 콕 찍은 ‘광통신’…또 개미 잡을까 우려도",
+        "엔비디아·AMD, 10일 연속 상승…AI 투자심리 되살아나나",
+        "올해 수익률 515%, 오늘도 20% 더 올랐다…믿기 힘든 대우건설 주가 [종목Pick]",
+        "네이버 '소버린 AI' 속도낸다… 국민성장펀드, 4천억 금융지원"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "광통신",
+        "광모듈",
+        "광케이블",
+        "실리콘포토닉스",
+        "데이터센터",
+        "800G"
+      ],
+      "reasoning": "연관 기사 6건이 감지됐습니다."
+    },
+    {
+      "themeName": "로봇",
+      "score": 7.5,
+      "matchedStocks": [
+        "두산로보틱스",
+        "레인보우로보틱스",
+        "유일로보틱스",
+        "뉴로메카"
+      ],
+      "matchedArticles": [
+        "이번엔 로봇이다…삼성·타임폴리오, 액티브 ETF 재격돌",
+        "“반도체 테마 이어 로봇·우주·방산…연금 머니무브 타고 연내 500조”",
+        "전쟁 분쟁 국면 지나나...로봇株 부활 언제쯤?"
+      ],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "로봇",
+        "협동로봇",
+        "자동화",
+        "휴머노이드"
+      ],
+      "reasoning": "연관 기사 3건이 감지됐습니다."
+    }
+  ],
+  "themes": [
+    {
+      "themeName": "반도체",
+      "totalVolume": "17,411억",
+      "headline": "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611165",
+      "stocks": [
+        {
+          "name": "한미반도체",
+          "price": 295000,
+          "time": "16:10",
+          "changeRate": 3.87,
+          "volume": "2,950억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "SK하이닉스",
+          "price": 1136000,
+          "time": "16:10",
+          "changeRate": 2.99,
+          "volume": "11,360억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "삼성전자",
+          "price": 211000,
+          "time": "16:10",
+          "changeRate": 2.18,
+          "volume": "2,115억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "DB하이텍",
+          "price": 98600,
+          "time": "16:10",
+          "changeRate": 1.96,
+          "volume": "986억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "건설",
+      "totalVolume": "3,511억",
+      "headline": "올해만 646% 뛴 대우건설…이란 '재건 기대' 21% 또 급등",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611121",
+      "stocks": [
+        {
+          "name": "대우건설",
+          "price": 28500,
+          "time": "16:10",
+          "changeRate": 21.28,
+          "volume": "285억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "GS건설",
+          "price": 41000,
+          "time": "16:10",
+          "changeRate": 9.48,
+          "volume": "410억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "DL이앤씨",
+          "price": 102500,
+          "time": "16:10",
+          "changeRate": 3.54,
+          "volume": "1,025억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "현대건설",
+          "price": 179100,
+          "time": "16:10",
+          "changeRate": 1.36,
+          "volume": "1,791억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "AI반도체",
+      "totalVolume": "21,145억",
+      "headline": "AI發 메모리 수요 폭증 … 외국인 '삼전닉스' 베팅",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/015/0005275473",
+      "stocks": [
+        {
+          "name": "한미반도체",
+          "price": 295000,
+          "time": "16:10",
+          "changeRate": 3.87,
+          "volume": "2,950억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "SK하이닉스",
+          "price": 1136000,
+          "time": "16:10",
+          "changeRate": 2.99,
+          "volume": "11,360억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "삼성전자",
+          "price": 211000,
+          "time": "16:10",
+          "changeRate": 2.18,
+          "volume": "2,115억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "이오테크닉스",
+          "price": 472000,
+          "time": "16:10",
+          "changeRate": -1.97,
+          "volume": "4,720억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "방산",
+      "totalVolume": "27,455억",
+      "headline": "중동 전쟁 종전 기대감 속 방산주 주목",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/119/0003081027",
+      "stocks": [
+        {
+          "name": "현대로템",
+          "price": 210000,
+          "time": "16:10",
+          "changeRate": -0.71,
+          "volume": "2,100억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        },
+        {
+          "name": "한화에어로스페이스",
+          "price": 1509000,
+          "time": "16:10",
+          "changeRate": -0.92,
+          "volume": "15,100억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        },
+        {
+          "name": "한화시스템",
+          "price": 131500,
+          "time": "16:10",
+          "changeRate": -1.2,
+          "volume": "1,315억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        },
+        {
+          "name": "LIG디펜스앤에어로스페이스",
+          "price": 893000,
+          "time": "16:10",
+          "changeRate": -4.39,
+          "volume": "8,940억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              14,
+              71
+            ],
+            "baseline": 100
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "양자컴퓨터",
+      "totalVolume": "336억",
+      "headline": "젠슨 황까지 발 들이자, 양자컴 관련주 '재부팅'",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/015/0005275386",
+      "stocks": [
+        {
+          "name": "아이씨티케이",
+          "price": 22950,
+          "time": "16:10",
+          "changeRate": 29.95,
+          "volume": "115억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "엑스게이트",
+          "price": 12980,
+          "time": "16:10",
+          "changeRate": 29.93,
+          "volume": "65억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "케이씨에스",
+          "price": 13680,
+          "time": "16:10",
+          "changeRate": 29.91,
+          "volume": "68억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "아톤",
+          "price": 8820,
+          "time": "16:10",
+          "changeRate": 29.9,
+          "volume": "88억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "보안",
+      "totalVolume": "295억",
+      "headline": "파수, 보안→AI 전문기업 도약 선언",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611165",
+      "stocks": [
+        {
+          "name": "아이씨티케이",
+          "price": 22950,
+          "time": "16:10",
+          "changeRate": 29.95,
+          "volume": "115억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "엑스게이트",
+          "price": 12980,
+          "time": "16:10",
+          "changeRate": 29.93,
+          "volume": "65억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "파수",
+          "price": 4690,
+          "time": "16:10",
+          "changeRate": 29.92,
+          "volume": "47억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "케이씨에스",
+          "price": 13680,
+          "time": "16:10",
+          "changeRate": 29.91,
+          "volume": "68억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "원전",
+      "totalVolume": "2,362억",
+      "headline": "두산에너빌리티, 원전 수주 가시화로 성장 기대",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/138/0002224605",
+      "stocks": [
+        {
+          "name": "대우건설",
+          "price": 28500,
+          "time": "16:10",
+          "changeRate": 21.28,
+          "volume": "285억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "두산에너빌리티",
+          "price": 104200,
+          "time": "16:10",
+          "changeRate": 4.51,
+          "volume": "1,043억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "한전KPS",
+          "price": 59000,
+          "time": "16:10",
+          "changeRate": 1.03,
+          "volume": "590억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "한국전력",
+          "price": 44350,
+          "time": "16:10",
+          "changeRate": 0.0,
+          "volume": "444억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              40,
+              60
+            ],
+            "baseline": 50
+          }
+        }
       ]
     }
   ]

@@ -140,7 +140,7 @@ Resources:
           TG_API_HASH: !Ref TelegramApiHash
           TG_STRING_SESSION: !Ref TelegramStringSession
           TG_CHANNEL_USERNAME: !Ref TelegramChannelUsername
-          TG_LOOKBACK_MINUTES: '60'
+          TG_LOOKBACK_MINUTES: '180'
           TG_MAX_ITEMS: '20'
           TG_MIN_SCORE: '0.35'
       Policies:
