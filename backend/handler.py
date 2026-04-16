@@ -110,6 +110,7 @@ def lambda_handler(event, context):
         print("\n[Step 4] JSON 조립 및 S3 업로드")
         dashboard_data = {
             "updatedAt": datetime.now().isoformat(),
+            "antwinnerSignals": analysis.get("antwinnerSignals", []),
             "youtubeSignals": analysis.get("youtubeSignals", []),
             "telegramSignals": analysis.get("telegramSignals", []),
             "priceSignalCandidates": analysis.get("priceSignalCandidates", []),
