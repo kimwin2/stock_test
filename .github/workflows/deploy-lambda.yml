@@ -3,11 +3,8 @@ name: Deploy Lambda Backend
 on:
   push:
     branches: [main]
-    paths:
-      - 'backend/**'
-      - 'template.yaml'
-      - 'samconfig.toml'
-      - '.github/workflows/deploy-lambda.yml'
+  schedule:
+    - cron: '*/10 * * * *'  # 10분마다 자동 크롤링
   workflow_dispatch:  # 수동 실행 가능
 
 env:
@@ -19,7 +16,11 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  # 1) SAM 배포 — backend 코드가 바뀔 때만 실행
   deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && contains(toJSON(github.event.commits.*.modified), 'backend/'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -57,6 +58,19 @@ jobs:
               "TelegramStringSession=${{ secrets.TG_STRING_SESSION || '' }}" \
               "TelegramChannelUsername=${{ secrets.TG_CHANNEL_USERNAME || '@faststocknews' }}"
 
+  # 2) 크롤링 — 매 push + 10분 스케줄마다 항상 실행
+  crawl:
+    needs: [deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Invoke Lambda Async Refresh
         run: |
           aws lambda invoke \
@@ -64,7 +78,7 @@ jobs:
             --region "$AWS_REGION" \
             --invocation-type Event \
             --cli-binary-format raw-in-base64-out \
-            --payload '{"source":"github-actions-post-deploy"}' \
+            --payload '{"source":"github-actions-${{ github.event_name }}"}' \
             response.json
           cat response.json
 
