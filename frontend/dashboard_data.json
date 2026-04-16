@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-17T00:12:42.301854",
+  "updatedAt": "2026-04-17T00:22:48.047090",
   "antwinnerSignals": [
     {
       "thema": "유리기판",
@@ -669,15 +669,15 @@
     {
       "themeName": "양자컴퓨터",
       "totalVolume": "464억",
-      "headline": "양자컴퓨팅과 양자보안주들이 무더기 상한가를 기록하며 들썩이고 있습니다.",
+      "headline": "양자컴퓨팅과 양자보안주들이 무더기 상한가 기록",
       "headlineUrl": "https://n.news.naver.com/mnews/article/215/0001249241",
       "stocks": [
         {
-          "name": "케이씨에스",
-          "price": 17780,
+          "name": "엑스게이트",
+          "price": 16870,
           "time": "16:10",
           "changeRate": 29.97,
-          "volume": "89억",
+          "volume": "84억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -692,11 +692,11 @@
           }
         },
         {
-          "name": "엑스게이트",
-          "price": 16870,
+          "name": "케이씨에스",
+          "price": 17780,
           "time": "16:10",
           "changeRate": 29.97,
-          "volume": "84억",
+          "volume": "89억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -751,93 +751,9 @@
       ]
     },
     {
-      "themeName": "AI반도체",
-      "totalVolume": "21,229억",
-      "headline": "AI 인프라 확산으로 반도체 업황이 빠르게 개선되는 가운데, 낸드 시장도 반등 국면에 진입.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/018/0006258167",
-      "stocks": [
-        {
-          "name": "두산에너빌리티",
-          "price": 110800,
-          "time": "16:10",
-          "changeRate": 6.33,
-          "volume": "1,109억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "삼성전기",
-          "price": 639000,
-          "time": "16:10",
-          "changeRate": 4.07,
-          "volume": "6,390억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "삼성전자",
-          "price": 217500,
-          "time": "16:10",
-          "changeRate": 3.08,
-          "volume": "2,180억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "SK하이닉스",
-          "price": 1155000,
-          "time": "16:10",
-          "changeRate": 1.67,
-          "volume": "11,550억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        }
-      ]
-    },
-    {
-      "themeName": "사이버 보안",
-      "totalVolume": "141억",
-      "headline": "사이버 보안 관련 종목들이 동시에 급등하여 보안 솔루션 테마로 묶였습니다.",
+      "themeName": "AI 및 사이버 보안",
+      "totalVolume": "182억",
+      "headline": "AI 해킹 우려에 양자암호·보안주 상한가",
       "headlineUrl": "https://n.news.naver.com/mnews/article/008/0005344953",
       "stocks": [
         {
@@ -879,11 +795,11 @@
           }
         },
         {
-          "name": "SGA솔루션즈",
-          "price": 913,
+          "name": "드림시큐리티",
+          "price": 3545,
           "time": "16:10",
-          "changeRate": 29.87,
-          "volume": "9억",
+          "changeRate": 29.85,
+          "volume": "35억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -898,11 +814,11 @@
           }
         },
         {
-          "name": "드림시큐리티",
-          "price": 3545,
+          "name": "파수",
+          "price": 5030,
           "time": "16:10",
-          "changeRate": 29.85,
-          "volume": "35억",
+          "changeRate": 7.25,
+          "volume": "50억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -921,8 +837,8 @@
     {
       "themeName": "전선 및 전력 관련",
       "totalVolume": "1,978억",
-      "headline": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶였습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/016/0002630933",
+      "headline": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶임",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611373",
       "stocks": [
         {
           "name": "가온전선",
@@ -1003,17 +919,17 @@
       ]
     },
     {
-      "themeName": "UAM 및 로봇",
-      "totalVolume": "28,890억",
-      "headline": "삼성SDI, 로봇·UAM 배터리 정조준…나트륨 배터리도 출격 준비.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/009/0005667193",
+      "themeName": "인공지능(AI)",
+      "totalVolume": "2,353억",
+      "headline": "AI 관련 종목들이 평균 10% 이상 상승",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/016/0002630664",
       "stocks": [
         {
-          "name": "현대차",
-          "price": 534000,
+          "name": "이노뎁",
+          "price": 5650,
           "time": "16:10",
-          "changeRate": 5.12,
-          "volume": "5,340억",
+          "changeRate": 29.89,
+          "volume": "56억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -1028,11 +944,11 @@
           }
         },
         {
-          "name": "삼성SDI",
-          "price": 478500,
+          "name": "에스피소프트",
+          "price": 6070,
           "time": "16:10",
-          "changeRate": 1.59,
-          "volume": "4,785억",
+          "changeRate": 23.88,
+          "volume": "61억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1047,11 +963,11 @@
           }
         },
         {
-          "name": "LG화학",
-          "price": 357500,
+          "name": "에스넷",
+          "price": 5610,
           "time": "16:10",
-          "changeRate": 0.99,
-          "volume": "3,575억",
+          "changeRate": 17.36,
+          "volume": "56억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1066,11 +982,95 @@
           }
         },
         {
-          "name": "한화에어로스페이스",
-          "price": 1519000,
+          "name": "삼성전자",
+          "price": 217500,
           "time": "16:10",
-          "changeRate": 0.66,
-          "volume": "15,190억",
+          "changeRate": 3.08,
+          "volume": "2,180억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "보안주",
+      "totalVolume": "141억",
+      "headline": "사이버 보안 관련 종목들이 급등",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/277/0005750374",
+      "stocks": [
+        {
+          "name": "소프트캠프",
+          "price": 1943,
+          "time": "16:10",
+          "changeRate": 29.97,
+          "volume": "19억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "라온시큐어",
+          "price": 15410,
+          "time": "16:10",
+          "changeRate": 29.93,
+          "volume": "77억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "SGA솔루션즈",
+          "price": 913,
+          "time": "16:10",
+          "changeRate": 29.87,
+          "volume": "9억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "드림시큐리티",
+          "price": 3545,
+          "time": "16:10",
+          "changeRate": 29.85,
+          "volume": "35억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1088,8 +1088,8 @@
     },
     {
       "themeName": "건설",
-      "totalVolume": "5,537억",
-      "headline": "건설주가 가장 가파른 상승세를 보였지만 대표적 건설 후방산업인 시멘트주는 종목별로 주가 흐름이 크게 엇갈린 것으로 나타났다.",
+      "totalVolume": "2,477억",
+      "headline": "건설주가 가장 가파른 상승세를 보임",
       "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611552",
       "stocks": [
         {
@@ -1131,11 +1131,11 @@
           }
         },
         {
-          "name": "삼성물산",
-          "price": 306000,
-          "time": "16:10",
-          "changeRate": -0.49,
-          "volume": "3,060억",
+          "name": "한화건설",
+          "price": 0,
+          "time": "",
+          "changeRate": 0.0,
+          "volume": "0억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1143,10 +1143,10 @@
               100
             ],
             "currentRange": [
-              14,
-              71
+              40,
+              60
             ],
-            "baseline": 100
+            "baseline": 50
           }
         },
         {
@@ -1171,17 +1171,17 @@
       ]
     },
     {
-      "themeName": "지역화폐",
-      "totalVolume": "1,518억",
-      "headline": "CBDC·스테이블코인 '외국인 대상' 선제적 검증··국내 금융·결제 인프라 구축 속도.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/243/0000096437",
+      "themeName": "아이폰",
+      "totalVolume": "5,017억",
+      "headline": "아이폰 관련 종목들이 상승세",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611323",
       "stocks": [
         {
-          "name": "코나아이",
-          "price": 71100,
+          "name": "비에이치",
+          "price": 29200,
           "time": "16:10",
-          "changeRate": 17.13,
-          "volume": "711억",
+          "changeRate": 21.92,
+          "volume": "292억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -1196,11 +1196,11 @@
           }
         },
         {
-          "name": "웹케시",
-          "price": 9500,
+          "name": "덕산네오룩스",
+          "price": 55400,
           "time": "16:10",
-          "changeRate": 6.98,
-          "volume": "95억",
+          "changeRate": 9.06,
+          "volume": "554억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1215,11 +1215,11 @@
           }
         },
         {
-          "name": "쿠콘",
-          "price": 30450,
+          "name": "자화전자",
+          "price": 38000,
           "time": "16:10",
-          "changeRate": 3.57,
-          "volume": "304억",
+          "changeRate": 8.57,
+          "volume": "380억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1234,11 +1234,11 @@
           }
         },
         {
-          "name": "NHN",
-          "price": 40600,
+          "name": "LG이노텍",
+          "price": 379000,
           "time": "16:10",
-          "changeRate": -1.93,
-          "volume": "407억",
+          "changeRate": -1.04,
+          "volume": "3,790억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
