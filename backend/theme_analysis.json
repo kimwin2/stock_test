@@ -2,52 +2,52 @@
   "themes": [
     {
       "themeName": "양자컴퓨터",
-      "headline": "양자보안주 '랠리'…AI 해커 공포에 급등",
+      "headline": "양자컴퓨팅과 양자보안주들이 무더기 상한가 기록",
       "representativeArticleIndex": 2,
       "relatedStocks": [
-        "엑스게이트",
         "케이씨에스",
-        "아이씨티케이",
+        "엑스게이트",
         "라온시큐어",
-        "드림시큐리티",
-        "파수"
+        "파수",
+        "아이씨티케이",
+        "드림시큐리티"
       ],
-      "reasoning": "양자컴퓨터와 보안 관련주가 AI 해커 공포로 인해 급등하며 주목받고 있습니다.",
+      "reasoning": "양자컴퓨터와 관련된 주식들이 급등하며 시장에서 큰 주목을 받고 있습니다.",
       "headlineUrl": "https://n.news.naver.com/mnews/article/421/0008892950"
     },
     {
-      "themeName": "AI",
+      "themeName": "보안주",
       "headline": "AI 해킹 우려에 양자암호·보안주 상한가",
       "representativeArticleIndex": 8,
       "relatedStocks": [
-        "이노뎁",
-        "에스피소프트",
-        "에스넷",
-        "드림시큐리티",
         "라온시큐어",
-        "파수"
+        "소프트캠프",
+        "파수",
+        "드림시큐리티",
+        "엑스게이트",
+        "아이씨티케이"
       ],
-      "reasoning": "AI 관련 종목들이 해킹 우려로 인해 주가가 급등하며 시장에서 큰 관심을 받고 있습니다.",
+      "reasoning": "사이버 보안 관련 종목들이 급등하며 보안주 테마가 형성되었습니다.",
       "headlineUrl": "https://n.news.naver.com/mnews/article/008/0005344953"
     },
     {
-      "themeName": "보안주",
-      "headline": "파수, 보안→AI 전문기업 도약 선언",
-      "representativeArticleIndex": 14,
+      "themeName": "AI반도체",
+      "headline": "AI 인프라 확산으로 반도체 업황 개선 기대",
+      "representativeArticleIndex": 10,
       "relatedStocks": [
-        "소프트캠프",
-        "라온시큐어",
-        "SGA솔루션즈",
-        "파수",
-        "드림시큐리티",
-        "엑스게이트"
+        "삼성전자",
+        "SK하이닉스",
+        "이노뎁",
+        "에스피소프트",
+        "에스넷",
+        "덕산테코피아"
       ],
-      "reasoning": "보안주가 AI와 결합하며 새로운 성장 가능성을 보여주고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/215/0001249241"
+      "reasoning": "AI 관련 반도체 수요 증가로 반도체 업종이 긍정적인 반응을 보이고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/009/0005667163"
     },
     {
       "themeName": "전선 및 전력 관련",
-      "headline": "대한전선 담고, ‘급등’ 현대차는 던졌다",
+      "headline": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶임",
       "representativeArticleIndex": 52,
       "relatedStocks": [
         "대한전선",
@@ -57,53 +57,53 @@
         "한빛레이저",
         "SKC"
       ],
-      "reasoning": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶였습니다.",
+      "reasoning": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 주목받고 있습니다.",
       "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611373"
     },
     {
-      "themeName": "유리기판",
-      "headline": "유리기판 관련주 급등, 한빛레이저 29.92% 상승",
-      "representativeArticleIndex": 1,
+      "themeName": "UAM 및 로봇",
+      "headline": "삼성SDI, 로봇·UAM 배터리 정조준",
+      "representativeArticleIndex": 14,
       "relatedStocks": [
-        "한빛레이저",
-        "SKC",
-        "필옵틱스",
-        "비에이치",
-        "덕산네오룩스",
-        "자화전자"
+        "삼성SDI",
+        "현대차",
+        "한화에어로",
+        "두산에너빌리티",
+        "LG화학",
+        "SK이노베이션"
       ],
-      "reasoning": "유리기판 관련 종목들이 평균 등락률 +11.37%로 급등하며 주목받고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/421/0008892950"
+      "reasoning": "UAM과 로봇 관련 기술 발전이 주목받으며 관련 종목들이 상승세를 보이고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/014/0005508670"
     },
     {
       "themeName": "지역화폐",
-      "headline": "지역화폐 관련주, 코나아이 17.13% 상승",
+      "headline": "지역화폐 관련 종목들이 상승세",
       "representativeArticleIndex": 4,
       "relatedStocks": [
         "코나아이",
         "웹케시",
         "쿠콘",
-        "한빛레이저",
-        "SKC",
-        "필옵틱스"
+        "한빛소프트",
+        "이노뎁",
+        "에스피소프트"
       ],
-      "reasoning": "지역화폐 관련 종목들이 긍정적인 시장 반응을 얻으며 상승세를 보이고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/016/0002630933"
+      "reasoning": "지역화폐 관련 종목들이 상승하며 시장에서 주목받고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/008/0005345424"
     },
     {
-      "themeName": "아이폰",
-      "headline": "아이폰 관련주, 비에이치 21.92% 상승",
-      "representativeArticleIndex": 5,
+      "themeName": "유리기판",
+      "headline": "유리기판 관련주 장중 강세, 평균 등락률 +11.4%",
+      "representativeArticleIndex": 1,
       "relatedStocks": [
-        "비에이치",
-        "덕산네오룩스",
-        "자화전자",
         "한빛레이저",
         "SKC",
-        "필옵틱스"
+        "필옵틱스",
+        "켐트로닉스",
+        "아모텍",
+        "엔젯"
       ],
-      "reasoning": "아이폰 관련 종목들이 상승세를 보이며 시장에서 주목받고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/016/0002630933"
+      "reasoning": "개미승리 실시간 등락률 1위 테마 (평균 +11.4%, 상승비율 86.67%)",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/138/0002224761"
     }
   ],
   "antwinnerSignals": [
