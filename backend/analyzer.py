@@ -58,6 +58,59 @@ def _convert_to_article_url(url: str) -> str:
     return url
 
 
+def _find_best_article_url(theme: dict, sorted_articles: list[dict]) -> str:
+    """
+    테마와 가장 관련 높은 기사의 URL을 텍스트 매칭으로 찾습니다.
+    GPT의 representativeArticleIndex는 부정확할 수 있으므로
+    테마명·헤드라인·종목명을 기사 제목·요약과 비교하여 최적 매칭합니다.
+    """
+    if not sorted_articles:
+        return ""
+
+    theme_name = theme.get("themeName", "")
+    headline = theme.get("headline", "")
+    stocks = theme.get("relatedStocks", [])
+
+    # 검색 키워드 생성: 테마명 + 헤드라인 단어 + 종목명
+    keywords = set()
+    if theme_name:
+        keywords.add(theme_name)
+        # 복합 테마명 분리 (예: "AI 반도체" → "AI", "반도체")
+        for word in theme_name.split():
+            if len(word) >= 2:
+                keywords.add(word)
+    for word in headline.replace(",", " ").replace("·", " ").split():
+        if len(word) >= 2:
+            keywords.add(word)
+    for stock in stocks[:4]:
+        if stock:
+            keywords.add(stock)
+
+    # 불용어 제거
+    stopwords = {"관련", "종목", "관련주", "테마", "기록", "상승", "하락", "강세", "약세", "전망", "분석"}
+    keywords -= stopwords
+
+    best_score = 0
+    best_url = sorted_articles[0].get("url", "")
+
+    for article in sorted_articles:
+        title = article.get("title", "")
+        summary = article.get("summary", "")
+        haystack = f"{title} {summary}"
+
+        score = sum(1 for kw in keywords if kw in haystack)
+
+        # 제목에 테마명이 직접 포함되면 보너스
+        if theme_name and theme_name in title:
+            score += 3
+
+        if score > best_score:
+            best_score = score
+            best_url = article.get("url", "")
+
+    return best_url
+
+
 def get_openai_client() -> OpenAI:
     """OpenAI 클라이언트를 생성합니다."""
     api_key = os.getenv("OPENAI_API_KEY")
@@ -879,12 +932,8 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
             if "relatedStocks" not in theme or len(theme["relatedStocks"]) < 4:
                 print(f"  [!] 테마 '{theme.get('themeName')}'의 관련 종목이 부족합니다.")
 
-            # 대표 기사 URL 매핑 → 원본 기사 URL로 변환
-            article_idx = theme.get("representativeArticleIndex", 1)
-            if isinstance(article_idx, int) and 1 <= article_idx <= len(sorted_articles):
-                raw_url = sorted_articles[article_idx - 1].get("url", "")
-            else:
-                raw_url = sorted_articles[0].get("url", "") if sorted_articles else ""
+            # 대표 기사 URL 매핑 — 텍스트 유사도 기반
+            raw_url = _find_best_article_url(theme, sorted_articles)
             theme["headlineUrl"] = _convert_to_article_url(raw_url)
 
         print(f"\n[INFO] 추출된 테마:")
