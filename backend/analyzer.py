@@ -18,11 +18,15 @@ try:
     from price_signals.store import load_price_signal_payload
     from telegram.store import load_telegram_signals
     from youtube_signals import fetch_latest_youtube_theme_signals
+    from antwinner.collector import fetch_antwinner_top_themes, build_antwinner_payload
+    from antwinner.store import load_antwinner_payload, save_antwinner_payload
 except ModuleNotFoundError:
     from .stock_data import STOCK_CODE_MAP
     from .price_signals.store import load_price_signal_payload
     from .telegram.store import load_telegram_signals
     from .youtube_signals import fetch_latest_youtube_theme_signals
+    from .antwinner.collector import fetch_antwinner_top_themes, build_antwinner_payload
+    from .antwinner.store import load_antwinner_payload, save_antwinner_payload
 
 # Windows cp949 콘솔 인코딩 문제 해결
 if sys.stdout.encoding != 'utf-8':
@@ -75,9 +79,12 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
    - 거래대금이 몰릴 만한 핫한 테마를 우선 선정
    - ★ 표시가 된 기사는 실제 주가 움직임이 확인된 기사이므로 테마 선정 시 더 높은 가중치를 부여하세요
    - ◆ 표시가 된 기사는 유튜브 외부 시그널과 직접 겹치는 기사이므로 매우 높은 가중치를 부여하세요
+   - ● 표시가 된 기사는 개미승리 실시간 상위 테마와 겹치는 기사이므로 높은 가중치를 부여하세요
+   - `개미승리 실시간 테마 시그널`은 실제 장중 등락률 기반의 참고 시그널입니다. 뉴스와 겹치는 테마는 강하게 반영하되, 개미승리 데이터만으로 테마를 선정하지 마세요. 반드시 뉴스 기사, 유튜브, 텔레그램 등 다른 소스와 교차 검증하세요
    - `심플 관심종목 TV`의 최신 `내일 관심테마!` 및 `당일 관심테마!` 영상은 고신뢰 선행 시그널입니다. 뉴스와 겹치면 최우선 반영하고, 일부만 겹쳐도 강하게 반영하세요
    - `실시간 텔레그램 시그널`은 장중 선행 시그널입니다. 뉴스가 약하더라도 초기 형성 테마 후보로 강하게 검토하세요
    - `가격 기반 테마 후보`는 급등률, 상한가, 종목 동조화로 포착한 장중 수급 시그널입니다. 기사 반복도가 약해도 실제 종목군이 강하게 움직이면 매우 강하게 반영하세요
+   - **종합 판단**: 7개 테마를 선정할 때 단일 소스에 편중되지 말고 뉴스·유튜브·텔레그램·가격·개미승리 시그널을 골고루 참고하세요. 특히 관련종목(relatedStocks)은 개미승리 종목을 그대로 복사하지 말고, 뉴스에서 언급된 종목 + 시그널 종목을 조합하여 선정하세요
    
 2. **테마 배제 기준 (반드시 준수)**:
    - 단순 정부 정책 발표나 사회적 갈등 이슈는 테마로 선정하지 마세요
@@ -105,6 +112,9 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
 
 USER_PROMPT_TEMPLATE = """아래는 오늘({date}) 수집된 증권 뉴스 기사 {count}개입니다. 
 분석하여 오늘의 주도 테마 7개를 추출해주세요.
+
+=== 📊 개미승리 실시간 테마 참고 (장중 등락률 상위 5) ===
+{antwinner_text}
 
 === 외부 고신뢰 시그널: 심플 관심종목 TV ===
 {youtube_text}
@@ -215,6 +225,51 @@ def _get_price_signal_payload() -> dict:
         return {}
 
 
+def _get_antwinner_signals() -> list[dict]:
+    """개미승리 실시간 상위 5개 테마 시그널을 수집합니다."""
+    try:
+        themes = fetch_antwinner_top_themes(top_n=5)
+        if themes:
+            payload = build_antwinner_payload(themes)
+            save_antwinner_payload(payload)
+        return themes
+    except Exception as e:
+        print(f"  [!] 개미승리 시그널 수집 실패: {e}")
+        # 실패 시 로컬 캐시 시도
+        try:
+            cached = load_antwinner_payload()
+            if cached:
+                print(f"  [!] 로컬 캐시에서 개미승리 데이터 로드")
+                return cached.get("themes", [])
+        except Exception:
+            pass
+        return []
+
+
+def _get_antwinner_keywords(antwinner_signals: list[dict]) -> set[str]:
+    """개미승리 상위 테마에서 테마명 + 종목명 키워드를 추출합니다."""
+    keywords = set()
+    for theme in antwinner_signals:
+        thema = theme.get("thema", "")
+        if thema:
+            keywords.add(thema)
+        for company in theme.get("companies", []):
+            stockname = company.get("stockname", "")
+            if stockname:
+                keywords.add(stockname)
+    return keywords
+
+
+def _is_antwinner_weighted_article(article: dict, antwinner_keywords: set[str]) -> bool:
+    """기사가 개미승리 상위 테마와 관련 있는지 확인합니다."""
+    haystack = " ".join([
+        article.get("title", ""),
+        article.get("summary", ""),
+        article.get("source", ""),
+    ])
+    return any(keyword in haystack for keyword in antwinner_keywords)
+
+
 def _get_youtube_keywords(youtube_signals: list[dict]) -> set[str]:
     keywords = set()
     for signal in youtube_signals:
@@ -230,6 +285,32 @@ def _is_youtube_weighted_article(article: dict, youtube_keywords: set[str]) -> b
         article.get("source", ""),
     ])
     return any(keyword in haystack for keyword in youtube_keywords)
+
+
+def format_antwinner_signals_for_prompt(antwinner_signals: list[dict]) -> str:
+    """개미승리 상위 테마를 프롬프트 텍스트로 포맷합니다."""
+    if not antwinner_signals:
+        return "수집 실패 또는 해당 데이터 없음"
+
+    lines = []
+    for i, theme in enumerate(antwinner_signals, 1):
+        thema = theme.get("thema", "")
+        avg_rate = theme.get("average_rate", 0.0)
+        rising_ratio = theme.get("rising_ratio", "")
+        companies = theme.get("companies", [])
+
+        stock_details = []
+        for c in companies[:3]:  # 프롬프트에는 대표 종목 3개만 표시
+            stock_details.append(
+                f"{c.get('stockname', '')}({c.get('fluctuation', '')})"
+            )
+        stocks_str = ", ".join(stock_details)
+
+        lines.append(
+            f"  {i}. [{thema}] 평균등락률 {avg_rate:+.2f}% | 상승비율 {rising_ratio}"
+            f" | 종목: {stocks_str}"
+        )
+    return "\n".join(lines)
 
 
 def format_youtube_signals_for_prompt(youtube_signals: list[dict]) -> str:
@@ -525,36 +606,56 @@ def apply_price_signal_postprocess(result: dict, articles: list[dict]) -> dict:
     return result
 
 
-def sort_articles_for_prompt(articles: list[dict], youtube_signals: list[dict] | None = None) -> list[dict]:
+def sort_articles_for_prompt(
+    articles: list[dict],
+    youtube_signals: list[dict] | None = None,
+    antwinner_signals: list[dict] | None = None,
+) -> list[dict]:
     youtube_keywords = _get_youtube_keywords(youtube_signals or [])
+    antwinner_keywords = _get_antwinner_keywords(antwinner_signals or [])
 
+    antwinner_priority = []
     youtube_priority = []
     priority = []
     normal = []
     for article in articles:
         title = article.get("title", "").strip()
-        if _is_youtube_weighted_article(article, youtube_keywords):
+        if _is_antwinner_weighted_article(article, antwinner_keywords):
+            antwinner_priority.append(article)
+        elif _is_youtube_weighted_article(article, youtube_keywords):
             youtube_priority.append(article)
         elif _is_priority_article(title):
             priority.append(article)
         else:
             normal.append(article)
 
-    return youtube_priority + priority + normal
+    return antwinner_priority + youtube_priority + priority + normal
 
 
-def format_articles_for_prompt(articles: list[dict], youtube_signals: list[dict] | None = None) -> str:
+def format_articles_for_prompt(
+    articles: list[dict],
+    youtube_signals: list[dict] | None = None,
+    antwinner_signals: list[dict] | None = None,
+) -> str:
     """
     기사 리스트를 프롬프트에 넣을 텍스트로 변환합니다.
     [특징주], 강세, 상한가, 급등 등의 키워드가 포함된 기사를 최상단에 배치하고
     ★ 마커를 붙여 ChatGPT가 가중치를 줄 수 있도록 합니다.
+    개미승리 관련 기사는 ● 마커로 최고 가중치를 부여합니다.
     """
     youtube_keywords = _get_youtube_keywords(youtube_signals or [])
-    sorted_articles = sort_articles_for_prompt(articles, youtube_signals)
-    youtube_priority_count = sum(1 for article in sorted_articles if _is_youtube_weighted_article(article, youtube_keywords))
+    antwinner_keywords = _get_antwinner_keywords(antwinner_signals or [])
+    sorted_articles = sort_articles_for_prompt(articles, youtube_signals, antwinner_signals)
+    antwinner_priority_count = sum(1 for article in sorted_articles if _is_antwinner_weighted_article(article, antwinner_keywords))
+    youtube_priority_count = sum(
+        1 for article in sorted_articles
+        if not _is_antwinner_weighted_article(article, antwinner_keywords)
+        and _is_youtube_weighted_article(article, youtube_keywords)
+    )
     priority_count = sum(
         1 for article in sorted_articles
-        if not _is_youtube_weighted_article(article, youtube_keywords)
+        if not _is_antwinner_weighted_article(article, antwinner_keywords)
+        and not _is_youtube_weighted_article(article, youtube_keywords)
         and _is_priority_article(article.get("title", "").strip())
     )
 
@@ -562,13 +663,23 @@ def format_articles_for_prompt(articles: list[dict], youtube_signals: list[dict]
     for i, article in enumerate(sorted_articles, 1):
         title = article.get("title", "").strip()
         summary = article.get("summary", "").strip()
+        is_antwinner_weighted = _is_antwinner_weighted_article(article, antwinner_keywords)
         is_youtube_weighted = _is_youtube_weighted_article(article, youtube_keywords)
-        marker = "◆" if is_youtube_weighted else ("★" if _is_priority_article(title) else "")
+        if is_antwinner_weighted:
+            marker = "●"
+        elif is_youtube_weighted:
+            marker = "◆"
+        elif _is_priority_article(title):
+            marker = "★"
+        else:
+            marker = ""
         if summary:
             lines.append(f"{i}. {marker}[{title}] {summary}")
         else:
             lines.append(f"{i}. {marker}{title}")
 
+    if antwinner_priority_count:
+        print(f"  [●] 개미승리 테마 연관 기사 {antwinner_priority_count}개를 최상단에 배치했습니다.")
     if youtube_priority_count:
         print(f"  [◆] 유튜브 시그널 연관 기사 {youtube_priority_count}개를 최상단에 배치했습니다.")
     if priority_count:
@@ -603,18 +714,21 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
     client = get_openai_client()
 
+    antwinner_signals = _get_antwinner_signals()
     youtube_signals = _get_youtube_signals()
     telegram_signals = _get_telegram_signals()
     price_signal_payload = _get_price_signal_payload()
-    sorted_articles = sort_articles_for_prompt(articles, youtube_signals)
+    sorted_articles = sort_articles_for_prompt(articles, youtube_signals, antwinner_signals)
+    antwinner_text = format_antwinner_signals_for_prompt(antwinner_signals)
     youtube_text = format_youtube_signals_for_prompt(youtube_signals)
     telegram_text = format_telegram_signals_for_prompt(telegram_signals)
     price_signal_text = format_price_signal_candidates_for_prompt(price_signal_payload)
     candidate_text = format_theme_candidates_for_prompt(articles, telegram_signals)
-    articles_text = format_articles_for_prompt(articles, youtube_signals)
+    articles_text = format_articles_for_prompt(articles, youtube_signals, antwinner_signals)
     user_prompt = USER_PROMPT_TEMPLATE.format(
         date=date_str,
         count=len(articles),
+        antwinner_text=antwinner_text,
         youtube_text=youtube_text,
         telegram_text=telegram_text,
         price_signal_text=price_signal_text,
@@ -642,6 +756,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         print(f"  [>] 토큰 사용: input={response.usage.prompt_tokens}, output={response.usage.completion_tokens}")
 
         result = json.loads(result_text)
+        result["antwinnerSignals"] = antwinner_signals
         result["youtubeSignals"] = youtube_signals
         result["telegramSignals"] = telegram_signals
         result["priceSignalPayload"] = price_signal_payload
