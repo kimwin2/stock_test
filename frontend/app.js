@@ -1,39 +1,50 @@
-/**
- * Stock Premium - 주식 테마 대시보드 App
- * dashboard_data.json을 로드하여 테마 카드를 렌더링합니다.
- */
-
-// ─────────────────────────────────────────┐
-// Config                                    │
-// ─────────────────────────────────────────┘
-// ── 환경별 데이터 URL 자동 전환 ──
-// GitHub Pages(프로덕션): S3에서 fetch
-// 로컬 개발: 같은 디렉터리의 JSON 파일
 const S3_DATA_URL = 'https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com/dashboard_data.json';
 const LOCAL_DATA_URL = './dashboard_data.json';
 
-const isProduction = window.location.hostname.includes('github.io') 
-                  || window.location.hostname.includes('stock');
+const isProduction = window.location.hostname.includes('github.io')
+  || window.location.hostname.includes('stock');
 const DATA_URL = isProduction ? S3_DATA_URL : LOCAL_DATA_URL;
 
-// ─────────────────────────────────────────┐
-// Utils                                     │
-// ─────────────────────────────────────────┘
-function formatPrice(price) {
-  if (!price || price === 0) return '-';
-  return price.toLocaleString('ko-KR');
+const FILTERS = [
+  { key: 'all', label: '전체' },
+  { key: 'strong', label: '강한 테마' },
+  { key: 'broad', label: '확산' },
+  { key: 'recurring', label: '연속' },
+];
+
+const state = {
+  themes: [],
+  search: '',
+  sort: 'volume',
+  filter: 'all',
+};
+
+function escapeHTML(value) {
+  if (value === undefined || value === null) return '';
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return String(value).replace(/[&<>"']/g, char => map[char]);
 }
 
 function formatDatetime(isoStr) {
   if (!isoStr) return '--:--';
-  const d = new Date(isoStr);
+  const date = new Date(isoStr);
   const days = ['일', '월', '화', '수', '목', '금', '토'];
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  const day = days[d.getDay()];
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mi = String(d.getMinutes()).padStart(2, '0');
-  return `${mm}-${dd}(${day}) ${hh}:${mi}`;
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mi = String(date.getMinutes()).padStart(2, '0');
+  return `${mm}.${dd}(${days[date.getDay()]}) ${hh}:${mi}`;
+}
+
+function parseAmount(value) {
+  if (!value) return 0;
+  const text = String(value).replace(/,/g, '');
+  const number = parseFloat(text);
+  if (Number.isNaN(number)) return 0;
+  if (text.includes('조')) return number * 10000;
+  if (text.includes('억')) return number;
+  if (text.includes('만')) return number / 10000;
+  return number;
 }
 
 function getChangeClass(rate) {
@@ -43,220 +54,199 @@ function getChangeClass(rate) {
 }
 
 function getChangeText(rate) {
-  if (rate > 0) return `↑${rate.toFixed(2)}%`;
-  if (rate < 0) return `↓${Math.abs(rate).toFixed(2)}%`;
-  return `${rate.toFixed(2)}%`;
+  const sign = rate > 0 ? '+' : '';
+  return `${sign}${Number(rate || 0).toFixed(2)}%`;
 }
 
-// ─────────────────────────────────────────┐
-// Components                                │
-// ─────────────────────────────────────────┘
+function createPriceBar(stock) {
+  const rate = Number(stock.changeRate || 0);
+  const maxRate = 30;
+  const width = Math.max(3, Math.min(50, Math.abs(rate) / maxRate * 50));
+  const isUp = rate >= 0;
+  const left = isUp ? 50 : 50 - width;
 
-/**
- * Range Bar 렌더링
- * barData: { minMaxRange: [0,100], currentRange: [start, end], baseline: number }
- */
-function createRangeBar(barData, changeRate) {
-  const container = document.createElement('div');
-  container.className = 'range-bar-container';
-
-  // Gray background bar
-  const bg = document.createElement('div');
-  bg.className = 'range-bar-bg';
-  container.appendChild(bg);
-
-  // Colored fill bar — 가운데(50%) 기준, 상승→오른쪽 빨강, 하락→왼쪽 파랑
-  // 30% = 반쪽 꽉 채움 (50% 폭)
-  const MAX_RATE = 30;
-  const absRate = Math.abs(changeRate || 0);
-  const halfPct = Math.min(50, (absRate / MAX_RATE) * 50);
-
-  const fill = document.createElement('div');
-  fill.className = `range-bar-fill ${getChangeClass(changeRate)}`;
-
-  if (changeRate >= 0) {
-    // 상승: 가운데에서 오른쪽으로
-    fill.style.left = '50%';
-    fill.style.width = `${Math.max(0.5, halfPct)}%`;
-  } else {
-    // 하락: 가운데에서 왼쪽으로
-    fill.style.left = `${50 - halfPct}%`;
-    fill.style.width = `${Math.max(0.5, halfPct)}%`;
-  }
-  container.appendChild(fill);
-
-  // 가운데 기준선 틱
-  const tick = document.createElement('div');
-  tick.className = 'range-bar-tick';
-  tick.style.left = '50%';
-  container.appendChild(tick);
-
-  return container;
-}
-
-/**
- * Stock Item 렌더링
- */
-function createStockItem(stock) {
-  const item = document.createElement('div');
-  item.className = `stock-item${stock.isTop ? ' is-top' : ''}`;
-
-  // Skip items with no price (unlisted)
-  if (stock.price === 0 && stock.changeRate === 0) {
-    return null;
-  }
-
-  const changeClass = getChangeClass(stock.changeRate);
-
-  item.innerHTML = `
-    <div class="stock-row-1">
-      <div class="stock-name">
-        ${stock.isTop ? '<span class="top-marker"></span>' : '<span style="width:10px;display:inline-block"></span>'}
-        ${escapeHTML(stock.name)}
-      </div>
-      <div class="stock-change ${changeClass}">${getChangeText(stock.changeRate)}</div>
-    </div>
-    <div class="stock-row-2">
-      <div class="stock-price">
-        <span class="price-value ${changeClass}">${formatPrice(stock.price)}</span>
-        ${stock.time ? `<span class="price-time">${escapeHTML(stock.time)}</span>` : ''}
-      </div>
-      <div class="stock-volume">${escapeHTML(stock.volume || '')}</div>
+  return `
+    <div class="price-bar">
+      <div class="price-bar-track"></div>
+      <div class="price-bar-fill ${getChangeClass(rate)}" style="left:${left}%;width:${width}%"></div>
+      <div class="price-bar-mid"></div>
     </div>
   `;
-
-  // Range bar
-  if (stock.barData) {
-    item.appendChild(createRangeBar(stock.barData, stock.changeRate));
-  }
-
-  return item;
 }
 
-/**
- * Theme Card 렌더링
- */
+function getSessionLabel(updatedAt) {
+  const hour = new Date(updatedAt).getHours();
+  if (hour < 9) return `프리마켓 · ${formatDatetime(updatedAt)}`;
+  if (hour < 15) return `장중 · ${formatDatetime(updatedAt)}`;
+  return `마감 · ${formatDatetime(updatedAt)}`;
+}
+
+function getRecurringCount(name, rawData) {
+  const textPool = [
+    ...(rawData.antwinnerSignals || []).map(item => item.thema || ''),
+    ...(rawData.youtubeSignals || []).flatMap(item => item.sectors || []),
+    ...(rawData.priceSignalCandidates || []).map(item => item.themeName || ''),
+  ].join(' ');
+
+  if (name.includes('보안') && textPool.includes('보안')) return 3;
+  if (name.includes('양자') && textPool.includes('양자')) return 3;
+  if (name.includes('유리기판') && textPool.includes('유리기판')) return 2;
+  if (name.includes('지역화폐') && textPool.includes('지역화폐')) return 2;
+  return 1;
+}
+
+function buildThemes(rawData) {
+  return (rawData.themes || []).map((theme, index) => {
+    const stocks = (theme.stocks || [])
+      .filter(stock => !(stock.price === 0 && stock.changeRate === 0))
+      .sort((a, b) => b.changeRate - a.changeRate)
+      .slice(0, 4);
+
+    const avgMove = stocks.reduce((sum, stock) => sum + Number(stock.changeRate || 0), 0) / Math.max(stocks.length, 1);
+    const positiveCount = stocks.filter(stock => stock.changeRate > 0).length;
+    const breadth = stocks.length ? Math.round((positiveCount / stocks.length) * 100) : 0;
+    const recurringDays = getRecurringCount(theme.themeName, rawData);
+
+    return {
+      id: `${theme.themeName}-${index}`,
+      name: theme.themeName,
+      headline: theme.headline,
+      totalVolume: theme.totalVolume,
+      volumeValue: parseAmount(theme.totalVolume),
+      avgMove,
+      breadth,
+      recurringDays,
+      stocks,
+    };
+  });
+}
+
+function createFilterChips() {
+  const row = document.getElementById('filter-row');
+  row.innerHTML = FILTERS.map(filter => `
+    <button type="button" class="filter-chip${state.filter === filter.key ? ' is-active' : ''}" data-filter="${filter.key}">
+      ${filter.label}
+    </button>
+  `).join('');
+}
+
+function applyFilter(theme) {
+  const query = state.search.trim().toLowerCase();
+  const searchable = `${theme.name} ${theme.headline || ''} ${theme.stocks.map(stock => stock.name).join(' ')}`.toLowerCase();
+  if (query && !searchable.includes(query)) return false;
+
+  if (state.filter === 'strong') return theme.avgMove >= 12;
+  if (state.filter === 'broad') return theme.breadth >= 75;
+  if (state.filter === 'recurring') return theme.recurringDays >= 2;
+  return true;
+}
+
+function sortThemes(themes) {
+  const sorted = [...themes];
+
+  sorted.sort((a, b) => {
+    if (state.sort === 'move') return b.avgMove - a.avgMove;
+    if (state.sort === 'name') return a.name.localeCompare(b.name, 'ko');
+    return b.volumeValue - a.volumeValue;
+  });
+
+  return sorted;
+}
+
 function createThemeCard(theme) {
-  const card = document.createElement('div');
-  card.className = 'theme-card';
+  return `
+    <article class="theme-card">
+      <div class="theme-card-header">
+        <div class="theme-title-group">
+          <h2>${escapeHTML(theme.name)}</h2>
+          ${theme.recurringDays >= 2 ? `<span class="streak-badge">${theme.recurringDays}일</span>` : ''}
+        </div>
+        <div class="theme-volume">${escapeHTML(theme.totalVolume)}</div>
+      </div>
 
-  // Header
-  const header = document.createElement('div');
-  header.className = 'card-header';
-  header.innerHTML = `
-    <span class="card-theme-name">${escapeHTML(theme.themeName)}</span>
-    <span class="card-volume">${escapeHTML(theme.totalVolume)}</span>
+      <p class="theme-headline">${escapeHTML(theme.headline || '관련 수급 체크')}</p>
+
+      <div class="theme-meta">
+        <span>평균등락 <strong class="${getChangeClass(theme.avgMove)}">${getChangeText(theme.avgMove)}</strong></span>
+        <span>확산 <strong>${theme.breadth}%</strong></span>
+      </div>
+
+      <div class="stock-list">
+        ${theme.stocks.map((stock, index) => `
+          <div class="stock-row${index === 0 ? ' is-top' : ''}">
+            <div class="stock-main-row">
+              <div class="stock-name">${escapeHTML(stock.name)}</div>
+              <div class="stock-change ${getChangeClass(stock.changeRate)}">${getChangeText(stock.changeRate)}</div>
+              <div class="stock-volume">${escapeHTML(stock.volume || '-')}</div>
+            </div>
+            ${createPriceBar(stock)}
+          </div>
+        `).join('')}
+      </div>
+    </article>
   `;
-  card.appendChild(header);
+}
 
-  // Headline
-  const headlineDiv = document.createElement('div');
-  headlineDiv.className = 'card-headline';
-  if (theme.headlineUrl) {
-    const a = document.createElement('a');
-    a.href = theme.headlineUrl;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.textContent = theme.headline || '';
-    a.title = '관련 뉴스 보기';
-    headlineDiv.appendChild(a);
-  } else {
-    headlineDiv.textContent = theme.headline || '';
+function renderThemes() {
+  const list = document.getElementById('theme-list');
+  const visibleThemes = sortThemes(state.themes.filter(applyFilter));
+
+  if (!visibleThemes.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <p>조건에 맞는 테마가 없습니다.</p>
+      </div>
+    `;
+    return;
   }
-  card.appendChild(headlineDiv);
 
-  // Stock list
-  const stocks = theme.stocks || [];
-  stocks.forEach(stock => {
-    const stockEl = createStockItem(stock);
-    if (stockEl) {
-      card.appendChild(stockEl);
-    }
-  });
-
-  return card;
+  list.innerHTML = visibleThemes.map(createThemeCard).join('');
 }
 
-// ─────────────────────────────────────────┐
-// Ticker                                    │
-// ─────────────────────────────────────────┘
-function renderTicker(themes) {
-  const tickerContent = document.getElementById('ticker-content');
-  if (!tickerContent) return;
-
-  let items = [];
-  themes.forEach(theme => {
-    const topStock = (theme.stocks || []).find(s => s.isTop);
-    if (topStock) {
-      const arrow = topStock.changeRate >= 0 ? '▲' : '▼';
-      items.push(
-        `<span><strong>[${theme.themeName}]</strong> ${theme.headline} | ${topStock.name} ${arrow}${Math.abs(topStock.changeRate).toFixed(2)}%</span>`
-      );
-    } else {
-      items.push(
-        `<span><strong>[${theme.themeName}]</strong> ${theme.headline}</span>`
-      );
-    }
+function bindEvents() {
+  document.getElementById('search-input').addEventListener('input', event => {
+    state.search = event.target.value;
+    renderThemes();
   });
 
-  // Duplicate for seamless scrolling
-  tickerContent.innerHTML = items.join('') + items.join('');
+  document.getElementById('sort-select').addEventListener('change', event => {
+    state.sort = event.target.value;
+    renderThemes();
+  });
+
+  document.getElementById('filter-row').addEventListener('click', event => {
+    const button = event.target.closest('[data-filter]');
+    if (!button) return;
+    state.filter = button.dataset.filter;
+    createFilterChips();
+    renderThemes();
+  });
 }
 
-// ─────────────────────────────────────────┐
-// Main Render                               │
-// ─────────────────────────────────────────┘
 async function loadAndRender() {
-  const grid = document.getElementById('theme-grid');
   const loading = document.getElementById('loading-state');
-
   try {
-    const resp = await fetch(DATA_URL + '?t=' + new Date().getTime());
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+    const response = await fetch(`${DATA_URL}?t=${Date.now()}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    // Update header datetime
-    const dtEl = document.getElementById('header-datetime');
-    if (dtEl && data.updatedAt) {
-      dtEl.textContent = formatDatetime(data.updatedAt);
-    }
-
-    // Clear loading
+    const rawData = await response.json();
+    state.themes = buildThemes(rawData);
+    document.getElementById('session-chip').textContent = getSessionLabel(rawData.updatedAt);
     if (loading) loading.remove();
-
-    // Render theme cards
-    const themes = data.themes || [];
-    themes.forEach(theme => {
-      grid.appendChild(createThemeCard(theme));
-    });
-
-    // Render ticker
-    renderTicker(themes);
-
-  } catch (err) {
-    console.error('Failed to load dashboard data:', err);
+    renderThemes();
+  } catch (error) {
+    console.error('Failed to load dashboard data:', error);
     if (loading) loading.remove();
-    grid.innerHTML = `
-      <div class="error-state">
-        <p>데이터를 불러올 수 없습니다.</p>
-        <p style="font-size:0.8rem;color:#999">${escapeHTML(err.message)}</p>
-        <button class="retry-btn" onclick="location.reload()">다시 시도</button>
+    document.getElementById('theme-list').innerHTML = `
+      <div class="empty-state">
+        <p>데이터를 불러오지 못했습니다.</p>
       </div>
     `;
   }
 }
 
-// ─────────────────────────────────────────┐
-// Helpers                                   │
-// ─────────────────────────────────────────┘
-function escapeHTML(str) {
-  if (!str) return '';
-  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-  return String(str).replace(/[&<>"']/g, c => map[c]);
-}
-
-
-// ─────────────────────────────────────────┐
-// Init                                      │
-// ─────────────────────────────────────────┘
-document.addEventListener('DOMContentLoaded', loadAndRender);
+document.addEventListener('DOMContentLoaded', () => {
+  createFilterChips();
+  bindEvents();
+  loadAndRender();
+});
