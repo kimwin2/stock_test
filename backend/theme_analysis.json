@@ -2,108 +2,108 @@
   "themes": [
     {
       "themeName": "양자컴퓨터",
-      "headline": "양자컴퓨팅과 양자보안주들이 무더기 상한가를 기록하며 들썩이고 있습니다.",
+      "headline": "양자컴퓨팅과 양자보안주들이 무더기 상한가 기록",
       "representativeArticleIndex": 2,
       "relatedStocks": [
-        "케이씨에스",
         "엑스게이트",
-        "라온시큐어",
+        "케이씨에스",
         "아이씨티케이",
+        "라온시큐어",
         "파수",
         "드림시큐리티"
       ],
-      "reasoning": "양자컴퓨터와 관련된 주식들이 급등하며 시장의 주목을 받고 있습니다. 특히, AI 해킹 우려와 관련된 보안주들이 함께 상승세를 보이고 있습니다.",
+      "reasoning": "양자컴퓨터와 관련된 주식들이 최근 급등세를 보이며 시장에서 큰 주목을 받고 있습니다.",
       "headlineUrl": "https://n.news.naver.com/mnews/article/215/0001249241"
     },
     {
-      "themeName": "AI반도체",
-      "headline": "AI 인프라 확산으로 반도체 업황이 빠르게 개선되는 가운데, 낸드 시장도 반등 국면에 진입.",
-      "representativeArticleIndex": 10,
-      "relatedStocks": [
-        "삼성전자",
-        "SK하이닉스",
-        "두산에너빌리티",
-        "삼성전기",
-        "LG이노텍",
-        "하이닉스"
-      ],
-      "reasoning": "AI와 관련된 반도체 수요 증가로 인해 업황 개선 기대감이 커지고 있으며, 관련 종목들이 상승세를 보이고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/018/0006258167"
-    },
-    {
-      "themeName": "사이버 보안",
-      "headline": "사이버 보안 관련 종목들이 동시에 급등하여 보안 솔루션 테마로 묶였습니다.",
+      "themeName": "AI 및 사이버 보안",
+      "headline": "AI 해킹 우려에 양자암호·보안주 상한가",
       "representativeArticleIndex": 8,
       "relatedStocks": [
+        "파수",
         "소프트캠프",
         "라온시큐어",
-        "SGA솔루션즈",
         "드림시큐리티",
-        "파수",
+        "SGA솔루션즈",
         "엑스게이트"
       ],
-      "reasoning": "AI 해킹 우려와 함께 사이버 보안 관련 종목들이 급등하며 시장에서 큰 주목을 받고 있습니다.",
+      "reasoning": "AI 기술의 발전과 해킹 우려로 사이버 보안 관련 주식들이 급등하며 주목받고 있습니다.",
       "headlineUrl": "https://n.news.naver.com/mnews/article/008/0005344953"
     },
     {
       "themeName": "전선 및 전력 관련",
-      "headline": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶였습니다.",
-      "representativeArticleIndex": 1,
+      "headline": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶임",
+      "representativeArticleIndex": 52,
       "relatedStocks": [
         "대한전선",
         "가온전선",
         "대원전선",
         "대원전선우",
         "한빛레이저",
-        "필옵틱스"
+        "SKC"
       ],
-      "reasoning": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶였습니다. 급등주가 다수 포함되어 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/016/0002630933"
+      "reasoning": "전선 관련 종목들이 평균 20.5% 상승하며 전력 및 건설 관련 테마로 주목받고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611373"
     },
     {
-      "themeName": "UAM 및 로봇",
-      "headline": "삼성SDI, 로봇·UAM 배터리 정조준…나트륨 배터리도 출격 준비.",
-      "representativeArticleIndex": 14,
+      "themeName": "인공지능(AI)",
+      "headline": "AI 관련 종목들이 평균 10% 이상 상승",
+      "representativeArticleIndex": 3,
       "relatedStocks": [
-        "삼성SDI",
-        "현대차",
-        "LG화학",
-        "한화에어로",
-        "두산",
-        "SK이노베이션"
+        "이노뎁",
+        "에스피소프트",
+        "에스넷",
+        "삼성전자",
+        "SK하이닉스",
+        "LG전자"
       ],
-      "reasoning": "로봇 및 UAM 관련 기술 개발이 활발히 진행되고 있어 관련 종목들이 주목받고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/009/0005667193"
+      "reasoning": "AI 기술의 발전에 따른 수요 증가로 AI 관련 종목들이 강세를 보이고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/016/0002630664"
+    },
+    {
+      "themeName": "보안주",
+      "headline": "사이버 보안 관련 종목들이 급등",
+      "representativeArticleIndex": 4,
+      "relatedStocks": [
+        "소프트캠프",
+        "SGA솔루션즈",
+        "라온시큐어",
+        "드림시큐리티",
+        "파수",
+        "엑스게이트"
+      ],
+      "reasoning": "사이버 보안 이슈가 부각되면서 보안 관련 주식들이 급등하고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/277/0005750374"
     },
     {
       "themeName": "건설",
-      "headline": "건설주가 가장 가파른 상승세를 보였지만 대표적 건설 후방산업인 시멘트주는 종목별로 주가 흐름이 크게 엇갈린 것으로 나타났다.",
+      "headline": "건설주가 가장 가파른 상승세를 보임",
       "representativeArticleIndex": 50,
       "relatedStocks": [
         "대우건설",
         "현대건설",
         "GS건설",
-        "삼성물산",
         "한화건설",
-        "포스코건설"
+        "포스코건설",
+        "삼성물산"
       ],
-      "reasoning": "건설주가 상승세를 보이며 시장에서 주목받고 있습니다. 특히, 건설 관련 후방 산업과의 차별화가 이루어지고 있습니다.",
+      "reasoning": "건설 관련 종목들이 최근 상승세를 보이며 시장에서 주목받고 있습니다.",
       "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611552"
     },
     {
-      "themeName": "지역화폐",
-      "headline": "CBDC·스테이블코인 '외국인 대상' 선제적 검증··국내 금융·결제 인프라 구축 속도.",
-      "representativeArticleIndex": 29,
+      "themeName": "아이폰",
+      "headline": "아이폰 관련 종목들이 상승세",
+      "representativeArticleIndex": 5,
       "relatedStocks": [
-        "코나아이",
-        "웹케시",
-        "쿠콘",
-        "NHN",
-        "카카오",
-        "LG유플러스"
+        "비에이치",
+        "덕산네오룩스",
+        "자화전자",
+        "LG이노텍",
+        "삼성전기",
+        "SK하이닉스"
       ],
-      "reasoning": "지역화폐와 관련된 금융 인프라 구축이 활발히 진행되고 있어 관련 종목들이 주목받고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/243/0000096437"
+      "reasoning": "아이폰 관련 종목들이 강세를 보이며 투자자들의 관심을 받고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611323"
     }
   ],
   "antwinnerSignals": [

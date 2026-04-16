@@ -1,0 +1,109 @@
+{
+  "themes": [
+    {
+      "themeName": "건설",
+      "headline": "이란 재건 기대감으로 건설주 강세",
+      "representativeArticleIndex": 1,
+      "relatedStocks": [
+        "대우건설",
+        "GS건설",
+        "한텍",
+        "삼성물산",
+        "현대건설",
+        "포스코건설"
+      ],
+      "reasoning": "이란 재건 기대감이 커지면서 주요 건설사들이 강세를 보이고 있으며, 외국인 매수세가 유입되고 있다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/215/0001249100"
+    },
+    {
+      "themeName": "반도체",
+      "headline": "삼성전자와 SK하이닉스, 실적 기대감에 신고가 경신",
+      "representativeArticleIndex": 5,
+      "relatedStocks": [
+        "삼성전자",
+        "SK하이닉스",
+        "삼성전기",
+        "DB하이텍",
+        "하이닉스",
+        "LG이노텍"
+      ],
+      "reasoning": "미국 기술주 급등과 실적 기대감으로 반도체 대형주들이 신고가를 경신하며 강세를 보이고 있다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/003/0013889217"
+    },
+    {
+      "themeName": "광통신",
+      "headline": "광통신 테마주, 엔비디아의 영향으로 급등",
+      "representativeArticleIndex": 2,
+      "relatedStocks": [
+        "대한광통신",
+        "오이솔루션",
+        "이노와이어리스",
+        "엠씨넥스",
+        "세종텔레콤",
+        "LG유플러스"
+      ],
+      "reasoning": "엔비디아의 급등이 광통신 관련주에 긍정적인 영향을 미치며 투자자들의 관심을 끌고 있다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/018/0006257845"
+    },
+    {
+      "themeName": "AI반도체",
+      "headline": "AI 서버 수요 급증, SK하이닉스 실적 기대감",
+      "representativeArticleIndex": 7,
+      "relatedStocks": [
+        "SK하이닉스",
+        "삼성전자",
+        "LG이노텍",
+        "DB하이텍",
+        "넥스트칩",
+        "에스피지"
+      ],
+      "reasoning": "AI 서버 수요 증가로 인해 반도체 업종의 실적 기대감이 높아지고 있으며, 관련 종목들이 주목받고 있다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/629/0000491644"
+    },
+    {
+      "themeName": "원전",
+      "headline": "K-원전 수혜 기대감에 대우건설 주가 급등",
+      "representativeArticleIndex": 11,
+      "relatedStocks": [
+        "대우건설",
+        "두산에너빌리티",
+        "한전KPS",
+        "한국전력",
+        "현대건설",
+        "한화큐셀"
+      ],
+      "reasoning": "원전 관련 프로젝트 수혜 기대감으로 건설주가 상승세를 보이고 있다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004610974"
+    },
+    {
+      "themeName": "방산",
+      "headline": "방산주, 중동 전쟁 수혜 기대감으로 상승",
+      "representativeArticleIndex": 4,
+      "relatedStocks": [
+        "LIG넥스원",
+        "한화에어로스페이스",
+        "현대로템",
+        "KAI",
+        "한화시스템",
+        "대우조선해양"
+      ],
+      "reasoning": "중동 전쟁으로 인한 방산 수요 증가가 방산주에 긍정적인 영향을 미치고 있다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/138/0002224567"
+    },
+    {
+      "themeName": "로봇",
+      "headline": "로봇 및 UAM 관련주, 삼성SDI의 나트륨 배터리 출격 소식",
+      "representativeArticleIndex": 14,
+      "relatedStocks": [
+        "삼성SDI",
+        "현대로보틱스",
+        "로보스타",
+        "한화에어로스페이스",
+        "두산로보틱스",
+        "LG전자"
+      ],
+      "reasoning": "삼성SDI의 나트륨 배터리 출격 소식이 로봇 및 UAM 관련주에 긍정적인 영향을 미치고 있다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/629/0000491614"
+    }
+  ]
+}
