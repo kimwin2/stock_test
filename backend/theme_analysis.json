@@ -1,172 +1,370 @@
 {
   "themes": [
     {
-      "themeName": "반도체",
-      "headline": "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
+      "themeName": "양자컴퓨터",
+      "headline": "양자컴퓨팅과 양자보안주들이 무더기 상한가를 기록하며 들썩이고 있습니다.",
       "representativeArticleIndex": 2,
       "relatedStocks": [
-        "삼성전자",
-        "SK하이닉스",
-        "한미반도체",
-        "DB하이텍",
-        "주성엔지니어링",
-        "원익IPS"
+        "케이씨에스",
+        "엑스게이트",
+        "라온시큐어",
+        "아이씨티케이",
+        "파수",
+        "드림시큐리티"
       ],
-      "reasoning": "반도체 대장주인 삼성전자와 SK하이닉스의 실적 기대감이 높아지며 시장의 주도 테마로 부각되고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/014/0005508391"
-    },
-    {
-      "themeName": "건설",
-      "headline": "대우건설, 이란 '재건 기대' 21% 또 급등",
-      "representativeArticleIndex": 10,
-      "relatedStocks": [
-        "대우건설",
-        "GS건설",
-        "현대건설",
-        "DL이앤씨",
-        "삼성E&A",
-        "한텍"
-      ],
-      "reasoning": "이란 재건 기대감으로 건설주가 급등하며 시장에서 주목받고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/421/0008892006"
+      "reasoning": "양자컴퓨터와 관련된 주식들이 급등하며 시장의 주목을 받고 있습니다. 특히, AI 해킹 우려와 관련된 보안주들이 함께 상승세를 보이고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/215/0001249241"
     },
     {
       "themeName": "AI반도체",
-      "headline": "AI發 메모리 수요 폭증 … 외국인 '삼전닉스 베팅'",
-      "representativeArticleIndex": 7,
+      "headline": "AI 인프라 확산으로 반도체 업황이 빠르게 개선되는 가운데, 낸드 시장도 반등 국면에 진입.",
+      "representativeArticleIndex": 10,
       "relatedStocks": [
-        "SK하이닉스",
         "삼성전자",
-        "한미반도체",
-        "이오테크닉스",
-        "리노공업"
-      ],
-      "reasoning": "AI 서버 수요 증가로 AI반도체 관련주가 주목받고 있으며, 외국인 투자자들이 적극적으로 매수하고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/009/0005666503"
-    },
-    {
-      "themeName": "광통신",
-      "headline": "엔비디아가 콕 찍은 ‘광통신’…또 개미 잡을까 우려도",
-      "representativeArticleIndex": 23,
-      "relatedStocks": [
-        "대한광통신",
-        "LG이노텍",
+        "SK하이닉스",
+        "두산에너빌리티",
         "삼성전기",
-        "신성이엔지",
-        "파워로직스",
-        "이노와이어리스"
+        "LG이노텍",
+        "하이닉스"
       ],
-      "reasoning": "광통신 관련주가 최근 급등하며 시장에서 큰 관심을 받고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004610999"
+      "reasoning": "AI와 관련된 반도체 수요 증가로 인해 업황 개선 기대감이 커지고 있으며, 관련 종목들이 상승세를 보이고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/018/0006258167"
     },
     {
-      "themeName": "양자컴퓨터",
-      "headline": "젠슨 황까지 발 들이자, 양자컴 관련주 '재부팅'",
-      "representativeArticleIndex": 95,
+      "themeName": "사이버 보안",
+      "headline": "사이버 보안 관련 종목들이 동시에 급등하여 보안 솔루션 테마로 묶였습니다.",
+      "representativeArticleIndex": 8,
       "relatedStocks": [
-        "아이씨티케이",
-        "엑스게이트",
-        "케이씨에스",
-        "아톤",
+        "소프트캠프",
+        "라온시큐어",
+        "SGA솔루션즈",
+        "드림시큐리티",
         "파수",
-        "이노와이어리스"
+        "엑스게이트"
       ],
-      "reasoning": "양자컴퓨터 관련주가 최근 급등하며 시장에서 큰 주목을 받고 있습니다.",
-      "mergedFromThemes": [
-        "보안"
-      ],
-      "mergeNote": "보안 테마와 종목 겹침 5개로 높아 양자컴퓨터로 통합했습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/015/0005275386"
+      "reasoning": "AI 해킹 우려와 함께 사이버 보안 관련 종목들이 급등하며 시장에서 큰 주목을 받고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/008/0005344953"
     },
     {
-      "themeName": "원전",
-      "headline": "두산에너빌리티, 원전 수주 가시화로 성장 기대",
+      "themeName": "전선 및 전력 관련",
+      "headline": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶였습니다.",
+      "representativeArticleIndex": 1,
+      "relatedStocks": [
+        "대한전선",
+        "가온전선",
+        "대원전선",
+        "대원전선우",
+        "한빛레이저",
+        "필옵틱스"
+      ],
+      "reasoning": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶였습니다. 급등주가 다수 포함되어 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/016/0002630933"
+    },
+    {
+      "themeName": "UAM 및 로봇",
+      "headline": "삼성SDI, 로봇·UAM 배터리 정조준…나트륨 배터리도 출격 준비.",
+      "representativeArticleIndex": 14,
+      "relatedStocks": [
+        "삼성SDI",
+        "현대차",
+        "LG화학",
+        "한화에어로",
+        "두산",
+        "SK이노베이션"
+      ],
+      "reasoning": "로봇 및 UAM 관련 기술 개발이 활발히 진행되고 있어 관련 종목들이 주목받고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/009/0005667193"
+    },
+    {
+      "themeName": "건설",
+      "headline": "건설주가 가장 가파른 상승세를 보였지만 대표적 건설 후방산업인 시멘트주는 종목별로 주가 흐름이 크게 엇갈린 것으로 나타났다.",
       "representativeArticleIndex": 50,
       "relatedStocks": [
         "대우건설",
-        "두산에너빌리티",
-        "한전KPS",
-        "한국전력",
-        "현대건설"
+        "현대건설",
+        "GS건설",
+        "삼성물산",
+        "한화건설",
+        "포스코건설"
       ],
-      "reasoning": "원전 관련 수주 기대감이 커지면서 관련주가 상승세를 보이고 있습니다.",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/366/0001156921"
+      "reasoning": "건설주가 상승세를 보이며 시장에서 주목받고 있습니다. 특히, 건설 관련 후방 산업과의 차별화가 이루어지고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611552"
     },
     {
-      "themeName": "방산",
-      "headline": "“전쟁 피크 지나도 오른다”…K건설·방산으로 이동하는 투자 흐름",
-      "representativeArticleIndex": 3,
+      "themeName": "지역화폐",
+      "headline": "CBDC·스테이블코인 '외국인 대상' 선제적 검증··국내 금융·결제 인프라 구축 속도.",
+      "representativeArticleIndex": 29,
       "relatedStocks": [
-        "한화에어로스페이스",
-        "LIG넥스원",
-        "한화시스템",
-        "현대로템",
-        "퍼스텍",
-        "한국항공우주"
+        "코나아이",
+        "웹케시",
+        "쿠콘",
+        "NHN",
+        "카카오",
+        "LG유플러스"
       ],
-      "reasoning": "연관 기사 3건이 감지됐습니다.",
-      "injectedByPostProcess": true,
-      "source": "price_signals",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611120"
+      "reasoning": "지역화폐와 관련된 금융 인프라 구축이 활발히 진행되고 있어 관련 종목들이 주목받고 있습니다.",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/243/0000096437"
+    }
+  ],
+  "antwinnerSignals": [
+    {
+      "thema": "유리기판",
+      "average_rate": 11.37,
+      "all_avg_rate": 7.27,
+      "rising_ratio": "86.67%",
+      "stock_count": 15,
+      "companies": [
+        {
+          "current_price": "6,860",
+          "fluctuation": "29.92%",
+          "stock_code": "452190",
+          "stockname": "한빛레이저",
+          "volume": "1626억"
+        },
+        {
+          "current_price": "122,000",
+          "fluctuation": "22.24%",
+          "stock_code": "011790",
+          "stockname": "SKC",
+          "volume": "2769억"
+        },
+        {
+          "current_price": "45,950",
+          "fluctuation": "15.16%",
+          "stock_code": "161580",
+          "stockname": "필옵틱스",
+          "volume": "628억"
+        },
+        {
+          "current_price": "33,900",
+          "fluctuation": "9.35%",
+          "stock_code": "089010",
+          "stockname": "켐트로닉스",
+          "volume": "244억"
+        },
+        {
+          "current_price": "25,000",
+          "fluctuation": "8.70%",
+          "stock_code": "052710",
+          "stockname": "아모텍",
+          "volume": "209억"
+        },
+        {
+          "current_price": "5,800",
+          "fluctuation": "8.41%",
+          "stock_code": "419080",
+          "stockname": "엔젯",
+          "volume": "37억"
+        }
+      ]
+    },
+    {
+      "thema": "보안주",
+      "average_rate": 10.43,
+      "all_avg_rate": 5.44,
+      "rising_ratio": "73.91%",
+      "stock_count": 23,
+      "companies": [
+        {
+          "current_price": "1,943",
+          "fluctuation": "29.97%",
+          "stock_code": "258790",
+          "stockname": "소프트캠프",
+          "volume": "145억"
+        },
+        {
+          "current_price": "15,410",
+          "fluctuation": "29.93%",
+          "stock_code": "042510",
+          "stockname": "라온시큐어",
+          "volume": "989억"
+        },
+        {
+          "current_price": "913",
+          "fluctuation": "29.87%",
+          "stock_code": "184230",
+          "stockname": "SGA솔루션즈",
+          "volume": "191억"
+        },
+        {
+          "current_price": "15,880",
+          "fluctuation": "29.84%",
+          "stock_code": "192250",
+          "stockname": "케이사인",
+          "volume": "754억"
+        },
+        {
+          "current_price": "5,030",
+          "fluctuation": "7.25%",
+          "stock_code": "150900",
+          "stockname": "파수",
+          "volume": "487억"
+        },
+        {
+          "current_price": "2,170",
+          "fluctuation": "4.58%",
+          "stock_code": "291810",
+          "stockname": "핀텔",
+          "volume": "3억"
+        }
+      ]
+    },
+    {
+      "thema": "인공지능(AI)",
+      "average_rate": 10.42,
+      "all_avg_rate": 5.52,
+      "rising_ratio": "85.37%",
+      "stock_count": 41,
+      "companies": [
+        {
+          "current_price": "5,650",
+          "fluctuation": "29.89%",
+          "stock_code": "303530",
+          "stockname": "이노뎁",
+          "volume": "101억"
+        },
+        {
+          "current_price": "6,070",
+          "fluctuation": "23.88%",
+          "stock_code": "443670",
+          "stockname": "에스피소프트",
+          "volume": "370억"
+        },
+        {
+          "current_price": "5,610",
+          "fluctuation": "17.36%",
+          "stock_code": "038680",
+          "stockname": "에스넷",
+          "volume": "364억"
+        },
+        {
+          "current_price": "11,000",
+          "fluctuation": "15.55%",
+          "stock_code": "417860",
+          "stockname": "오브젠",
+          "volume": "70억"
+        },
+        {
+          "current_price": "15,230",
+          "fluctuation": "13.83%",
+          "stock_code": "108860",
+          "stockname": "셀바스AI",
+          "volume": "620억"
+        },
+        {
+          "current_price": "6,770",
+          "fluctuation": "12.83%",
+          "stock_code": "452450",
+          "stockname": "피아이이",
+          "volume": "628억"
+        }
+      ]
+    },
+    {
+      "thema": "지역화폐",
+      "average_rate": 9.19,
+      "all_avg_rate": 7.07,
+      "rising_ratio": "100.00%",
+      "stock_count": 4,
+      "companies": [
+        {
+          "current_price": "71,100",
+          "fluctuation": "17.13%",
+          "stock_code": "052400",
+          "stockname": "코나아이",
+          "volume": "323억"
+        },
+        {
+          "current_price": "9,500",
+          "fluctuation": "6.98%",
+          "stock_code": "053580",
+          "stockname": "웹케시",
+          "volume": "16억"
+        },
+        {
+          "current_price": "30,450",
+          "fluctuation": "3.57%",
+          "stock_code": "294570",
+          "stockname": "쿠콘",
+          "volume": "15억"
+        },
+        {
+          "current_price": "12,730",
+          "fluctuation": "2.74%",
+          "stock_code": "088340",
+          "stockname": "유라클",
+          "volume": "10억"
+        }
+      ]
+    },
+    {
+      "thema": "아이폰",
+      "average_rate": 8.83,
+      "all_avg_rate": 6.79,
+      "rising_ratio": "80.00%",
+      "stock_count": 5,
+      "companies": [
+        {
+          "current_price": "29,200",
+          "fluctuation": "21.92%",
+          "stock_code": "090460",
+          "stockname": "비에이치",
+          "volume": "1129억"
+        },
+        {
+          "current_price": "55,400",
+          "fluctuation": "9.06%",
+          "stock_code": "213420",
+          "stockname": "덕산네오룩스",
+          "volume": "196억"
+        },
+        {
+          "current_price": "38,000",
+          "fluctuation": "8.57%",
+          "stock_code": "033240",
+          "stockname": "자화전자",
+          "volume": "134억"
+        },
+        {
+          "current_price": "13,830",
+          "fluctuation": "1.69%",
+          "stock_code": "034220",
+          "stockname": "LG디스플레이",
+          "volume": "661억"
+        },
+        {
+          "current_price": "5,560",
+          "fluctuation": "-0.36%",
+          "stock_code": "475660",
+          "stockname": "에스켐",
+          "volume": "1억"
+        }
+      ]
     }
   ],
   "youtubeSignals": [
     {
       "signal_type": "내일",
-      "title": "내일 관심테마! 햇지,반도체,광통신,2차전지,원전,재건,개별주/ 삼성전자,SK하이닉스,삼천당제약,대한광통신,대우건설,신성이엔지,퍼스텍대한해운,흥아해운,삼성전기,GS건설,LIG넥스원",
-      "video_url": "https://www.youtube.com/watch?v=aFqPYqx_IU4",
+      "title": "내일 관심테마! 보안,양자,반도체,원전,재건,광통신/ 삼성전자,SK하이닉스,대한광통신,대우건설,두산에너빌리티,우리기술,OCI홀딩스,SKC,대한전선,엑스게이트,광전자,우리로,삼성전기",
+      "video_url": "https://www.youtube.com/watch?v=BACZiHuJ4c0",
       "upload_date": "",
       "sectors": [
-        "햇지",
+        "보안",
+        "양자",
         "반도체",
-        "광통신",
-        "2차전지",
         "원전",
         "재건",
-        "개별주"
+        "광통신"
       ],
       "stocks": [
         "삼성전자",
         "SK하이닉스",
-        "삼천당제약",
         "대한광통신",
         "대우건설",
-        "신성이엔지",
-        "흥아해운",
-        "삼성전기",
-        "GS건설",
-        "LIG넥스원",
-        "퍼스텍",
-        "대한해운"
-      ]
-    },
-    {
-      "signal_type": "당일",
-      "title": "당일 관심테마! 햇지,반도체,광통신,2차전지,원전,재건,개별주/ 삼성전자,SK하이닉스,삼천당제약,대한광통신,대우건설,신성이엔지,퍼스텍대한해운,흥아해운,삼성전기,GS건설,LIG넥스원",
-      "video_url": "https://www.youtube.com/watch?v=FXI5l3UYP3A",
-      "upload_date": "",
-      "sectors": [
-        "햇지",
-        "반도체",
-        "광통신",
-        "2차전지",
-        "원전",
-        "재건",
-        "개별주"
-      ],
-      "stocks": [
-        "삼성전자",
-        "SK하이닉스",
-        "삼천당제약",
-        "대한광통신",
-        "대우건설",
-        "신성이엔지",
-        "흥아해운",
-        "삼성전기",
-        "GS건설",
-        "LIG넥스원",
-        "퍼스텍",
-        "대한해운"
+        "두산에너빌리티",
+        "엑스게이트",
+        "광전자",
+        "삼성전기"
       ]
     }
   ],
@@ -533,7 +731,7 @@
     }
   ],
   "priceSignalPayload": {
-    "collectedAt": "2026-04-16T00:29:25.734076+09:00",
+    "collectedAt": "2026-04-16T01:33:45.602697+09:00",
     "markets": [
       "KOSPI",
       "KOSDAQ"
@@ -1682,371 +1880,85 @@
     ],
     "candidates": [
       {
-        "themeName": "보안",
-        "score": 249.61,
+        "themeName": "전선 및 전력 관련",
+        "score": 131.95,
         "matchedStocks": [
-          "아이씨티케이",
-          "엑스게이트",
-          "파수",
-          "케이씨에스",
-          "아톤"
+          "대한전선",
+          "가온전선",
+          "대원전선",
+          "대원전선우"
         ],
         "matchedArticles": [],
         "matchedTelegramMessages": [],
         "keywords": [
-          "보안",
-          "해킹",
-          "사이버",
-          "취약점",
-          "인증",
-          "양자암호"
-        ],
-        "reasoning": "급등주 5종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 5개가 포함됐습니다."
-      },
-      {
-        "themeName": "양자컴퓨터",
-        "score": 202.19,
-        "matchedStocks": [
-          "아이씨티케이",
-          "엑스게이트",
-          "케이씨에스",
-          "아톤"
-        ],
-        "matchedArticles": [
-          "젠슨 황까지 발 들이자, 양자컴 관련주 '재부팅'"
-        ],
-        "matchedTelegramMessages": [],
-        "keywords": [
-          "양자",
-          "양자컴퓨터",
-          "양자암호",
-          "양자통신",
-          "PQC",
-          "QKD"
-        ],
-        "reasoning": "급등주 4종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 4개가 포함됐습니다. 연관 기사 1건이 감지됐습니다."
-      },
-      {
-        "themeName": "반도체",
-        "score": 75.0,
-        "matchedStocks": [
-          "삼성전자",
-          "SK하이닉스",
-          "한미반도체",
-          "DB하이텍",
-          "주성엔지니어링",
-          "원익IPS"
-        ],
-        "matchedArticles": [
-          "삼전닉스 시총합산 2000조…\"다음은 3000조 겨냥\"[클릭 e종목]",
-          "“아직 싸다” 반도체株 랠리 시작…SK하이닉스 또 최고가 경신·삼성전자도 동반 강세 [종목Pick]",
-          "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
-          "SK하닉, 이틀 연속 신고가…삼전 '21만전자' 안착[핫스탁](종합)"
-        ],
-        "matchedTelegramMessages": [],
-        "keywords": [
-          "삼성전자",
-          "SK하이닉스",
-          "반도체",
-          "HBM",
-          "메모리",
-          "DDR"
-        ],
-        "reasoning": "연관 기사 30건이 감지됐습니다."
-      },
-      {
-        "themeName": "AI반도체",
-        "score": 72.5,
-        "matchedStocks": [
-          "SK하이닉스",
-          "삼성전자",
-          "한미반도체",
-          "이오테크닉스",
-          "리노공업"
-        ],
-        "matchedArticles": [
-          "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
-          "삼전닉스 시총합산 2000조…\"다음은 3000조 겨냥\"[클릭 e종목]",
-          "SK하닉, 이틀 연속 신고가…삼전 '21만전자' 안착[핫스탁](종합)",
-          "190만닉스 넘어 200만닉스까지…깜짝 전망의 이유"
-        ],
-        "matchedTelegramMessages": [],
-        "keywords": [
-          "SK하이닉스",
-          "삼성전자",
-          "AI",
-          "HBM",
-          "AI 서버",
-          "GPU"
-        ],
-        "reasoning": "연관 기사 29건이 감지됐습니다."
-      },
-      {
-        "themeName": "건설",
-        "score": 64.26,
-        "matchedStocks": [
-          "대우건설",
-          "GS건설",
-          "현대건설",
-          "DL이앤씨",
-          "삼성E&A",
-          "한텍"
-        ],
-        "matchedArticles": [
-          "올해만 646% 뛴 대우건설…이란 '재건 기대' 21% 또 급등[핫종목](종합)",
-          "올해 수익률 515%, 오늘도 20% 더 올랐다…믿기 힘든 대우건설 주가 [종목Pick]",
-          "K원전·LNG액화플랜트 시공능력 모두 갖췄다…대우건설, 장중 20%대 급등",
-          "美 EPC 기업들, 이란 재건 초기 주도 전망…韓기업 수주 가능성은? [fn마켓워치]"
-        ],
-        "matchedTelegramMessages": [],
-        "keywords": [
-          "대우건설",
-          "재건",
+          "전선",
+          "전력",
           "건설",
-          "이란",
-          "플랜트",
-          "재건축"
+          "대한전선",
+          "가온전선",
+          "대원전선"
         ],
-        "reasoning": "급등주 2종목이 묶였고 평균 상승률은 15.4%입니다. 연관 기사 7건이 감지됐습니다."
+        "reasoning": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶였습니다. 급등주 4종목이 묶였고 평균 상승률은 20.5%입니다."
       },
       {
-        "themeName": "원전",
-        "score": 44.28,
+        "themeName": "사이버 보안 및 보안 솔루션",
+        "score": 116.9,
         "matchedStocks": [
-          "대우건설",
-          "두산에너빌리티",
-          "한전KPS",
-          "한국전력",
-          "현대건설"
+          "드림시큐리티",
+          "라온시큐어"
         ],
-        "matchedArticles": [
-          "SK하이닉스, 1분기 영업익 38조 사상 최대·목표가 180만원↑…대우건설, K-원전 수혜에 목표가 4배↑ [株토피아]",
-          "K원전·LNG액화플랜트 시공능력 모두 갖췄다…대우건설, 장중 20%대 급등",
-          "유진證 “두산에너빌리티, 원전 수주 가시화로 성장 기대…목표가 15만원”",
-          "올해만 646% 뛴 대우건설…이란 '재건 기대' 21% 또 급등[핫종목](종합)"
-        ],
+        "matchedArticles": [],
         "matchedTelegramMessages": [],
         "keywords": [
-          "대우건설",
-          "원전",
-          "K-원전",
-          "두산에너빌리티",
-          "SMR",
-          "원자로"
+          "사이버 보안",
+          "보안 솔루션",
+          "정보 보호",
+          "드림시큐리티",
+          "라온시큐어"
         ],
-        "reasoning": "급등주 1종목이 묶였고 평균 상승률은 21.3%입니다. 연관 기사 6건이 감지됐습니다."
-      },
-      {
-        "themeName": "방산",
-        "score": 7.5,
-        "matchedStocks": [
-          "한화에어로스페이스",
-          "LIG넥스원",
-          "한화시스템",
-          "현대로템",
-          "퍼스텍",
-          "한국항공우주"
-        ],
-        "matchedArticles": [
-          "“전쟁 피크 지나도 오른다”…K건설·방산으로 이동하는 투자 흐름",
-          "외국인 큰손, 움직이나…'전쟁 수혜주' 4조5천억원 매수세 '전환'",
-          "외국인, 반도체 버리고 비중 늘린 종목은…코스피 '전쟁수혜주', 코스닥 '테마주'"
-        ],
-        "matchedTelegramMessages": [],
-        "keywords": [
-          "방산",
-          "전쟁",
-          "미사일",
-          "방위산업",
-          "국방",
-          "무기체계"
-        ],
-        "reasoning": "연관 기사 3건이 감지됐습니다."
+        "reasoning": "사이버 보안 관련 종목들이 동시에 급등하여 보안 솔루션 테마로 묶였습니다. 급등주 2종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 2개가 포함됐습니다."
       }
     ]
   },
   "priceSignalCandidates": [
     {
-      "themeName": "보안",
-      "score": 249.61,
+      "themeName": "전선 및 전력 관련",
+      "score": 131.95,
       "matchedStocks": [
-        "아이씨티케이",
-        "엑스게이트",
-        "파수",
-        "케이씨에스",
-        "아톤"
+        "대한전선",
+        "가온전선",
+        "대원전선",
+        "대원전선우"
       ],
       "matchedArticles": [],
       "matchedTelegramMessages": [],
       "keywords": [
-        "보안",
-        "해킹",
-        "사이버",
-        "취약점",
-        "인증",
-        "양자암호"
-      ],
-      "reasoning": "급등주 5종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 5개가 포함됐습니다."
-    },
-    {
-      "themeName": "양자컴퓨터",
-      "score": 202.19,
-      "matchedStocks": [
-        "아이씨티케이",
-        "엑스게이트",
-        "케이씨에스",
-        "아톤"
-      ],
-      "matchedArticles": [
-        "젠슨 황까지 발 들이자, 양자컴 관련주 '재부팅'"
-      ],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "양자",
-        "양자컴퓨터",
-        "양자암호",
-        "양자통신",
-        "PQC",
-        "QKD"
-      ],
-      "reasoning": "급등주 4종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 4개가 포함됐습니다. 연관 기사 1건이 감지됐습니다."
-    },
-    {
-      "themeName": "반도체",
-      "score": 75.0,
-      "matchedStocks": [
-        "삼성전자",
-        "SK하이닉스",
-        "한미반도체",
-        "DB하이텍",
-        "주성엔지니어링",
-        "원익IPS"
-      ],
-      "matchedArticles": [
-        "삼전닉스 시총합산 2000조…\"다음은 3000조 겨냥\"[클릭 e종목]",
-        "“아직 싸다” 반도체株 랠리 시작…SK하이닉스 또 최고가 경신·삼성전자도 동반 강세 [종목Pick]",
-        "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
-        "SK하닉, 이틀 연속 신고가…삼전 '21만전자' 안착[핫스탁](종합)"
-      ],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "삼성전자",
-        "SK하이닉스",
-        "반도체",
-        "HBM",
-        "메모리",
-        "DDR"
-      ],
-      "reasoning": "연관 기사 30건이 감지됐습니다."
-    },
-    {
-      "themeName": "AI반도체",
-      "score": 72.5,
-      "matchedStocks": [
-        "SK하이닉스",
-        "삼성전자",
-        "한미반도체",
-        "이오테크닉스",
-        "리노공업"
-      ],
-      "matchedArticles": [
-        "삼전닉스, 역대급 실적 전망.. 시가총액 2000兆 다시 돌파",
-        "삼전닉스 시총합산 2000조…\"다음은 3000조 겨냥\"[클릭 e종목]",
-        "SK하닉, 이틀 연속 신고가…삼전 '21만전자' 안착[핫스탁](종합)",
-        "190만닉스 넘어 200만닉스까지…깜짝 전망의 이유"
-      ],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "SK하이닉스",
-        "삼성전자",
-        "AI",
-        "HBM",
-        "AI 서버",
-        "GPU"
-      ],
-      "reasoning": "연관 기사 29건이 감지됐습니다."
-    },
-    {
-      "themeName": "건설",
-      "score": 64.26,
-      "matchedStocks": [
-        "대우건설",
-        "GS건설",
-        "현대건설",
-        "DL이앤씨",
-        "삼성E&A",
-        "한텍"
-      ],
-      "matchedArticles": [
-        "올해만 646% 뛴 대우건설…이란 '재건 기대' 21% 또 급등[핫종목](종합)",
-        "올해 수익률 515%, 오늘도 20% 더 올랐다…믿기 힘든 대우건설 주가 [종목Pick]",
-        "K원전·LNG액화플랜트 시공능력 모두 갖췄다…대우건설, 장중 20%대 급등",
-        "美 EPC 기업들, 이란 재건 초기 주도 전망…韓기업 수주 가능성은? [fn마켓워치]"
-      ],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "대우건설",
-        "재건",
+        "전선",
+        "전력",
         "건설",
-        "이란",
-        "플랜트",
-        "재건축"
+        "대한전선",
+        "가온전선",
+        "대원전선"
       ],
-      "reasoning": "급등주 2종목이 묶였고 평균 상승률은 15.4%입니다. 연관 기사 7건이 감지됐습니다."
+      "reasoning": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶였습니다. 급등주 4종목이 묶였고 평균 상승률은 20.5%입니다."
     },
     {
-      "themeName": "원전",
-      "score": 44.28,
+      "themeName": "사이버 보안 및 보안 솔루션",
+      "score": 116.9,
       "matchedStocks": [
-        "대우건설",
-        "두산에너빌리티",
-        "한전KPS",
-        "한국전력",
-        "현대건설"
+        "드림시큐리티",
+        "라온시큐어"
       ],
-      "matchedArticles": [
-        "SK하이닉스, 1분기 영업익 38조 사상 최대·목표가 180만원↑…대우건설, K-원전 수혜에 목표가 4배↑ [株토피아]",
-        "K원전·LNG액화플랜트 시공능력 모두 갖췄다…대우건설, 장중 20%대 급등",
-        "유진證 “두산에너빌리티, 원전 수주 가시화로 성장 기대…목표가 15만원”",
-        "올해만 646% 뛴 대우건설…이란 '재건 기대' 21% 또 급등[핫종목](종합)"
-      ],
+      "matchedArticles": [],
       "matchedTelegramMessages": [],
       "keywords": [
-        "대우건설",
-        "원전",
-        "K-원전",
-        "두산에너빌리티",
-        "SMR",
-        "원자로"
+        "사이버 보안",
+        "보안 솔루션",
+        "정보 보호",
+        "드림시큐리티",
+        "라온시큐어"
       ],
-      "reasoning": "급등주 1종목이 묶였고 평균 상승률은 21.3%입니다. 연관 기사 6건이 감지됐습니다."
-    },
-    {
-      "themeName": "방산",
-      "score": 7.5,
-      "matchedStocks": [
-        "한화에어로스페이스",
-        "LIG넥스원",
-        "한화시스템",
-        "현대로템",
-        "퍼스텍",
-        "한국항공우주"
-      ],
-      "matchedArticles": [
-        "“전쟁 피크 지나도 오른다”…K건설·방산으로 이동하는 투자 흐름",
-        "외국인 큰손, 움직이나…'전쟁 수혜주' 4조5천억원 매수세 '전환'",
-        "외국인, 반도체 버리고 비중 늘린 종목은…코스피 '전쟁수혜주', 코스닥 '테마주'"
-      ],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "방산",
-        "전쟁",
-        "미사일",
-        "방위산업",
-        "국방",
-        "무기체계"
-      ],
-      "reasoning": "연관 기사 3건이 감지됐습니다."
+      "reasoning": "사이버 보안 관련 종목들이 동시에 급등하여 보안 솔루션 테마로 묶였습니다. 급등주 2종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 2개가 포함됐습니다."
     }
   ]
 }
