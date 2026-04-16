@@ -687,6 +687,104 @@ def format_articles_for_prompt(
 
     return "\n".join(lines)
 
+def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict]) -> dict:
+    """
+    개미승리 상위 2개 테마가 GPT 결과에 반드시 포함되도록 후처리합니다.
+    - 이미 포함된 경우: 상위 2개 종목이 relatedStocks에 있는지만 보장
+    - 누락된 경우: 가장 약한 테마를 교체
+    """
+    if not antwinner_signals or len(antwinner_signals) < 2:
+        return result
+
+    themes = result.get("themes", [])
+    if not themes:
+        return result
+
+    top2_antwinner = antwinner_signals[:2]
+    gpt_theme_names = [t.get("themeName", "").strip() for t in themes]
+
+    for rank, ant_theme in enumerate(top2_antwinner, 1):
+        ant_name = ant_theme.get("thema", "")
+        ant_companies = ant_theme.get("companies", [])
+        # 상위 2개 종목 (반드시 포함)
+        must_stocks = [c.get("stockname", "") for c in ant_companies[:2] if c.get("stockname")]
+
+        # GPT 결과에서 유사한 테마 찾기
+        matched_idx = None
+        for i, gpt_name in enumerate(gpt_theme_names):
+            # 정확 매칭 또는 부분 매칭
+            if ant_name == gpt_name or ant_name in gpt_name or gpt_name in ant_name:
+                matched_idx = i
+                break
+
+        if matched_idx is not None:
+            # 이미 있는 테마 → 상위 2개 종목 보장만
+            existing_stocks = themes[matched_idx].get("relatedStocks", [])
+            _ensure_top_stocks(existing_stocks, must_stocks)
+            themes[matched_idx]["relatedStocks"] = existing_stocks[:6]
+            print(f"  [●] 개미승리 {rank}위 '{ant_name}' 이미 포함 → 상위 종목 {must_stocks} 보장")
+        else:
+            # 누락된 테마 → 마지막(가장 약한) 테마를 교체
+            new_theme = {
+                "themeName": ant_name,
+                "headline": f"{ant_name} 관련주 장중 강세, 평균 등락률 {ant_theme.get('average_rate', 0):+.1f}%",
+                "representativeArticleIndex": 1,
+                "relatedStocks": must_stocks.copy(),
+                "reasoning": f"개미승리 실시간 등락률 {rank}위 테마 (평균 {ant_theme.get('average_rate', 0):+.1f}%, 상승비율 {ant_theme.get('rising_ratio', '')})",
+            }
+            # 나머지 종목은 GPT가 선정한 다른 테마에서 교차 종목 찾기
+            _fill_remaining_stocks(new_theme, ant_companies, themes)
+
+            # 마지막 테마 교체
+            replaced_name = themes[-1].get("themeName", "")
+            themes[-1] = new_theme
+            gpt_theme_names[-1] = ant_name
+            print(f"  [●] 개미승리 {rank}위 '{ant_name}' 강제 삽입 ('{replaced_name}' 교체)")
+
+    result["themes"] = themes
+    return result
+
+
+def _ensure_top_stocks(existing_stocks: list[str], must_stocks: list[str]) -> None:
+    """must_stocks가 existing_stocks 앞쪽에 포함되도록 보장합니다."""
+    for stock in must_stocks:
+        if stock not in existing_stocks:
+            # 끝에서 하나 제거하고 앞에 삽입
+            if len(existing_stocks) >= 6:
+                existing_stocks.pop()
+            existing_stocks.insert(0, stock)
+        else:
+            # 이미 있지만 앞쪽으로 이동
+            idx = existing_stocks.index(stock)
+            if idx > 1:
+                existing_stocks.pop(idx)
+                existing_stocks.insert(0, stock)
+
+
+def _fill_remaining_stocks(
+    new_theme: dict,
+    ant_companies: list[dict],
+    existing_themes: list[dict],
+) -> None:
+    """신규 삽입 테마의 종목을 6개로 채웁니다. 개미승리 3~4위 + 기존 테마 교차 종목."""
+    current = new_theme.get("relatedStocks", [])
+
+    # 개미승리 3~4위 종목 추가
+    for c in ant_companies[2:4]:
+        stockname = c.get("stockname", "")
+        if stockname and stockname not in current:
+            current.append(stockname)
+
+    # 아직 부족하면 개미승리 나머지에서 추가
+    for c in ant_companies[4:]:
+        if len(current) >= 6:
+            break
+        stockname = c.get("stockname", "")
+        if stockname and stockname not in current:
+            current.append(stockname)
+
+    new_theme["relatedStocks"] = current[:6]
+
 
 def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
     """
@@ -762,6 +860,9 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         result["priceSignalPayload"] = price_signal_payload
         result["priceSignalCandidates"] = price_signal_payload.get("candidates", [])
         result = apply_price_signal_postprocess(result, sorted_articles)
+
+        # ── 개미승리 상위 2개 테마 강제 포함 후처리 ──
+        result = _apply_antwinner_top2_postprocess(result, antwinner_signals)
 
         # 검증: themes 키 존재 및 5개인지
         if "themes" not in result:
