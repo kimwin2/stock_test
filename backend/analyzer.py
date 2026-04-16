@@ -111,6 +111,50 @@ def _find_best_article_url(theme: dict, sorted_articles: list[dict]) -> str:
     return best_url
 
 
+def _search_news_url_for_theme(theme_name: str) -> str:
+    """
+    Google News RSS로 테마와 관련된 최신 뉴스 기사 URL을 검색합니다.
+    개미승리에서 가져온 테마는 기존 크롤링 기사에 없을 수 있으므로
+    별도로 관련 기사를 찾아 headlineUrl에 넣습니다.
+    """
+    try:
+        import urllib.parse
+        query = f"{theme_name} 테마주"
+        url = (
+            f"https://news.google.com/rss/search?"
+            f"q={urllib.parse.quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
+        )
+        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=5)
+        if resp.status_code != 200:
+            return ""
+
+        from bs4 import BeautifulSoup as BS
+        soup = BS(resp.text, "xml")
+        items = soup.select("item")
+
+        for item in items[:10]:
+            title_tag = item.find("title")
+            link_tag = item.find("link")
+            title = title_tag.text if title_tag else ""
+
+            # 블로그/브런치는 건너뛰고 뉴스 기사만 선택
+            skip_sources = ["블로그", "브런치", "프리미엄콘텐츠", "티스토리", "velog"]
+            if any(skip in title for skip in skip_sources):
+                continue
+
+            raw_link = ""
+            if link_tag:
+                raw_link = link_tag.text if link_tag.text else str(link_tag.next_sibling).strip()
+            if raw_link:
+                print(f"    [🔍] '{theme_name}' 관련 기사 검색: {title[:40]}")
+                return raw_link
+
+    except Exception as e:
+        print(f"    [!] '{theme_name}' 기사 검색 실패: {e}")
+
+    return ""
+
+
 def get_openai_client() -> OpenAI:
     """OpenAI 클라이언트를 생성합니다."""
     api_key = os.getenv("OPENAI_API_KEY")
@@ -771,10 +815,11 @@ def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict
                 break
 
         if matched_idx is not None:
-            # 이미 있는 테마 → 상위 2개 종목 보장만
+            # 이미 있는 테마 → 상위 2개 종목 보장 + 플래그
             existing_stocks = themes[matched_idx].get("relatedStocks", [])
             _ensure_top_stocks(existing_stocks, must_stocks)
             themes[matched_idx]["relatedStocks"] = existing_stocks[:6]
+            themes[matched_idx]["_from_antwinner"] = True
             print(f"  [●] 개미승리 {rank}위 '{ant_name}' 이미 포함 → 상위 종목 {must_stocks} 보장")
         else:
             # 누락된 테마 → 마지막(가장 약한) 테마를 교체
@@ -784,6 +829,7 @@ def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict
                 "representativeArticleIndex": 1,
                 "relatedStocks": must_stocks.copy(),
                 "reasoning": f"개미승리 실시간 등락률 {rank}위 테마 (평균 {ant_theme.get('average_rate', 0):+.1f}%, 상승비율 {ant_theme.get('rising_ratio', '')})",
+                "_from_antwinner": True,
             }
             # 나머지 종목은 GPT가 선정한 다른 테마에서 교차 종목 찾기
             _fill_remaining_stocks(new_theme, ant_companies, themes)
@@ -932,9 +978,17 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
             if "relatedStocks" not in theme or len(theme["relatedStocks"]) < 4:
                 print(f"  [!] 테마 '{theme.get('themeName')}'의 관련 종목이 부족합니다.")
 
-            # 대표 기사 URL 매핑 — 텍스트 유사도 기반
-            raw_url = _find_best_article_url(theme, sorted_articles)
-            theme["headlineUrl"] = _convert_to_article_url(raw_url)
+            # 대표 기사 URL 매핑
+            if theme.pop("_from_antwinner", False):
+                # 개미승리 테마 → Google News에서 관련 기사 검색
+                searched_url = _search_news_url_for_theme(theme["themeName"])
+                theme["headlineUrl"] = searched_url if searched_url else _convert_to_article_url(
+                    _find_best_article_url(theme, sorted_articles)
+                )
+            else:
+                # 일반 테마 → 크롤링 기사에서 텍스트 매칭
+                raw_url = _find_best_article_url(theme, sorted_articles)
+                theme["headlineUrl"] = _convert_to_article_url(raw_url)
 
         print(f"\n[INFO] 추출된 테마:")
         for i, theme in enumerate(themes, 1):
