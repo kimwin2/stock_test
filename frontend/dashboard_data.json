@@ -1,267 +1,221 @@
 {
-  "updatedAt": "2026-04-17T00:56:10.137436",
+  "updatedAt": "2026-04-17T21:07:54.261807",
   "antwinnerSignals": [
     {
-      "thema": "유리기판",
-      "average_rate": 11.37,
-      "all_avg_rate": 7.27,
-      "rising_ratio": "86.67%",
-      "stock_count": 15,
-      "companies": [
-        {
-          "current_price": "6,860",
-          "fluctuation": "29.92%",
-          "stock_code": "452190",
-          "stockname": "한빛레이저",
-          "volume": "1626억"
-        },
-        {
-          "current_price": "122,000",
-          "fluctuation": "22.24%",
-          "stock_code": "011790",
-          "stockname": "SKC",
-          "volume": "2769억"
-        },
-        {
-          "current_price": "45,950",
-          "fluctuation": "15.16%",
-          "stock_code": "161580",
-          "stockname": "필옵틱스",
-          "volume": "628억"
-        },
-        {
-          "current_price": "33,900",
-          "fluctuation": "9.35%",
-          "stock_code": "089010",
-          "stockname": "켐트로닉스",
-          "volume": "244억"
-        },
-        {
-          "current_price": "25,000",
-          "fluctuation": "8.70%",
-          "stock_code": "052710",
-          "stockname": "아모텍",
-          "volume": "209억"
-        },
-        {
-          "current_price": "5,800",
-          "fluctuation": "8.41%",
-          "stock_code": "419080",
-          "stockname": "엔젯",
-          "volume": "37억"
-        }
-      ]
-    },
-    {
-      "thema": "보안주",
-      "average_rate": 10.43,
-      "all_avg_rate": 5.44,
-      "rising_ratio": "73.91%",
-      "stock_count": 23,
-      "companies": [
-        {
-          "current_price": "1,943",
-          "fluctuation": "29.97%",
-          "stock_code": "258790",
-          "stockname": "소프트캠프",
-          "volume": "145억"
-        },
-        {
-          "current_price": "15,410",
-          "fluctuation": "29.93%",
-          "stock_code": "042510",
-          "stockname": "라온시큐어",
-          "volume": "989억"
-        },
-        {
-          "current_price": "913",
-          "fluctuation": "29.87%",
-          "stock_code": "184230",
-          "stockname": "SGA솔루션즈",
-          "volume": "191억"
-        },
-        {
-          "current_price": "15,880",
-          "fluctuation": "29.84%",
-          "stock_code": "192250",
-          "stockname": "케이사인",
-          "volume": "754억"
-        },
-        {
-          "current_price": "5,030",
-          "fluctuation": "7.25%",
-          "stock_code": "150900",
-          "stockname": "파수",
-          "volume": "487억"
-        },
-        {
-          "current_price": "2,170",
-          "fluctuation": "4.58%",
-          "stock_code": "291810",
-          "stockname": "핀텔",
-          "volume": "3억"
-        }
-      ]
-    },
-    {
-      "thema": "인공지능(AI)",
-      "average_rate": 10.42,
-      "all_avg_rate": 5.52,
-      "rising_ratio": "85.37%",
-      "stock_count": 41,
-      "companies": [
-        {
-          "current_price": "5,650",
-          "fluctuation": "29.89%",
-          "stock_code": "303530",
-          "stockname": "이노뎁",
-          "volume": "101억"
-        },
-        {
-          "current_price": "6,070",
-          "fluctuation": "23.88%",
-          "stock_code": "443670",
-          "stockname": "에스피소프트",
-          "volume": "370억"
-        },
-        {
-          "current_price": "5,610",
-          "fluctuation": "17.36%",
-          "stock_code": "038680",
-          "stockname": "에스넷",
-          "volume": "364억"
-        },
-        {
-          "current_price": "11,000",
-          "fluctuation": "15.55%",
-          "stock_code": "417860",
-          "stockname": "오브젠",
-          "volume": "70억"
-        },
-        {
-          "current_price": "15,230",
-          "fluctuation": "13.83%",
-          "stock_code": "108860",
-          "stockname": "셀바스AI",
-          "volume": "620억"
-        },
-        {
-          "current_price": "6,770",
-          "fluctuation": "12.83%",
-          "stock_code": "452450",
-          "stockname": "피아이이",
-          "volume": "628억"
-        }
-      ]
-    },
-    {
-      "thema": "지역화폐",
-      "average_rate": 9.19,
-      "all_avg_rate": 7.07,
-      "rising_ratio": "100.00%",
-      "stock_count": 4,
-      "companies": [
-        {
-          "current_price": "71,100",
-          "fluctuation": "17.13%",
-          "stock_code": "052400",
-          "stockname": "코나아이",
-          "volume": "323억"
-        },
-        {
-          "current_price": "9,500",
-          "fluctuation": "6.98%",
-          "stock_code": "053580",
-          "stockname": "웹케시",
-          "volume": "16억"
-        },
-        {
-          "current_price": "30,450",
-          "fluctuation": "3.57%",
-          "stock_code": "294570",
-          "stockname": "쿠콘",
-          "volume": "15억"
-        },
-        {
-          "current_price": "12,730",
-          "fluctuation": "2.74%",
-          "stock_code": "088340",
-          "stockname": "유라클",
-          "volume": "10억"
-        }
-      ]
-    },
-    {
-      "thema": "아이폰",
-      "average_rate": 8.83,
-      "all_avg_rate": 6.79,
+      "thema": "니파바이러스",
+      "average_rate": 17.0,
+      "all_avg_rate": 11.61,
       "rising_ratio": "80.00%",
-      "stock_count": 5,
+      "stock_count": 10,
       "companies": [
         {
-          "current_price": "29,200",
-          "fluctuation": "21.92%",
-          "stock_code": "090460",
-          "stockname": "비에이치",
-          "volume": "1129억"
+          "current_price": "3,815",
+          "fluctuation": "29.98%",
+          "stock_code": "299660",
+          "stockname": "셀리드",
+          "volume": "254억"
         },
         {
-          "current_price": "55,400",
-          "fluctuation": "9.06%",
-          "stock_code": "213420",
-          "stockname": "덕산네오룩스",
-          "volume": "196억"
+          "current_price": "1,017",
+          "fluctuation": "29.89%",
+          "stock_code": "011000",
+          "stockname": "진원생명과학",
+          "volume": "67억"
         },
         {
-          "current_price": "38,000",
-          "fluctuation": "8.57%",
-          "stock_code": "033240",
-          "stockname": "자화전자",
-          "volume": "134억"
+          "current_price": "14,090",
+          "fluctuation": "26.48%",
+          "stock_code": "019170",
+          "stockname": "신풍제약",
+          "volume": "781억"
         },
         {
-          "current_price": "13,830",
-          "fluctuation": "1.69%",
-          "stock_code": "034220",
-          "stockname": "LG디스플레이",
-          "volume": "661억"
+          "current_price": "1,803",
+          "fluctuation": "18.38%",
+          "stock_code": "084650",
+          "stockname": "랩지노믹스",
+          "volume": "825억"
         },
         {
-          "current_price": "5,560",
-          "fluctuation": "-0.36%",
-          "stock_code": "475660",
-          "stockname": "에스켐",
+          "current_price": "3,470",
+          "fluctuation": "10.51%",
+          "stock_code": "114450",
+          "stockname": "그린생명과학",
+          "volume": "357억"
+        },
+        {
+          "current_price": "3,320",
+          "fluctuation": "8.67%",
+          "stock_code": "215380",
+          "stockname": "우정바이오",
+          "volume": "75억"
+        }
+      ]
+    },
+    {
+      "thema": "진단키트",
+      "average_rate": 16.21,
+      "all_avg_rate": 10.07,
+      "rising_ratio": "76.47%",
+      "stock_count": 17,
+      "companies": [
+        {
+          "current_price": "6,760",
+          "fluctuation": "30.00%",
+          "stock_code": "253840",
+          "stockname": "수젠텍",
+          "volume": "800억"
+        },
+        {
+          "current_price": "3,815",
+          "fluctuation": "29.98%",
+          "stock_code": "299660",
+          "stockname": "셀리드",
+          "volume": "254억"
+        },
+        {
+          "current_price": "1,017",
+          "fluctuation": "29.89%",
+          "stock_code": "011000",
+          "stockname": "진원생명과학",
+          "volume": "67억"
+        },
+        {
+          "current_price": "10,910",
+          "fluctuation": "25.98%",
+          "stock_code": "036220",
+          "stockname": "오상헬스케어",
+          "volume": "126억"
+        },
+        {
+          "current_price": "1,803",
+          "fluctuation": "18.38%",
+          "stock_code": "084650",
+          "stockname": "랩지노믹스",
+          "volume": "825억"
+        },
+        {
+          "current_price": "3,785",
+          "fluctuation": "13.83%",
+          "stock_code": "950130",
+          "stockname": "엑세스바이오",
+          "volume": "117억"
+        }
+      ]
+    },
+    {
+      "thema": "코로나",
+      "average_rate": 9.81,
+      "all_avg_rate": 7.55,
+      "rising_ratio": "100.00%",
+      "stock_count": 3,
+      "companies": [
+        {
+          "current_price": "3,470",
+          "fluctuation": "10.51%",
+          "stock_code": "114450",
+          "stockname": "그린생명과학",
+          "volume": "357억"
+        },
+        {
+          "current_price": "3,320",
+          "fluctuation": "8.67%",
+          "stock_code": "215380",
+          "stockname": "우정바이오",
+          "volume": "75억"
+        },
+        {
+          "current_price": "8,340",
+          "fluctuation": "3.47%",
+          "stock_code": "101140",
+          "stockname": "인바이오젠",
           "volume": "1억"
         }
       ]
-    }
-  ],
-  "youtubeSignals": [
+    },
     {
-      "signal_type": "내일",
-      "title": "내일 관심테마! 보안,양자,반도체,원전,재건,광통신/ 삼성전자,SK하이닉스,대한광통신,대우건설,두산에너빌리티,우리기술,OCI홀딩스,SKC,대한전선,엑스게이트,광전자,우리로,삼성전기",
-      "video_url": "https://www.youtube.com/watch?v=BACZiHuJ4c0",
-      "upload_date": "",
-      "sectors": [
-        "보안",
-        "양자",
-        "반도체",
-        "원전",
-        "재건",
-        "광통신"
-      ],
-      "stocks": [
-        "삼성전자",
-        "SK하이닉스",
-        "대한광통신",
-        "대우건설",
-        "두산에너빌리티",
-        "엑스게이트",
-        "광전자",
-        "삼성전기"
+      "thema": "폐배터리",
+      "average_rate": 9.37,
+      "all_avg_rate": 7.21,
+      "rising_ratio": "100.00%",
+      "stock_count": 3,
+      "companies": [
+        {
+          "current_price": "79,500",
+          "fluctuation": "15.05%",
+          "stock_code": "365340",
+          "stockname": "성일하이텍",
+          "volume": "242억"
+        },
+        {
+          "current_price": "30,150",
+          "fluctuation": "3.97%",
+          "stock_code": "107600",
+          "stockname": "새빗켐",
+          "volume": "28억"
+        },
+        {
+          "current_price": "16,650",
+          "fluctuation": "2.65%",
+          "stock_code": "005420",
+          "stockname": "코스모화학",
+          "volume": "60억"
+        }
+      ]
+    },
+    {
+      "thema": "폐렴",
+      "average_rate": 8.82,
+      "all_avg_rate": 6.13,
+      "rising_ratio": "90.00%",
+      "stock_count": 10,
+      "companies": [
+        {
+          "current_price": "3,785",
+          "fluctuation": "13.83%",
+          "stock_code": "950130",
+          "stockname": "엑세스바이오",
+          "volume": "117억"
+        },
+        {
+          "current_price": "27,350",
+          "fluctuation": "9.84%",
+          "stock_code": "096530",
+          "stockname": "씨젠",
+          "volume": "696억"
+        },
+        {
+          "current_price": "3,235",
+          "fluctuation": "8.19%",
+          "stock_code": "058110",
+          "stockname": "멕아이씨에스",
+          "volume": "149억"
+        },
+        {
+          "current_price": "1,723",
+          "fluctuation": "8.16%",
+          "stock_code": "065950",
+          "stockname": "웰크론",
+          "volume": "13억"
+        },
+        {
+          "current_price": "2,400",
+          "fluctuation": "7.14%",
+          "stock_code": "109820",
+          "stockname": "진매트릭스",
+          "volume": "108억"
+        },
+        {
+          "current_price": "9,310",
+          "fluctuation": "6.77%",
+          "stock_code": "137310",
+          "stockname": "에스디바이오센서",
+          "volume": "89억"
+        }
       ]
     }
   ],
+  "youtubeSignals": [],
   "telegramSignals": [
     {
       "messageId": 115588,
@@ -667,17 +621,17 @@
   ],
   "themes": [
     {
-      "themeName": "양자컴퓨터",
-      "totalVolume": "301억",
-      "headline": "양자컴퓨팅과 양자보안주들이 무더기 상한가 기록",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/421/0008892950",
+      "themeName": "니파바이러스",
+      "totalVolume": "224억",
+      "headline": "니파바이러스 관련주 급등, 셀리드 30% 상승",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611227",
       "stocks": [
         {
-          "name": "케이씨에스",
-          "price": 17780,
+          "name": "셀리드",
+          "price": 3815,
           "time": "16:10",
-          "changeRate": 29.97,
-          "volume": "89억",
+          "changeRate": 29.98,
+          "volume": "38억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -692,11 +646,11 @@
           }
         },
         {
-          "name": "엑스게이트",
-          "price": 16870,
+          "name": "진원생명과학",
+          "price": 1017,
           "time": "16:10",
-          "changeRate": 29.97,
-          "volume": "84억",
+          "changeRate": 29.89,
+          "volume": "10억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -711,11 +665,11 @@
           }
         },
         {
-          "name": "라온시큐어",
-          "price": 15410,
+          "name": "신풍제약",
+          "price": 14090,
           "time": "16:10",
-          "changeRate": 29.93,
-          "volume": "77억",
+          "changeRate": 26.48,
+          "volume": "141억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -730,11 +684,11 @@
           }
         },
         {
-          "name": "파수",
-          "price": 5030,
+          "name": "그린생명과학",
+          "price": 3470,
           "time": "16:10",
-          "changeRate": 7.25,
-          "volume": "50억",
+          "changeRate": 10.51,
+          "volume": "35억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -751,17 +705,17 @@
       ]
     },
     {
-      "themeName": "보안주",
-      "totalVolume": "182억",
-      "headline": "AI 해킹 우려에 양자암호·보안주 상한가",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/008/0005344953",
+      "themeName": "진단키트",
+      "totalVolume": "154억",
+      "headline": "진단키트 관련주, 수젠텍 30% 상승",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611227",
       "stocks": [
         {
-          "name": "소프트캠프",
-          "price": 1943,
+          "name": "수젠텍",
+          "price": 6760,
           "time": "16:10",
-          "changeRate": 29.97,
-          "volume": "19억",
+          "changeRate": 30.0,
+          "volume": "68억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -776,11 +730,11 @@
           }
         },
         {
-          "name": "라온시큐어",
-          "price": 15410,
+          "name": "셀리드",
+          "price": 3815,
           "time": "16:10",
-          "changeRate": 29.93,
-          "volume": "77억",
+          "changeRate": 29.98,
+          "volume": "38억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -795,10 +749,75 @@
           }
         },
         {
-          "name": "드림시큐리티",
-          "price": 3545,
+          "name": "진원생명과학",
+          "price": 1017,
           "time": "16:10",
-          "changeRate": 29.85,
+          "changeRate": 29.89,
+          "volume": "10억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "엑세스바이오",
+          "price": 3785,
+          "time": "16:10",
+          "changeRate": 13.83,
+          "volume": "38억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "코로나",
+      "totalVolume": "190억",
+      "headline": "코로나 관련주, 그린생명과학 10% 상승",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/014/0005508892",
+      "stocks": [
+        {
+          "name": "셀리드",
+          "price": 3815,
+          "time": "16:10",
+          "changeRate": 29.98,
+          "volume": "38억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "그린생명과학",
+          "price": 3470,
+          "time": "16:10",
+          "changeRate": 10.51,
           "volume": "35억",
           "isTop": false,
           "barData": {
@@ -814,38 +833,141 @@
           }
         },
         {
+          "name": "우정바이오",
+          "price": 3320,
+          "time": "16:10",
+          "changeRate": 8.67,
+          "volume": "33억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "인바이오젠",
+          "price": 8340,
+          "time": "16:10",
+          "changeRate": 3.47,
+          "volume": "83억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "폐배터리",
+      "totalVolume": "1,303억",
+      "headline": "폐배터리 관련주, 성일하이텍 15% 상승",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/018/0006258733",
+      "stocks": [
+        {
+          "name": "성일하이텍",
+          "price": 79500,
+          "time": "16:10",
+          "changeRate": 15.05,
+          "volume": "795억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "엑세스바이오",
+          "price": 3785,
+          "time": "16:10",
+          "changeRate": 13.83,
+          "volume": "38억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "새빗켐",
+          "price": 30150,
+          "time": "16:10",
+          "changeRate": 3.97,
+          "volume": "303억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        },
+        {
+          "name": "코스모화학",
+          "price": 16650,
+          "time": "16:10",
+          "changeRate": 2.65,
+          "volume": "167억",
+          "isTop": false,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
+        }
+      ]
+    },
+    {
+      "themeName": "사이버 보안",
+      "totalVolume": "365억",
+      "headline": "사이버 보안 관련주, 드림시큐리티 30% 상한가",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611323",
+      "stocks": [
+        {
           "name": "파수",
-          "price": 5030,
+          "price": 5060,
           "time": "16:10",
-          "changeRate": 7.25,
-          "volume": "50억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        }
-      ]
-    },
-    {
-      "themeName": "AI반도체",
-      "totalVolume": "13,847억",
-      "headline": "AI 인프라 확산으로 반도체 업황 개선 기대",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/009/0005667163",
-      "stocks": [
-        {
-          "name": "이노뎁",
-          "price": 5650,
-          "time": "16:10",
-          "changeRate": 29.89,
-          "volume": "56억",
+          "changeRate": 0.6,
+          "volume": "51억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -860,11 +982,11 @@
           }
         },
         {
-          "name": "에스피소프트",
-          "price": 6070,
+          "name": "엑스게이트",
+          "price": 14990,
           "time": "16:10",
-          "changeRate": 23.88,
-          "volume": "61억",
+          "changeRate": -11.14,
+          "volume": "150억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -872,18 +994,18 @@
               100
             ],
             "currentRange": [
-              22,
-              89
+              14,
+              71
             ],
-            "baseline": 0
+            "baseline": 100
           }
         },
         {
-          "name": "삼성전자",
-          "price": 217500,
+          "name": "라온시큐어",
+          "price": 13440,
           "time": "16:10",
-          "changeRate": 3.08,
-          "volume": "2,180억",
+          "changeRate": -12.78,
+          "volume": "134억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -891,18 +1013,18 @@
               100
             ],
             "currentRange": [
-              22,
-              89
+              14,
+              71
             ],
-            "baseline": 0
+            "baseline": 100
           }
         },
         {
-          "name": "SK하이닉스",
-          "price": 1155000,
+          "name": "드림시큐리티",
+          "price": 2985,
           "time": "16:10",
-          "changeRate": 1.67,
-          "volume": "11,550억",
+          "changeRate": -15.8,
+          "volume": "30억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -910,26 +1032,26 @@
               100
             ],
             "currentRange": [
-              22,
-              89
+              14,
+              71
             ],
-            "baseline": 0
+            "baseline": 100
           }
         }
       ]
     },
     {
-      "themeName": "전선 및 전력 관련",
-      "totalVolume": "1,978억",
-      "headline": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶임",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611373",
+      "themeName": "양자컴퓨터",
+      "totalVolume": "720억",
+      "headline": "양자컴퓨터 관련주, 엑스게이트 상한가 행렬",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/421/0008892950",
       "stocks": [
         {
-          "name": "가온전선",
-          "price": 142500,
+          "name": "아이씨티케이",
+          "price": 25800,
           "time": "16:10",
-          "changeRate": 11.33,
-          "volume": "1,425억",
+          "changeRate": 20.84,
+          "volume": "258억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -944,11 +1066,11 @@
           }
         },
         {
-          "name": "대한전선",
-          "price": 42100,
+          "name": "케이씨에스",
+          "price": 17780,
           "time": "16:10",
-          "changeRate": 2.06,
-          "volume": "422억",
+          "changeRate": 0.0,
+          "volume": "178억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -956,18 +1078,18 @@
               100
             ],
             "currentRange": [
-              22,
-              89
+              40,
+              60
             ],
-            "baseline": 0
+            "baseline": 50
           }
         },
         {
-          "name": "대원전선",
-          "price": 6600,
+          "name": "엑스게이트",
+          "price": 14990,
           "time": "16:10",
-          "changeRate": 0.92,
-          "volume": "66억",
+          "changeRate": -11.14,
+          "volume": "150억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -975,18 +1097,18 @@
               100
             ],
             "currentRange": [
-              22,
-              89
+              14,
+              71
             ],
-            "baseline": 0
+            "baseline": 100
           }
         },
         {
-          "name": "대원전선",
-          "price": 6600,
+          "name": "라온시큐어",
+          "price": 13440,
           "time": "16:10",
-          "changeRate": 0.92,
-          "volume": "66억",
+          "changeRate": -12.78,
+          "volume": "134억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -994,26 +1116,26 @@
               100
             ],
             "currentRange": [
-              22,
-              89
+              14,
+              71
             ],
-            "baseline": 0
+            "baseline": 100
           }
         }
       ]
     },
     {
-      "themeName": "UAM 및 로봇",
-      "totalVolume": "26,424억",
-      "headline": "삼성SDI, 로봇·UAM 배터리 정조준",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/014/0005508670",
+      "themeName": "광통신",
+      "totalVolume": "583억",
+      "headline": "광통신 관련주, 주가 급등세 지속",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/243/0000096427",
       "stocks": [
         {
-          "name": "두산에너빌리티",
-          "price": 110800,
+          "name": "LIG아큐버",
+          "price": 47850,
           "time": "16:10",
-          "changeRate": 6.33,
-          "volume": "1,109억",
+          "changeRate": 5.05,
+          "volume": "479억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -1028,11 +1150,11 @@
           }
         },
         {
-          "name": "현대차",
-          "price": 534000,
+          "name": "인포뱅크",
+          "price": 5180,
           "time": "16:10",
-          "changeRate": 5.12,
-          "volume": "5,340억",
+          "changeRate": 0.39,
+          "volume": "52억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1047,11 +1169,11 @@
           }
         },
         {
-          "name": "삼성SDI",
-          "price": 478500,
-          "time": "16:10",
-          "changeRate": 1.59,
-          "volume": "4,785억",
+          "name": "코렌",
+          "price": 0,
+          "time": "",
+          "changeRate": 0.0,
+          "volume": "0억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1059,18 +1181,18 @@
               100
             ],
             "currentRange": [
-              22,
-              89
+              40,
+              60
             ],
-            "baseline": 0
+            "baseline": 50
           }
         },
         {
-          "name": "한화에어로스페이스",
-          "price": 1519000,
+          "name": "에스넷",
+          "price": 5230,
           "time": "16:10",
-          "changeRate": 0.66,
-          "volume": "15,190억",
+          "changeRate": -6.77,
+          "volume": "52억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1078,178 +1200,10 @@
               100
             ],
             "currentRange": [
-              22,
-              89
+              14,
+              71
             ],
-            "baseline": 0
-          }
-        }
-      ]
-    },
-    {
-      "themeName": "지역화폐",
-      "totalVolume": "1,124억",
-      "headline": "지역화폐 관련 종목들이 상승세",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/008/0005345424",
-      "stocks": [
-        {
-          "name": "코나아이",
-          "price": 71100,
-          "time": "16:10",
-          "changeRate": 17.13,
-          "volume": "711억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "웹케시",
-          "price": 9500,
-          "time": "16:10",
-          "changeRate": 6.98,
-          "volume": "95억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "쿠콘",
-          "price": 30450,
-          "time": "16:10",
-          "changeRate": 3.57,
-          "volume": "304억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "한빛소프트",
-          "price": 1359,
-          "time": "16:10",
-          "changeRate": 2.33,
-          "volume": "14억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        }
-      ]
-    },
-    {
-      "themeName": "유리기판",
-      "totalVolume": "4,578억",
-      "headline": "유리기판 관련주 장중 강세, 평균 등락률 +11.4%",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/138/0002224761",
-      "stocks": [
-        {
-          "name": "한빛레이저",
-          "price": 6860,
-          "time": "16:10",
-          "changeRate": 29.92,
-          "volume": "69억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "필옵틱스",
-          "price": 45950,
-          "time": "16:10",
-          "changeRate": 15.16,
-          "volume": "460억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "켐트로닉스",
-          "price": 33900,
-          "time": "16:10",
-          "changeRate": 9.35,
-          "volume": "340억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "SK",
-          "price": 371000,
-          "time": "16:10",
-          "changeRate": 0.41,
-          "volume": "3,710억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
+            "baseline": 100
           }
         }
       ]
