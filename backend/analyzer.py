@@ -831,13 +831,12 @@ def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict
                 break
 
         if matched_idx is not None:
-            # 이미 있는 테마 → 상위 종목 보장 + 플래그
-            existing_stocks = themes[matched_idx].get("relatedStocks", [])
-            _ensure_top_stocks(existing_stocks, must_stocks)
-            themes[matched_idx]["relatedStocks"] = existing_stocks[:6]
+            # 이미 있는 테마 → 종목을 개미승리 종목으로 완전 교체 (GPT의 잘못된 종목명 제거)
+            ant_stock_names = [c.get("stockname", "") for c in ant_companies if c.get("stockname")]
+            themes[matched_idx]["relatedStocks"] = ant_stock_names[:6]
             themes[matched_idx]["_from_antwinner"] = True
             themes[matched_idx]["_antwinner_stock_codes"] = ant_stock_codes
-            print(f"  [●] 개미승리 {rank}위 '{ant_name}' 이미 포함 → 상위 종목 {must_stocks} 보장")
+            print(f"  [●] 개미승리 {rank}위 '{ant_name}' 이미 포함 → 종목을 개미승리 데이터로 교체 {ant_stock_names[:4]}")
         else:
             # 누락된 테마 → 마지막(가장 약한) 테마를 교체
             new_theme = {

@@ -98,7 +98,7 @@ Resources:
       FunctionName: stock-pipeline
       CodeUri: backend/
       Handler: handler.lambda_handler
-      Description: Stock 뉴스 크롤링 + 테마 분석 + S3 업로드 파이프라인 (v2-antwinner-stockcode-fix)
+      Description: Stock pipeline (v3-antwinner-full-replace)
       Environment:
         Variables:
           OPENAI_API_KEY: !Ref OpenAIApiKey
