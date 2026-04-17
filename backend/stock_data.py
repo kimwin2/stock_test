@@ -525,6 +525,11 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
             if not detail:
                 continue
 
+            # 너무 가격이 낮은 동전주(1500원 미만) 제외
+            if detail.get("price", 0) < 1500:
+                print(f"  [!] {stock_name} 제외 (현 주가 1500원 미만: {detail.get('price')}원)")
+                continue
+
             # 3. barData 계산
             bar_data = calculate_bar_data(
                 open_price=detail.get("open", detail["price"]),
