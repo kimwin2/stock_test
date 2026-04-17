@@ -1,0 +1,34 @@
+name: Upload Dashboard Data to S3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/dashboard_data.json'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-northeast-2
+  S3_BUCKET_NAME: stock-dashboard-data
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload dashboard_data.json to S3
+        run: |
+          aws s3 cp frontend/dashboard_data.json \
+            s3://$S3_BUCKET_NAME/dashboard_data.json \
+            --content-type "application/json; charset=utf-8" \
+            --cache-control "max-age=60"
+          echo "✅ Uploaded to S3"
