@@ -16,11 +16,49 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # 1) SAM 배포 — backend 코드가 바뀔 때만 실행
+  detect_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect deploy-related changes
+        id: check
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != "push" ]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BEFORE_SHA="${{ github.event.before }}"
+          AFTER_SHA="${{ github.sha }}"
+
+          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            CHANGED_FILES="$(git diff-tree --no-commit-id --name-only -r "$AFTER_SHA")"
+          else
+            CHANGED_FILES="$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA")"
+          fi
+
+          printf 'Changed files:\n%s\n' "$CHANGED_FILES"
+
+          if printf '%s\n' "$CHANGED_FILES" | grep -Eq '^(backend/|template\.yaml$|samconfig\.toml$|\.github/workflows/deploy-lambda\.yml$)'; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+
+  # 1) SAM 배포 — backend 또는 인프라 정의가 바뀔 때 실행
   deploy:
+    needs: detect_changes
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && contains(toJSON(github.event.commits.*.modified), 'backend/'))
+      (github.event_name == 'push' && needs.detect_changes.outputs.should_deploy == 'true')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -58,8 +96,18 @@ jobs:
               "TelegramStringSession=${{ secrets.TG_STRING_SESSION || '' }}" \
               "TelegramChannelUsername=${{ secrets.TG_CHANNEL_USERNAME || '@faststocknews' }}"
 
-  # 2) 크롤링 — 매 push + 10분 스케줄 + 수동 실행 시 항상 실행 (deploy와 독립)
+  # 2) 크롤링 — 배포가 필요한 push/workflow_dispatch에서는 새 Lambda 배포 후 실행
   crawl:
+    needs:
+      - detect_changes
+      - deploy
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && needs.deploy.result == 'success') ||
+      (github.event_name == 'push' && (
+        needs.detect_changes.outputs.should_deploy != 'true' ||
+        needs.deploy.result == 'success'
+      ))
     runs-on: ubuntu-latest
     steps:
       - name: Configure AWS Credentials
