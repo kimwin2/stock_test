@@ -58,10 +58,8 @@ jobs:
               "TelegramStringSession=${{ secrets.TG_STRING_SESSION || '' }}" \
               "TelegramChannelUsername=${{ secrets.TG_CHANNEL_USERNAME || '@faststocknews' }}"
 
-  # 2) 크롤링 — 매 push + 10분 스케줄마다 항상 실행
+  # 2) 크롤링 — 매 push + 10분 스케줄 + 수동 실행 시 항상 실행 (deploy와 독립)
   crawl:
-    needs: [deploy]
-    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Configure AWS Credentials
