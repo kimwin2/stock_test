@@ -120,6 +120,49 @@ def _dedupe_articles(articles: list[dict]) -> list[dict]:
     return unique_articles
 
 
+def _filter_recent_articles(articles: list[dict], max_days: int = 2) -> list[dict]:
+    """
+    최근 max_days일 이내의 기사만 필터링합니다.
+    날짜를 파싱할 수 없는 기사는 보수적으로 포함합니다.
+    """
+    cutoff = datetime.now() - timedelta(days=max_days)
+    recent = []
+
+    for article in articles:
+        date_str = (article.get("date") or "").strip()
+        if not date_str:
+            recent.append(article)  # 날짜 없는 기사는 포함
+            continue
+
+        parsed_date = None
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d", "%Y.%m.%d %H:%M", "%Y.%m.%d"):
+            try:
+                parsed_date = datetime.strptime(date_str, fmt)
+                break
+            except ValueError:
+                continue
+
+        # 앞 10자리(YYYY-MM-DD)만 추출하여 재시도
+        if parsed_date is None:
+            try:
+                parsed_date = datetime.strptime(date_str[:10], "%Y-%m-%d")
+            except (ValueError, IndexError):
+                pass
+
+        if parsed_date is None:
+            recent.append(article)  # 파싱 실패 시 보수적으로 포함
+            continue
+
+        if parsed_date >= cutoff:
+            recent.append(article)
+
+    filtered_count = len(articles) - len(recent)
+    if filtered_count > 0:
+        print(f"  [필터] {filtered_count}개 기사가 {max_days}일 이전이라 제외되었습니다.")
+
+    return recent
+
+
 def crawl_single_page(page: int, date: str | None = None) -> list[dict]:
     """메인뉴스 단일 페이지에서 기사 목록을 크롤링합니다."""
     params = {"page": page}
@@ -304,7 +347,9 @@ def crawl_naver_finance_news_with_fallback(target_count: int = 200) -> list[dict
     if len(articles) < target_count:
         print(f"[WARN] 네이버 기사 수가 {len(articles)}개로 목표 {target_count}개를 채우지 못했습니다.")
 
-    return articles[:target_count]
+    # 최대 2일 이내 기사만 반환
+    articles = _filter_recent_articles(articles[:target_count], max_days=2)
+    return articles
 
 
 def save_articles(articles: list[dict], filepath: str = None) -> str:
@@ -347,6 +392,8 @@ def crawl_all_news(keyword="특징주", target_count=400):
     daum_articles = crawl_daum_finance_news(keyword=keyword, max_count=daum_target) if daum_target else []
 
     all_articles = naver_articles + daum_articles
+    # 최대 2일 이내 기사만 반환
+    all_articles = _filter_recent_articles(all_articles, max_days=2)
     save_articles(all_articles)
     return all_articles
 
