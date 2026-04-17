@@ -13,7 +13,9 @@ import os
 import sys
 import io
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
 
 # Windows cp949 콘솔 인코딩 문제 해결
 if sys.stdout.encoding != 'utf-8':
@@ -46,7 +48,7 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
     """
     print("=" * 60)
     print(">>> Stock Backend Pipeline Start")
-    print(f"   시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"   시각: {datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
     # ─────────────────────────────────────────────
@@ -78,7 +80,7 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
         analysis = load_analysis()
     else:
         print("\n[Step 2] ChatGPT API 테마 분석")
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        date_str = datetime.now(KST).strftime("%Y-%m-%d")
         analysis = analyze_themes(articles, date_str)
         save_analysis(analysis)
 
@@ -98,7 +100,7 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
     # ─────────────────────────────────────────────
     print("\n[Step 4] 최종 JSON 조립")
     dashboard_data = {
-        "updatedAt": datetime.now().isoformat(),
+        "updatedAt": datetime.now(KST).isoformat(),
         "antwinnerSignals": analysis.get("antwinnerSignals", []),
         "youtubeSignals": analysis.get("youtubeSignals", []),
         "telegramSignals": analysis.get("telegramSignals", []),
