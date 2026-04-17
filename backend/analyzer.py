@@ -1337,6 +1337,23 @@ def _fill_remaining_stocks(
     new_theme["relatedStocks"] = current[:6]
 
 
+def _deduplicate_stocks_across_themes(themes: list[dict], max_occurrences: int = 2) -> None:
+    """전체 테마를 통틀어 동일 종목이 최대 max_occurrences 번만 나오도록 중복을 제거합니다. (우선순위: 앞쪽 테마)"""
+    stock_counts = {}
+    for theme in themes:
+        filtered_stocks = []
+        for stock in theme.get("relatedStocks", []):
+            if not stock:
+                continue
+            count = stock_counts.get(stock, 0)
+            if count < max_occurrences:
+                filtered_stocks.append(stock)
+                stock_counts[stock] = count + 1
+            else:
+                print(f"  [중복제한] 종목 '{stock}'이 이미 {max_occurrences}번 출현하여 '{theme.get('themeName', '')}' 테마에서 제외됩니다.")
+        theme["relatedStocks"] = filtered_stocks
+
+
 def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
     """
     ChatGPT API를 사용하여 기사들에서 테마를 추출합니다.
@@ -1416,6 +1433,9 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         themes = result["themes"]
         if len(themes) < 7:
             print(f"  [!] 테마가 {len(themes)}개만 추출되었습니다 (목표: 7개)")
+
+        # 전체 섹터 통틀어서 같은 종목 최대 2번까지만 노출
+        _deduplicate_stocks_across_themes(themes, max_occurrences=2)
 
          # 각 테마 검증 및 대표 기사 URL 매핑
         used_article_indices: set[int] = set()
