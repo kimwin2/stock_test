@@ -29,10 +29,14 @@ if sys.stdout.encoding != 'utf-8':
 try:
     from crawler import crawl_naver_finance_news_with_fallback
     from analyzer import analyze_themes
+    from price_signals.collector import collect_price_theme_signals
+    from price_signals.store import save_price_signal_payload
     from stock_data import get_stock_details_for_themes
 except ModuleNotFoundError:
     from .crawler import crawl_naver_finance_news_with_fallback
     from .analyzer import analyze_themes
+    from .price_signals.collector import collect_price_theme_signals
+    from .price_signals.store import save_price_signal_payload
     from .stock_data import get_stock_details_for_themes
 
 
@@ -92,8 +96,20 @@ def lambda_handler(event, context):
 
         print(f"  [OK] 수집된 기사: {len(articles)}개")
 
-        # ── Step 2: ChatGPT 테마 분석 ──
-        print("\n[Step 2] ChatGPT API 테마 분석")
+        # ── Step 2: 가격 기반 테마 시그널 수집 ──
+        print("\n[Step 2] 가격 기반 테마 시그널 수집")
+        try:
+            price_signal_payload = collect_price_theme_signals(articles=articles)
+            price_signal_target = save_price_signal_payload(price_signal_payload)
+            print(
+                "  [OK] 가격 기반 테마 시그널 저장: "
+                f"{price_signal_target} (후보 {len(price_signal_payload.get('candidates', []))}개)"
+            )
+        except Exception as e:
+            print(f"  [!] 가격 기반 테마 시그널 수집 실패: {e}")
+
+        # ── Step 3: ChatGPT 테마 분석 ──
+        print("\n[Step 3] ChatGPT API 테마 분석")
         date_str = datetime.now(KST).strftime("%Y-%m-%d")
         analysis = analyze_themes(articles, date_str)
         themes = analysis.get("themes", [])
@@ -104,12 +120,12 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "테마를 추출하지 못했습니다."})
             }
 
-        # ── Step 3: 종목 데이터 조회 ──
-        print("\n[Step 3] 테마별 종목 데이터 조회")
+        # ── Step 4: 종목 데이터 조회 ──
+        print("\n[Step 4] 테마별 종목 데이터 조회")
         completed_themes = get_stock_details_for_themes(themes)
 
-        # ── Step 4: JSON 조립 및 S3 업로드 ──
-        print("\n[Step 4] JSON 조립 및 S3 업로드")
+        # ── Step 5: JSON 조립 및 S3 업로드 ──
+        print("\n[Step 5] JSON 조립 및 S3 업로드")
         dashboard_data = {
             "updatedAt": datetime.now(KST).isoformat(),
             "antwinnerSignals": analysis.get("antwinnerSignals", []),
