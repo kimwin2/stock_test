@@ -565,6 +565,12 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
             "totalVolume": format_volume(total_volume),
             "headline": headline,
             "headlineUrl": theme.get("headlineUrl", ""),
+            "headlineLink": theme.get("headlineLink", {}),
+            "headlineLinks": theme.get("headlineLinks", []),
+            "headlineLinkSource": theme.get("headlineLinkSource", ""),
+            "headlineLinkConfidence": theme.get("headlineLinkConfidence", ""),
+            "representativeArticleIndex": int(theme.get("representativeArticleIndex", 0) or 0),
+            "reasoning": theme.get("reasoning", ""),
             "stocks": stock_details[:4],
         })
 
