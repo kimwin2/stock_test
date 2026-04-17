@@ -838,7 +838,7 @@ def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict
             themes[matched_idx]["_antwinner_stock_codes"] = ant_stock_codes
             print(f"  [●] 개미승리 {rank}위 '{ant_name}' 이미 포함 → 종목을 개미승리 데이터로 교체 {ant_stock_names[:4]}")
         else:
-            # 누락된 테마 → 마지막(가장 약한) 테마를 교체
+            # 누락된 테마 → 마지막(가장 약한) 비-개미승리 테마를 교체
             new_theme = {
                 "themeName": ant_name,
                 "headline": f"{ant_name} 관련주 장중 강세, 평균 등락률 {ant_theme.get('average_rate', 0):+.1f}%",
@@ -850,10 +850,17 @@ def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict
             }
             _fill_remaining_stocks(new_theme, ant_companies, themes)
 
-            replaced_name = themes[-1].get("themeName", "")
-            themes[-1] = new_theme
-            gpt_theme_names[-1] = ant_name
-            print(f"  [●] 개미승리 {rank}위 '{ant_name}' 강제 삽입 ('{replaced_name}' 교체)")
+            # 이미 삽입된 개미승리 테마를 건너뛰고 가장 뒤의 일반 테마를 교체
+            replace_idx = len(themes) - 1
+            while replace_idx >= 0 and themes[replace_idx].get("_from_antwinner"):
+                replace_idx -= 1
+            if replace_idx >= 0:
+                replaced_name = themes[replace_idx].get("themeName", "")
+                themes[replace_idx] = new_theme
+                gpt_theme_names[replace_idx] = ant_name
+                print(f"  [●] 개미승리 {rank}위 '{ant_name}' 강제 삽입 ('{replaced_name}' 교체)")
+            else:
+                print(f"  [!] 개미승리 {rank}위 '{ant_name}' 삽입할 슬롯 없음")
 
     # 모든 테마에 개미승리 종목 코드 매핑 전달
     for theme in themes:

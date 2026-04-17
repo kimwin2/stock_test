@@ -98,7 +98,7 @@ Resources:
       FunctionName: stock-pipeline
       CodeUri: backend/
       Handler: handler.lambda_handler
-      Description: Stock pipeline (v3-antwinner-full-replace)
+      Description: Stock pipeline (v4-slot-collision-fix)
       Environment:
         Variables:
           OPENAI_API_KEY: !Ref OpenAIApiKey
