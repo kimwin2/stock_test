@@ -25,10 +25,14 @@ if sys.stdout.encoding != 'utf-8':
 try:
     from crawler import crawl_naver_finance_news_with_fallback, save_articles, load_articles
     from analyzer import analyze_themes, save_analysis, load_analysis
+    from price_signals.collector import collect_price_theme_signals
+    from price_signals.store import save_price_signal_payload
     from stock_data import get_stock_details_for_themes
 except ModuleNotFoundError:
     from .crawler import crawl_naver_finance_news_with_fallback, save_articles, load_articles
     from .analyzer import analyze_themes, save_analysis, load_analysis
+    from .price_signals.collector import collect_price_theme_signals
+    from .price_signals.store import save_price_signal_payload
     from .stock_data import get_stock_details_for_themes
 
 
@@ -73,13 +77,30 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
         return
 
     # ─────────────────────────────────────────────
-    # Step 2: ChatGPT API 테마 분석
+    # Step 2: 가격 기반 테마 시그널 수집
     # ─────────────────────────────────────────────
     if skip_analysis:
-        print("\n[Step 2] 분석 건너뛰 (저장된 분석 결과 사용)")
+        print("\n[Step 2] 가격 기반 테마 시그널 수집 건너뛰기 (--skip-analysis)")
+    else:
+        print("\n[Step 2] 가격 기반 테마 시그널 수집")
+        try:
+            price_signal_payload = collect_price_theme_signals(articles=articles)
+            price_signal_target = save_price_signal_payload(price_signal_payload)
+            print(
+                "   [OK] 가격 기반 테마 시그널 저장: "
+                f"{price_signal_target} (후보 {len(price_signal_payload.get('candidates', []))}개)"
+            )
+        except Exception as e:
+            print(f"   [!] 가격 기반 테마 시그널 수집 실패: {e}")
+
+    # ─────────────────────────────────────────────
+    # Step 3: ChatGPT API 테마 분석
+    # ─────────────────────────────────────────────
+    if skip_analysis:
+        print("\n[Step 3] 분석 건너뛰 (저장된 분석 결과 사용)")
         analysis = load_analysis()
     else:
-        print("\n[Step 2] ChatGPT API 테마 분석")
+        print("\n[Step 3] ChatGPT API 테마 분석")
         date_str = datetime.now(KST).strftime("%Y-%m-%d")
         analysis = analyze_themes(articles, date_str)
         save_analysis(analysis)
@@ -90,15 +111,15 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
         sys.exit(1)
 
     # ─────────────────────────────────────────────
-    # Step 3: 종목 데이터 조회
+    # Step 4: 종목 데이터 조회
     # ─────────────────────────────────────────────
-    print("\n[Step 3] 테마별 종목 데이터 조회")
+    print("\n[Step 4] 테마별 종목 데이터 조회")
     completed_themes = get_stock_details_for_themes(themes)
 
     # ─────────────────────────────────────────────
-    # Step 4: 최종 JSON 조립 및 저장
+    # Step 5: 최종 JSON 조립 및 저장
     # ─────────────────────────────────────────────
-    print("\n[Step 4] 최종 JSON 조립")
+    print("\n[Step 5] 최종 JSON 조립")
     dashboard_data = {
         "updatedAt": datetime.now(KST).isoformat(),
         "antwinnerSignals": analysis.get("antwinnerSignals", []),

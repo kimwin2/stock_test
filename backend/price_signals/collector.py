@@ -153,11 +153,15 @@ def collect_price_theme_signals(
     market_limit: int = 30,
     news_target: int = 240,
     telegram_hours: int = 3,
+    articles: list[dict] | None = None,
+    telegram_signals: list[dict] | None = None,
 ) -> dict:
     movers = fetch_top_movers(limit_per_market=market_limit)
     movers = enrich_movers_with_stock_detail(movers)
-    articles = crawl_naver_finance_news_with_fallback(news_target)
-    telegram_signals = _recent_telegram_signals(hours=telegram_hours)
+    if articles is None:
+        articles = crawl_naver_finance_news_with_fallback(news_target)
+    if telegram_signals is None:
+        telegram_signals = _recent_telegram_signals(hours=telegram_hours)
     candidates = discover_theme_candidates(movers, articles, telegram_signals)
 
     payload = PriceSignalPayload(

@@ -327,21 +327,29 @@ def _get_antwinner_signals() -> list[dict]:
     """개미승리 실시간 상위 5개 테마 시그널을 수집합니다."""
     try:
         themes = fetch_antwinner_top_themes(top_n=5)
-        if themes:
-            payload = build_antwinner_payload(themes)
-            save_antwinner_payload(payload)
-        return themes
     except Exception as e:
         print(f"  [!] 개미승리 시그널 수집 실패: {e}")
-        # 실패 시 로컬 캐시 시도
+
+        themes = []
+
+    if themes:
+        payload = build_antwinner_payload(themes)
         try:
-            cached = load_antwinner_payload()
-            if cached:
-                print(f"  [!] 로컬 캐시에서 개미승리 데이터 로드")
-                return cached.get("themes", [])
-        except Exception:
-            pass
-        return []
+            save_antwinner_payload(payload)
+        except Exception as e:
+            print(f"  [!] 개미승리 시그널 저장 실패: {e}")
+        return themes
+
+    # 실패 시 캐시 시도
+    try:
+        cached = load_antwinner_payload()
+        if cached:
+            print("  [!] 캐시에서 개미승리 데이터 로드")
+            return cached.get("themes", [])
+    except Exception as e:
+        print(f"  [!] 개미승리 캐시 로드 실패: {e}")
+
+    return []
 
 
 def _get_antwinner_keywords(antwinner_signals: list[dict]) -> set[str]:
