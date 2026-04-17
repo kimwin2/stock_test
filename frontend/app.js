@@ -139,6 +139,10 @@ function createStockItem(stock) {
 function createThemeCard(theme) {
   const card = document.createElement('div');
   card.className = 'theme-card';
+  const primaryHeadlineLink = theme.headlineUrl
+    || theme.headlineLink?.url
+    || (Array.isArray(theme.headlineLinks) ? theme.headlineLinks[0]?.url : '')
+    || '';
 
   // Header
   const header = document.createElement('div');
@@ -152,9 +156,9 @@ function createThemeCard(theme) {
   // Headline
   const headlineDiv = document.createElement('div');
   headlineDiv.className = 'card-headline';
-  if (theme.headlineUrl) {
+  if (primaryHeadlineLink) {
     const a = document.createElement('a');
-    a.href = theme.headlineUrl;
+    a.href = primaryHeadlineLink;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.textContent = theme.headline || '';
