@@ -785,11 +785,24 @@ def format_articles_for_prompt(
 
     return "\n".join(lines)
 
+def _build_antwinner_stock_codes(antwinner_signals: list[dict]) -> dict[str, str]:
+    """개미승리 데이터에서 종목명→종목코드 매핑을 추출합니다."""
+    codes = {}
+    for theme in antwinner_signals:
+        for c in theme.get("companies", []):
+            name = c.get("stockname", "")
+            code = c.get("stock_code", "")
+            if name and code:
+                codes[name] = code
+    return codes
+
+
 def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict]) -> dict:
     """
     개미승리 상위 2개 테마가 GPT 결과에 반드시 포함되도록 후처리합니다.
-    - 이미 포함된 경우: 상위 2개 종목이 relatedStocks에 있는지만 보장
+    - 이미 포함된 경우: 상위 종목을 relatedStocks 앞쪽에 보장
     - 누락된 경우: 가장 약한 테마를 교체
+    - 개미승리 종목 코드를 _antwinner_stock_codes에 직접 주입 (이름 검색 우회)
     """
     if not antwinner_signals or len(antwinner_signals) < 2:
         return result
@@ -797,6 +810,9 @@ def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict
     themes = result.get("themes", [])
     if not themes:
         return result
+
+    # 개미승리 전체 종목 코드 매핑 추출
+    ant_stock_codes = _build_antwinner_stock_codes(antwinner_signals)
 
     top2_antwinner = antwinner_signals[:2]
     gpt_theme_names = [t.get("themeName", "").strip() for t in themes]
@@ -810,17 +826,17 @@ def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict
         # GPT 결과에서 유사한 테마 찾기
         matched_idx = None
         for i, gpt_name in enumerate(gpt_theme_names):
-            # 정확 매칭 또는 부분 매칭
             if ant_name == gpt_name or ant_name in gpt_name or gpt_name in ant_name:
                 matched_idx = i
                 break
 
         if matched_idx is not None:
-            # 이미 있는 테마 → 상위 2개 종목 보장 + 플래그
+            # 이미 있는 테마 → 상위 종목 보장 + 플래그
             existing_stocks = themes[matched_idx].get("relatedStocks", [])
             _ensure_top_stocks(existing_stocks, must_stocks)
             themes[matched_idx]["relatedStocks"] = existing_stocks[:6]
             themes[matched_idx]["_from_antwinner"] = True
+            themes[matched_idx]["_antwinner_stock_codes"] = ant_stock_codes
             print(f"  [●] 개미승리 {rank}위 '{ant_name}' 이미 포함 → 상위 종목 {must_stocks} 보장")
         else:
             # 누락된 테마 → 마지막(가장 약한) 테마를 교체
@@ -831,15 +847,19 @@ def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict
                 "relatedStocks": must_stocks.copy(),
                 "reasoning": f"개미승리 실시간 등락률 {rank}위 테마 (평균 {ant_theme.get('average_rate', 0):+.1f}%, 상승비율 {ant_theme.get('rising_ratio', '')})",
                 "_from_antwinner": True,
+                "_antwinner_stock_codes": ant_stock_codes,
             }
-            # 나머지 종목은 GPT가 선정한 다른 테마에서 교차 종목 찾기
             _fill_remaining_stocks(new_theme, ant_companies, themes)
 
-            # 마지막 테마 교체
             replaced_name = themes[-1].get("themeName", "")
             themes[-1] = new_theme
             gpt_theme_names[-1] = ant_name
             print(f"  [●] 개미승리 {rank}위 '{ant_name}' 강제 삽입 ('{replaced_name}' 교체)")
+
+    # 모든 테마에 개미승리 종목 코드 매핑 전달
+    for theme in themes:
+        if "_antwinner_stock_codes" not in theme:
+            theme["_antwinner_stock_codes"] = ant_stock_codes
 
     result["themes"] = themes
     return result
@@ -849,12 +869,10 @@ def _ensure_top_stocks(existing_stocks: list[str], must_stocks: list[str]) -> No
     """must_stocks가 existing_stocks 앞쪽에 포함되도록 보장합니다."""
     for stock in must_stocks:
         if stock not in existing_stocks:
-            # 끝에서 하나 제거하고 앞에 삽입
             if len(existing_stocks) >= 6:
                 existing_stocks.pop()
             existing_stocks.insert(0, stock)
         else:
-            # 이미 있지만 앞쪽으로 이동
             idx = existing_stocks.index(stock)
             if idx > 1:
                 existing_stocks.pop(idx)
@@ -869,13 +887,11 @@ def _fill_remaining_stocks(
     """신규 삽입 테마의 종목을 6개로 채웁니다. 개미승리 3~4위 + 기존 테마 교차 종목."""
     current = new_theme.get("relatedStocks", [])
 
-    # 개미승리 3~4위 종목 추가
     for c in ant_companies[2:4]:
         stockname = c.get("stockname", "")
         if stockname and stockname not in current:
             current.append(stockname)
 
-    # 아직 부족하면 개미승리 나머지에서 추가
     for c in ant_companies[4:]:
         if len(current) >= 6:
             break

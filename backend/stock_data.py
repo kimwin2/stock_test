@@ -505,14 +505,17 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
 
         print(f"\n[INFO] 테마 '{theme_name}' 종목 데이터 조회 중...")
 
+        # 개미승리가 직접 제공한 종목 코드 매핑 (이름 검색보다 우선)
+        direct_codes = theme.pop("_antwinner_stock_codes", {})
+
         stock_details = []
         total_volume = 0
 
         for stock_name in related_stocks:
             print(f"  [>] {stock_name} 검색 중...")
 
-            # 1. 종목코드 검색
-            code = search_stock_code(stock_name)
+            # 1. 종목코드 검색 (개미승리 코드 우선 → 매핑 → 온라인 검색)
+            code = direct_codes.get(stock_name) or search_stock_code(stock_name)
             if not code:
                 print(f"  [!] {stock_name} 종목코드를 찾을 수 없습니다.")
                 continue
