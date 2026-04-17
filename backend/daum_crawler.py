@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timedelta
 
 import requests
 
@@ -15,6 +16,7 @@ def crawl_daum_finance_news(keyword="특징주", per_page=100, max_count=200):
 
     articles = []
     page = 1
+    cutoff_date = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
 
     while len(articles) < max_count:
         params = {
@@ -36,11 +38,17 @@ def crawl_daum_finance_news(keyword="특징주", per_page=100, max_count=200):
             break
 
         for item in items:
+            created_at = item.get("createdAt", "")
+            
+            # 오래된 기사는 즉초 중단 (내림차순 정렬 가정)
+            if created_at and created_at[:10] < cutoff_date:
+                return articles[:max_count]
+
             articles.append({
                 "title": item.get("title", ""),
                 "summary": item.get("content", ""),
                 "url": f"https://finance.daum.net/news/{item.get('newsId')}",
-                "date": item.get("createdAt", ""),
+                "date": created_at,
                 "source": "Daum",
                 "cpName": item.get("cpName", ""),
             })
