@@ -104,6 +104,9 @@ Resources:
           OPENAI_API_KEY: !Ref OpenAIApiKey
           S3_BUCKET_NAME: !Ref S3BucketName
           S3_KEY: dashboard_data.json
+          THEME_ANALYSIS_MODEL: gpt-5-mini
+          THEME_ANALYSIS_REASONING_EFFORT: minimal
+          THEME_ANALYSIS_MAX_COMPLETION_TOKENS: '12000'
           ANTWINNER_SIGNAL_S3_KEY: signals/antwinner_themes_latest.json
           PRICE_SIGNAL_S3_KEY: signals/price_theme_signals_latest.json
           TELEGRAM_SIGNAL_S3_KEY: signals/telegram_faststocknews_latest.json

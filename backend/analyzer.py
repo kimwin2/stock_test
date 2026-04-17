@@ -9,6 +9,7 @@ import sys
 import io
 import json
 import os
+import re
 import requests
 from urllib.parse import urlparse, parse_qs
 from openai import OpenAI
@@ -36,6 +37,12 @@ if sys.stdout.encoding != 'utf-8':
 
 load_dotenv()
 
+DEFAULT_THEME_ANALYSIS_MODEL = "gpt-5-mini"
+DEFAULT_THEME_ANALYSIS_REASONING_EFFORT = "minimal"
+DEFAULT_THEME_ANALYSIS_MAX_COMPLETION_TOKENS = 12000
+DEFAULT_THEME_ANALYSIS_MAX_TOKENS = 3000
+DEFAULT_THEME_ANALYSIS_TEMPERATURE = 0.3
+
 
 def _convert_to_article_url(url: str) -> str:
     """
@@ -57,59 +64,6 @@ def _convert_to_article_url(url: str) -> str:
     except Exception:
         pass
     return url
-
-
-def _find_best_article_url(theme: dict, sorted_articles: list[dict]) -> str:
-    """
-    테마와 가장 관련 높은 기사의 URL을 텍스트 매칭으로 찾습니다.
-    GPT의 representativeArticleIndex는 부정확할 수 있으므로
-    테마명·헤드라인·종목명을 기사 제목·요약과 비교하여 최적 매칭합니다.
-    """
-    if not sorted_articles:
-        return ""
-
-    theme_name = theme.get("themeName", "")
-    headline = theme.get("headline", "")
-    stocks = theme.get("relatedStocks", [])
-
-    # 검색 키워드 생성: 테마명 + 헤드라인 단어 + 종목명
-    keywords = set()
-    if theme_name:
-        keywords.add(theme_name)
-        # 복합 테마명 분리 (예: "AI 반도체" → "AI", "반도체")
-        for word in theme_name.split():
-            if len(word) >= 2:
-                keywords.add(word)
-    for word in headline.replace(",", " ").replace("·", " ").split():
-        if len(word) >= 2:
-            keywords.add(word)
-    for stock in stocks[:4]:
-        if stock:
-            keywords.add(stock)
-
-    # 불용어 제거
-    stopwords = {"관련", "종목", "관련주", "테마", "기록", "상승", "하락", "강세", "약세", "전망", "분석"}
-    keywords -= stopwords
-
-    best_score = 0
-    best_url = sorted_articles[0].get("url", "")
-
-    for article in sorted_articles:
-        title = article.get("title", "")
-        summary = article.get("summary", "")
-        haystack = f"{title} {summary}"
-
-        score = sum(1 for kw in keywords if kw in haystack)
-
-        # 제목에 테마명이 직접 포함되면 보너스
-        if theme_name and theme_name in title:
-            score += 3
-
-        if score > best_score:
-            best_score = score
-            best_url = article.get("url", "")
-
-    return best_url
 
 
 def _search_news_url_for_theme(theme_name: str) -> str:
@@ -167,6 +121,42 @@ def get_openai_client() -> OpenAI:
     return OpenAI(api_key=api_key)
 
 
+def _get_theme_analysis_model() -> str:
+    return (os.getenv("THEME_ANALYSIS_MODEL", DEFAULT_THEME_ANALYSIS_MODEL) or DEFAULT_THEME_ANALYSIS_MODEL).strip()
+
+
+def _build_theme_analysis_request(model_name: str, user_prompt: str) -> dict:
+    request = {
+        "model": model_name,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        "response_format": {"type": "json_object"},
+    }
+
+    if model_name.startswith("gpt-5"):
+        request["max_completion_tokens"] = int(
+            os.getenv(
+                "THEME_ANALYSIS_MAX_COMPLETION_TOKENS",
+                str(DEFAULT_THEME_ANALYSIS_MAX_COMPLETION_TOKENS),
+            )
+        )
+        request["reasoning_effort"] = (
+            os.getenv("THEME_ANALYSIS_REASONING_EFFORT", DEFAULT_THEME_ANALYSIS_REASONING_EFFORT)
+            or DEFAULT_THEME_ANALYSIS_REASONING_EFFORT
+        ).strip()
+    else:
+        request["temperature"] = float(
+            os.getenv("THEME_ANALYSIS_TEMPERATURE", str(DEFAULT_THEME_ANALYSIS_TEMPERATURE))
+        )
+        request["max_tokens"] = int(
+            os.getenv("THEME_ANALYSIS_MAX_TOKENS", str(DEFAULT_THEME_ANALYSIS_MAX_TOKENS))
+        )
+
+    return request
+
+
 SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다. 단타 트레이딩에 특화되어 있으며, 
 뉴스를 분석하여 당일 주도 테마를 정확히 파악하는 능력이 뛰어납니다.
 
@@ -197,7 +187,7 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
 3. **각 테마별 정보**:
    - themeName: 테마명 (간결하게, 예: "광통신", "반도체소부장", "중동전쟁", "방산")
    - headline: 테마 관련 핵심 뉴스 한줄 요약 (기사 제목 스타일, 50자 이내)
-   - representativeArticleIndex: 이 테마를 가장 잘 대표하는 기사 번호 (1부터 시작하는 정수)
+   - representativeArticleIndex: 이 테마를 가장 잘 대표하는 기사 번호 (1부터 시작하는 정수). 기사 목록에 직접 대응하는 기사가 없으면 0
    - relatedStocks: 해당 테마의 대장주 후보 종목명 6개 (한국 상장종목만, 정확한 종목명)
    - reasoning: 이 테마를 선정한 이유 (1-2문장)
 
@@ -228,6 +218,8 @@ USER_PROMPT_TEMPLATE = """아래는 오늘({date}) 수집된 증권 뉴스 기�
 
 === 뉴스 기사 목록 ===
 {articles_text}
+
+대표 기사로 직접 연결할 만한 뉴스가 없으면 `representativeArticleIndex`는 0으로 작성하세요.
 
 === 응답 형식 (JSON) ===
 {{
@@ -276,6 +268,32 @@ THEME_MERGE_RULES = [
         "threshold": THEME_OVERLAP_MERGE_THRESHOLD,
     },
 ]
+ARTICLE_MATCH_STOPWORDS = {
+    "관련",
+    "관련주",
+    "테마",
+    "테마주",
+    "종목",
+    "주가",
+    "강세",
+    "약세",
+    "급등",
+    "상승",
+    "하락",
+    "장중",
+    "평균",
+    "등락률",
+    "기록",
+    "지속",
+    "전망",
+    "분석",
+    "행렬",
+    "모멘텀",
+    "수혜",
+    "주도",
+}
+MIN_CONFIDENT_ARTICLE_MATCH_SCORE = 6.0
+MIN_CONFIDENT_ARTICLE_MATCH_MARGIN = 1.5
 
 
 def _is_priority_article(title: str) -> bool:
@@ -285,6 +303,185 @@ def _is_priority_article(title: str) -> bool:
 
 def _normalize_theme_name(value: str) -> str:
     return "".join((value or "").lower().split())
+
+
+def _extract_meaningful_terms(text: str) -> list[str]:
+    terms: list[str] = []
+    seen: set[str] = set()
+    for token in re.findall(r"[0-9A-Za-z가-힣]+", text or ""):
+        normalized = token.strip()
+        lowered = normalized.lower()
+        if len(normalized) < 2:
+            continue
+        if normalized in ARTICLE_MATCH_STOPWORDS or lowered in ARTICLE_MATCH_STOPWORDS:
+            continue
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        terms.append(normalized)
+    return terms
+
+
+def _score_article_relevance(theme: dict, article: dict, article_index: int) -> dict:
+    title = article.get("title", "").strip()
+    summary = article.get("summary", "").strip()
+    title_norm = _normalize_theme_name(title)
+    summary_norm = _normalize_theme_name(summary)
+
+    score = 0.0
+    exact_theme_hits = 0
+    stock_hits = 0
+    theme_term_hits = 0
+    headline_term_hits = 0
+    title_theme_hits = 0
+
+    theme_name = (theme.get("themeName") or "").strip()
+    theme_name_norm = _normalize_theme_name(theme_name)
+    related_stocks = [stock.strip() for stock in theme.get("relatedStocks", []) if stock and stock.strip()]
+    headline_terms = _extract_meaningful_terms(theme.get("headline", ""))
+    theme_terms = _extract_meaningful_terms(theme_name)
+
+    if theme_name_norm:
+        if theme_name_norm in title_norm:
+            score += 10.0
+            exact_theme_hits += 1
+            title_theme_hits += 1
+        elif theme_name_norm in summary_norm:
+            score += 6.0
+            exact_theme_hits += 1
+
+    for stock in related_stocks[:4]:
+        stock_norm = _normalize_theme_name(stock)
+        if not stock_norm:
+            continue
+        if stock_norm in title_norm:
+            score += 6.0
+            stock_hits += 1
+        elif stock_norm in summary_norm:
+            score += 4.0
+            stock_hits += 1
+
+    for term in theme_terms[:4]:
+        term_norm = _normalize_theme_name(term)
+        if not term_norm or term_norm == theme_name_norm:
+            continue
+        if term_norm in title_norm:
+            score += 3.0
+            theme_term_hits += 1
+            title_theme_hits += 1
+        elif term_norm in summary_norm:
+            score += 1.5
+            theme_term_hits += 1
+
+    for term in headline_terms[:4]:
+        if term in related_stocks or term in theme_terms:
+            continue
+        term_norm = _normalize_theme_name(term)
+        if not term_norm or term_norm == theme_name_norm:
+            continue
+        if term_norm in title_norm:
+            score += 1.0
+            headline_term_hits += 1
+        elif term_norm in summary_norm:
+            score += 0.5
+            headline_term_hits += 1
+
+    return {
+        "index": article_index,
+        "article": article,
+        "score": score,
+        "exactThemeHits": exact_theme_hits,
+        "stockHits": stock_hits,
+        "themeTermHits": theme_term_hits,
+        "headlineTermHits": headline_term_hits,
+        "titleThemeHits": title_theme_hits,
+    }
+
+
+def _is_confident_article_match(best_match: dict | None, second_match: dict | None = None) -> bool:
+    if not best_match:
+        return False
+    if float(best_match.get("score", 0.0) or 0.0) < MIN_CONFIDENT_ARTICLE_MATCH_SCORE:
+        return False
+    exact_theme_hits = int(best_match.get("exactThemeHits", 0) or 0)
+    stock_hits = int(best_match.get("stockHits", 0) or 0)
+    theme_term_hits = int(best_match.get("themeTermHits", 0) or 0)
+    title_theme_hits = int(best_match.get("titleThemeHits", 0) or 0)
+
+    if exact_theme_hits <= 0 and theme_term_hits <= 0:
+        return False
+    if title_theme_hits <= 0 and not (stock_hits > 0 and theme_term_hits > 0):
+        return False
+
+    second_score = float((second_match or {}).get("score", 0.0) or 0.0)
+    margin = float(best_match.get("score", 0.0) or 0.0) - second_score
+
+    if title_theme_hits > 0:
+        return True
+    if stock_hits > 0 and theme_term_hits > 0:
+        return True
+    return margin >= MIN_CONFIDENT_ARTICLE_MATCH_MARGIN
+
+
+def _resolve_representative_article(theme: dict, sorted_articles: list[dict]) -> dict | None:
+    if not sorted_articles:
+        return None
+
+    scored = [
+        _score_article_relevance(theme, article, article_index)
+        for article_index, article in enumerate(sorted_articles, 1)
+    ]
+    scored.sort(
+        key=lambda item: (
+            float(item.get("score", 0.0) or 0.0),
+            int(item.get("titleThemeHits", 0) or 0),
+            int(item.get("exactThemeHits", 0) or 0),
+            int(item.get("themeTermHits", 0) or 0),
+            int(item.get("stockHits", 0) or 0),
+            int(item.get("headlineTermHits", 0) or 0),
+        ),
+        reverse=True,
+    )
+    if not scored:
+        return None
+
+    best_match = scored[0]
+    second_match = scored[1] if len(scored) > 1 else None
+
+    raw_index = theme.get("representativeArticleIndex", 0)
+    try:
+        preferred_index = int(raw_index or 0)
+    except (TypeError, ValueError):
+        preferred_index = 0
+
+    preferred_match = None
+    if 1 <= preferred_index <= len(sorted_articles):
+        preferred_match = next((item for item in scored if item["index"] == preferred_index), None)
+        preferred_second = best_match if preferred_match and preferred_match["index"] != best_match["index"] else second_match
+        if preferred_match and _is_confident_article_match(preferred_match, preferred_second):
+            preferred_score = float(preferred_match.get("score", 0.0) or 0.0)
+            best_score = float(best_match.get("score", 0.0) or 0.0)
+            if preferred_score >= best_score - MIN_CONFIDENT_ARTICLE_MATCH_MARGIN:
+                return preferred_match
+
+    if _is_confident_article_match(best_match, second_match):
+        return best_match
+    return None
+
+
+def _bind_verified_headline(theme: dict, sorted_articles: list[dict]) -> None:
+    match = _resolve_representative_article(theme, sorted_articles)
+    if not match:
+        theme["representativeArticleIndex"] = 0
+        theme["headlineUrl"] = ""
+        print(f"  [!] 테마 '{theme.get('themeName', '')}'에 신뢰 가능한 대표 기사 링크를 찾지 못해 링크를 비웁니다.")
+        return
+
+    article = match["article"]
+    theme["representativeArticleIndex"] = match["index"]
+    if article.get("title"):
+        theme["headline"] = article["title"]
+    theme["headlineUrl"] = _convert_to_article_url(article.get("url", ""))
 
 
 def _count_rule_matches(text: str, rule: dict) -> tuple[int, list[str]]:
@@ -533,16 +730,14 @@ def format_price_signal_candidates_for_prompt(price_signal_payload: dict, limit:
 
 
 def _find_representative_article_index(articles: list[dict], candidate: dict) -> int:
-    keywords = list(candidate.get("keywords", [])) + list(candidate.get("matchedStocks", []))
-    for idx, article in enumerate(articles, 1):
-        haystack = " ".join([
-            article.get("title", ""),
-            article.get("summary", ""),
-            article.get("source", ""),
-        ])
-        if any(keyword and keyword in haystack for keyword in keywords):
-            return idx
-    return 1
+    theme_stub = {
+        "themeName": candidate.get("themeName", ""),
+        "headline": candidate.get("matchedArticles", [""])[0] if candidate.get("matchedArticles") else "",
+        "relatedStocks": list(candidate.get("matchedStocks", []))[:6],
+        "representativeArticleIndex": 0,
+    }
+    match = _resolve_representative_article(theme_stub, articles)
+    return int(match["index"]) if match else 0
 
 
 def _build_theme_from_price_candidate(candidate: dict, articles: list[dict]) -> dict:
@@ -850,7 +1045,7 @@ def _apply_antwinner_top2_postprocess(result: dict, antwinner_signals: list[dict
             new_theme = {
                 "themeName": ant_name,
                 "headline": f"{ant_name} 관련주 장중 강세, 평균 등락률 {ant_theme.get('average_rate', 0):+.1f}%",
-                "representativeArticleIndex": 1,
+                "representativeArticleIndex": 0,
                 "relatedStocks": must_stocks.copy(),
                 "reasoning": f"개미승리 실시간 등락률 {rank}위 테마 (평균 {ant_theme.get('average_rate', 0):+.1f}%, 상승비율 {ant_theme.get('rising_ratio', '')})",
                 "_from_antwinner": True,
@@ -964,20 +1159,14 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         articles_text=articles_text,
     )
 
+    model_name = _get_theme_analysis_model()
+
     print(f"[INFO] ChatGPT API 호출 중... (기사 {len(articles)}개 분석)")
+    print(f"  [>] 분석 모델: {model_name}")
     print(f"  [>] 프롬프트 길이: {len(user_prompt):,}자")
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.3,  # 일관성 높게
-            max_tokens=3000,
-            response_format={"type": "json_object"},
-        )
+        response = client.chat.completions.create(**_build_theme_analysis_request(model_name, user_prompt))
 
         result_text = response.choices[0].message.content
         print(f"  [OK] ChatGPT 응답 수신 완료")
@@ -1009,17 +1198,8 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
             if "relatedStocks" not in theme or len(theme["relatedStocks"]) < 4:
                 print(f"  [!] 테마 '{theme.get('themeName')}'의 관련 종목이 부족합니다.")
 
-            # 대표 기사 URL 매핑
-            if theme.pop("_from_antwinner", False):
-                # 개미승리 테마 → Google News에서 관련 기사 검색
-                searched_url = _search_news_url_for_theme(theme["themeName"])
-                theme["headlineUrl"] = searched_url if searched_url else _convert_to_article_url(
-                    _find_best_article_url(theme, sorted_articles)
-                )
-            else:
-                # 일반 테마 → 크롤링 기사에서 텍스트 매칭
-                raw_url = _find_best_article_url(theme, sorted_articles)
-                theme["headlineUrl"] = _convert_to_article_url(raw_url)
+            theme.pop("_from_antwinner", False)
+            _bind_verified_headline(theme, sorted_articles)
 
         print(f"\n[INFO] 추출된 테마:")
         for i, theme in enumerate(themes, 1):
