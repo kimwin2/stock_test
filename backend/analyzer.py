@@ -11,7 +11,7 @@ import json
 import os
 import re
 import requests
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, quote, urlparse
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -42,6 +42,21 @@ DEFAULT_THEME_ANALYSIS_REASONING_EFFORT = "minimal"
 DEFAULT_THEME_ANALYSIS_MAX_COMPLETION_TOKENS = 12000
 DEFAULT_THEME_ANALYSIS_MAX_TOKENS = 3000
 DEFAULT_THEME_ANALYSIS_TEMPERATURE = 0.3
+GOOGLE_NEWS_FALLBACK_LIMIT = 3
+GOOGLE_NEWS_SKIP_KEYWORDS = {
+    "블로그",
+    "blog",
+    "브런치",
+    "brunch",
+    "프리미엄콘텐츠",
+    "premium contents",
+    "티스토리",
+    "velog",
+    "top10",
+    "대장주",
+    "수혜주",
+    "추천 전망",
+}
 
 
 def _convert_to_article_url(url: str) -> str:
@@ -66,48 +81,138 @@ def _convert_to_article_url(url: str) -> str:
     return url
 
 
-def _search_news_url_for_theme(theme_name: str) -> str:
-    """
-    Google News RSS로 테마와 관련된 최신 뉴스 기사 URL을 검색합니다.
-    개미승리에서 가져온 테마는 기존 크롤링 기사에 없을 수 있으므로
-    별도로 관련 기사를 찾아 headlineUrl에 넣습니다.
-    """
+def _build_headline_link(
+    *,
+    url: str,
+    title: str,
+    source_type: str,
+    confidence: str,
+    query: str = "",
+    article_index: int = 0,
+    source_name: str = "",
+    published_at: str = "",
+    match_score: float = 0.0,
+) -> dict:
+    return {
+        "url": (url or "").strip(),
+        "title": (title or "").strip(),
+        "sourceType": source_type,
+        "confidence": confidence,
+        "query": (query or "").strip(),
+        "articleIndex": int(article_index or 0),
+        "sourceName": (source_name or "").strip(),
+        "publishedAt": (published_at or "").strip(),
+        "matchScore": float(match_score or 0.0),
+    }
+
+
+def _dedupe_headline_links(links: list[dict]) -> list[dict]:
+    deduped: list[dict] = []
+    seen_urls: set[str] = set()
+    for link in links:
+        url = (link or {}).get("url", "").strip()
+        if not url or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        deduped.append(link)
+    return deduped
+
+
+def _build_google_news_search_url(query: str) -> str:
+    normalized = " ".join((query or "").split())
+    if not normalized:
+        return ""
+    return f"https://news.google.com/search?q={quote(normalized)}&hl=ko&gl=KR&ceid=KR:ko"
+
+
+def _build_google_news_queries(theme: dict) -> list[str]:
+    theme_name = (theme.get("themeName") or "").strip()
+    related_stocks = [stock.strip() for stock in theme.get("relatedStocks", []) if stock and stock.strip()]
+    headline_terms = [
+        term for term in _extract_meaningful_terms(theme.get("headline", ""))
+        if term not in related_stocks and term != theme_name
+    ]
+
+    queries: list[str] = []
+
+    def add_query(value: str) -> None:
+        normalized = " ".join((value or "").split())
+        if normalized and normalized not in queries:
+            queries.append(normalized)
+
+    add_query(f"{theme_name} 관련주")
+    add_query(f"{theme_name} {' '.join(related_stocks[:2])}".strip())
+    add_query(f"{theme_name} {' '.join(headline_terms[:2])}".strip())
+    add_query(theme_name)
+    add_query(" ".join(related_stocks[:2]))
+
+    return queries[:4]
+
+
+def _search_google_news_links(query: str, limit: int = GOOGLE_NEWS_FALLBACK_LIMIT) -> list[dict]:
+    if not query:
+        return []
+
     try:
-        import urllib.parse
-        query = f"{theme_name} 테마주"
-        url = (
-            f"https://news.google.com/rss/search?"
-            f"q={urllib.parse.quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
-        )
+        url = f"https://news.google.com/rss/search?q={quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
         resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=5)
         if resp.status_code != 200:
-            return ""
+            return []
 
         from bs4 import BeautifulSoup as BS
-        soup = BS(resp.text, "xml")
-        items = soup.select("item")
 
-        for item in items[:10]:
+        soup = BS(resp.text, "xml")
+        results: list[dict] = []
+        for item in soup.select("item"):
             title_tag = item.find("title")
             link_tag = item.find("link")
-            title = title_tag.text if title_tag else ""
+            source_tag = item.find("source")
+            pub_date_tag = item.find("pubDate")
 
-            # 블로그/브런치는 건너뛰고 뉴스 기사만 선택
-            skip_sources = ["블로그", "브런치", "프리미엄콘텐츠", "티스토리", "velog"]
-            if any(skip in title for skip in skip_sources):
+            raw_link = link_tag.text.strip() if link_tag and link_tag.text else ""
+            title = title_tag.text.strip() if title_tag and title_tag.text else ""
+            source_name = source_tag.text.strip() if source_tag and source_tag.text else ""
+            published_at = pub_date_tag.text.strip() if pub_date_tag and pub_date_tag.text else ""
+            if not raw_link:
+                continue
+            text_blob = f"{title} {source_name}".lower()
+            if any(keyword in text_blob for keyword in GOOGLE_NEWS_SKIP_KEYWORDS):
                 continue
 
-            raw_link = ""
-            if link_tag:
-                raw_link = link_tag.text if link_tag.text else str(link_tag.next_sibling).strip()
-            if raw_link:
-                print(f"    [🔍] '{theme_name}' 관련 기사 검색: {title[:40]}")
-                return raw_link
+            results.append(
+                _build_headline_link(
+                    url=raw_link,
+                    title=title,
+                    source_type="google_news_result",
+                    confidence="fallback",
+                    query=query,
+                    source_name=source_name,
+                    published_at=published_at,
+                )
+            )
+            if len(results) >= limit:
+                break
+
+        return _dedupe_headline_links(results)
 
     except Exception as e:
-        print(f"    [!] '{theme_name}' 기사 검색 실패: {e}")
+        print(f"    [!] Google News 검색 실패 ({query}): {e}")
+        return []
 
-    return ""
+
+def _set_theme_headline_links(theme: dict, links: list[dict]) -> None:
+    deduped_links = _dedupe_headline_links(links)
+    primary_link = deduped_links[0] if deduped_links else {}
+
+    theme["headlineLinks"] = deduped_links
+    theme["headlineLink"] = primary_link
+    theme["headlineUrl"] = primary_link.get("url", "")
+    theme["headlineLinkSource"] = primary_link.get("sourceType", "")
+    theme["headlineLinkConfidence"] = primary_link.get("confidence", "missing")
+
+    primary_title = primary_link.get("title", "")
+    if primary_title and primary_link.get("sourceType") != "google_news_search":
+        theme["headline"] = primary_title[:80]
 
 
 def get_openai_client() -> OpenAI:
@@ -423,9 +528,9 @@ def _is_confident_article_match(best_match: dict | None, second_match: dict | No
     return margin >= MIN_CONFIDENT_ARTICLE_MATCH_MARGIN
 
 
-def _resolve_representative_article(theme: dict, sorted_articles: list[dict]) -> dict | None:
+def _rank_representative_articles(theme: dict, sorted_articles: list[dict]) -> list[dict]:
     if not sorted_articles:
-        return None
+        return []
 
     scored = [
         _score_article_relevance(theme, article, article_index)
@@ -442,22 +547,34 @@ def _resolve_representative_article(theme: dict, sorted_articles: list[dict]) ->
         ),
         reverse=True,
     )
-    if not scored:
+    return scored
+
+
+def _select_confident_article_match(
+    scored: list[dict],
+    preferred_index: int = 0,
+    excluded_indices: set[int] | None = None,
+    excluded_urls: set[str] | None = None,
+) -> dict | None:
+    excluded_indices = set(excluded_indices or set())
+    excluded_urls = {url for url in (excluded_urls or set()) if url}
+    available = [
+        item for item in scored
+        if item.get("index") not in excluded_indices
+        and _convert_to_article_url(item.get("article", {}).get("url", "")) not in excluded_urls
+    ]
+
+    if not available:
         return None
 
-    best_match = scored[0]
-    second_match = scored[1] if len(scored) > 1 else None
+    best_match = available[0]
+    second_match = available[1] if len(available) > 1 else None
 
-    raw_index = theme.get("representativeArticleIndex", 0)
-    try:
-        preferred_index = int(raw_index or 0)
-    except (TypeError, ValueError):
-        preferred_index = 0
-
-    preferred_match = None
-    if 1 <= preferred_index <= len(sorted_articles):
-        preferred_match = next((item for item in scored if item["index"] == preferred_index), None)
-        preferred_second = best_match if preferred_match and preferred_match["index"] != best_match["index"] else second_match
+    if preferred_index > 0:
+        preferred_match = next((item for item in available if item["index"] == preferred_index), None)
+        preferred_second = (
+            best_match if preferred_match and preferred_match["index"] != best_match["index"] else second_match
+        )
         if preferred_match and _is_confident_article_match(preferred_match, preferred_second):
             preferred_score = float(preferred_match.get("score", 0.0) or 0.0)
             best_score = float(best_match.get("score", 0.0) or 0.0)
@@ -469,19 +586,128 @@ def _resolve_representative_article(theme: dict, sorted_articles: list[dict]) ->
     return None
 
 
-def _bind_verified_headline(theme: dict, sorted_articles: list[dict]) -> None:
-    match = _resolve_representative_article(theme, sorted_articles)
-    if not match:
-        theme["representativeArticleIndex"] = 0
-        theme["headlineUrl"] = ""
-        print(f"  [!] 테마 '{theme.get('themeName', '')}'에 신뢰 가능한 대표 기사 링크를 찾지 못해 링크를 비웁니다.")
+def _resolve_representative_article(
+    theme: dict,
+    sorted_articles: list[dict],
+    excluded_indices: set[int] | None = None,
+    excluded_urls: set[str] | None = None,
+) -> dict | None:
+    scored = _rank_representative_articles(theme, sorted_articles)
+    if not scored:
+        return None
+
+    raw_index = theme.get("representativeArticleIndex", 0)
+    try:
+        preferred_index = int(raw_index or 0)
+    except (TypeError, ValueError):
+        preferred_index = 0
+
+    return _select_confident_article_match(
+        scored,
+        preferred_index=preferred_index,
+        excluded_indices=excluded_indices,
+        excluded_urls=excluded_urls,
+    )
+
+
+def _build_local_headline_link(match: dict) -> dict:
+    article = match.get("article", {}) or {}
+    return _build_headline_link(
+        url=_convert_to_article_url(article.get("url", "")),
+        title=article.get("title", ""),
+        source_type="crawler_article",
+        confidence="verified",
+        article_index=int(match.get("index", 0) or 0),
+        source_name=article.get("source", ""),
+        published_at=article.get("date", ""),
+        match_score=float(match.get("score", 0.0) or 0.0),
+    )
+
+
+def _build_google_headline_links(theme: dict, used_urls: set[str] | None = None) -> list[dict]:
+    used_urls = {url for url in (used_urls or set()) if url}
+    queries = _build_google_news_queries(theme)
+    results: list[dict] = []
+
+    for query in queries:
+        for link in _search_google_news_links(query):
+            if link.get("url") in used_urls:
+                continue
+            results.append(link)
+            used_urls.add(link.get("url", ""))
+            if len(results) >= GOOGLE_NEWS_FALLBACK_LIMIT:
+                break
+        if len(results) >= GOOGLE_NEWS_FALLBACK_LIMIT:
+            break
+
+    if results:
+        search_query = results[0].get("query", "")
+        search_url = _build_google_news_search_url(search_query)
+        if search_url and search_url not in used_urls:
+            results.append(
+                _build_headline_link(
+                    url=search_url,
+                    title=f"{search_query} Google 뉴스 검색",
+                    source_type="google_news_search",
+                    confidence="fallback",
+                    query=search_query,
+                )
+            )
+        return _dedupe_headline_links(results)
+
+    fallback_query = queries[0] if queries else (theme.get("themeName", "") or "").strip()
+    search_url = _build_google_news_search_url(fallback_query)
+    if not search_url:
+        return []
+    return [
+        _build_headline_link(
+            url=search_url,
+            title=f"{fallback_query} Google 뉴스 검색",
+            source_type="google_news_search",
+            confidence="fallback",
+            query=fallback_query,
+        )
+    ]
+
+
+def _bind_verified_headline(
+    theme: dict,
+    sorted_articles: list[dict],
+    used_article_indices: set[int] | None = None,
+    used_urls: set[str] | None = None,
+) -> None:
+    used_article_indices = used_article_indices if used_article_indices is not None else set()
+    used_urls = used_urls if used_urls is not None else set()
+
+    match = _resolve_representative_article(
+        theme,
+        sorted_articles,
+        excluded_indices=used_article_indices,
+        excluded_urls=used_urls,
+    )
+    if match:
+        local_link = _build_local_headline_link(match)
+        theme["representativeArticleIndex"] = match["index"]
+        _set_theme_headline_links(theme, [local_link])
+        used_article_indices.add(int(match["index"]))
+        if local_link.get("url"):
+            used_urls.add(local_link["url"])
         return
 
-    article = match["article"]
-    theme["representativeArticleIndex"] = match["index"]
-    if article.get("title"):
-        theme["headline"] = article["title"]
-    theme["headlineUrl"] = _convert_to_article_url(article.get("url", ""))
+    theme["representativeArticleIndex"] = 0
+    google_links = _build_google_headline_links(theme, used_urls=used_urls)
+    _set_theme_headline_links(theme, google_links)
+    for link in google_links:
+        if link.get("url"):
+            used_urls.add(link["url"])
+    if google_links:
+        print(
+            f"  [!] 테마 '{theme.get('themeName', '')}'에 로컬 대표 기사가 없어 "
+            f"{google_links[0].get('sourceType', 'fallback')} 링크를 사용합니다."
+        )
+        return
+
+    print(f"  [!] 테마 '{theme.get('themeName', '')}'에 대표 기사 링크를 찾지 못했습니다.")
 
 
 def _count_rule_matches(text: str, rule: dict) -> tuple[int, list[str]]:
@@ -1192,6 +1418,8 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
             print(f"  [!] 테마가 {len(themes)}개만 추출되었습니다 (목표: 7개)")
 
          # 각 테마 검증 및 대표 기사 URL 매핑
+        used_article_indices: set[int] = set()
+        used_headline_urls: set[str] = set()
         for theme in themes:
             if "themeName" not in theme:
                 raise ValueError(f"테마에 'themeName'이 없습니다: {theme}")
@@ -1199,7 +1427,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
                 print(f"  [!] 테마 '{theme.get('themeName')}'의 관련 종목이 부족합니다.")
 
             theme.pop("_from_antwinner", False)
-            _bind_verified_headline(theme, sorted_articles)
+            _bind_verified_headline(theme, sorted_articles, used_article_indices, used_headline_urls)
 
         print(f"\n[INFO] 추출된 테마:")
         for i, theme in enumerate(themes, 1):
