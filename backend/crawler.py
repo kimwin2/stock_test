@@ -181,7 +181,7 @@ def crawl_naver_finance_news(target_count: int = 100) -> list[dict]:
     return result
 
 
-def crawl_mainnews_archive(target_count: int, recent_days: int = 7) -> list[dict]:
+def crawl_mainnews_archive(target_count: int, recent_days: int = 2) -> list[dict]:
     """최근 며칠치 메인뉴스 아카이브에서 추가 기사를 수집합니다."""
     all_articles = []
     base_date = datetime.now().date()
@@ -228,7 +228,7 @@ def crawl_news_flash(page: int) -> list[dict]:
     return _parse_article_list(resp.text)
 
 
-def crawl_market_news_list(target_count: int = 100, recent_days: int = 7) -> list[dict]:
+def crawl_market_news_list(target_count: int = 100, recent_days: int = 2) -> list[dict]:
     """
     네이버 증권 시장 뉴스 크롤링 (더 안정적인 대체 방식)
     https://finance.naver.com/news/news_list.naver 사용
