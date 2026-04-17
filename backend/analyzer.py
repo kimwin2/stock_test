@@ -9,6 +9,7 @@ import sys
 import io
 import json
 import os
+import requests
 from urllib.parse import urlparse, parse_qs
 from openai import OpenAI
 from dotenv import load_dotenv

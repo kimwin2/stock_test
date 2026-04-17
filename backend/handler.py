@@ -14,7 +14,9 @@ import os
 import sys
 import io
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
 
 import boto3
 
@@ -70,7 +72,7 @@ def lambda_handler(event, context):
     """
     print("=" * 60)
     print(">>> Stock Lambda Pipeline Start")
-    print(f"    시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"    시각: {datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"    이벤트: {json.dumps(event, default=str)[:200]}")
     print("=" * 60)
 
@@ -92,7 +94,7 @@ def lambda_handler(event, context):
 
         # ── Step 2: ChatGPT 테마 분석 ──
         print("\n[Step 2] ChatGPT API 테마 분석")
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        date_str = datetime.now(KST).strftime("%Y-%m-%d")
         analysis = analyze_themes(articles, date_str)
         themes = analysis.get("themes", [])
 
@@ -109,7 +111,7 @@ def lambda_handler(event, context):
         # ── Step 4: JSON 조립 및 S3 업로드 ──
         print("\n[Step 4] JSON 조립 및 S3 업로드")
         dashboard_data = {
-            "updatedAt": datetime.now().isoformat(),
+            "updatedAt": datetime.now(KST).isoformat(),
             "antwinnerSignals": analysis.get("antwinnerSignals", []),
             "youtubeSignals": analysis.get("youtubeSignals", []),
             "telegramSignals": analysis.get("telegramSignals", []),
