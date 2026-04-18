@@ -115,6 +115,20 @@ def fetch_top_movers(markets: tuple[str, ...] = ("KOSPI", "KOSDAQ"), limit_per_m
     return movers
 
 
+def _fetch_sector(code: str) -> str:
+    """네이버 금융에서 종목의 업종(sector)을 가져옵니다."""
+    try:
+        url = f"https://finance.naver.com/item/main.naver?code={code}"
+        resp = requests.get(url, headers=HEADERS, timeout=5)
+        soup = BeautifulSoup(resp.text, "lxml")
+        sector_el = soup.select_one(".sub_tit7 a")
+        if sector_el:
+            return sector_el.get_text(strip=True)
+    except Exception:
+        pass
+    return ""
+
+
 def enrich_movers_with_stock_detail(movers: list[dict], max_items: int = 20) -> list[dict]:
     enriched: list[dict] = []
     for idx, item in enumerate(movers):
@@ -125,6 +139,10 @@ def enrich_movers_with_stock_detail(movers: list[dict], max_items: int = 20) -> 
                 current["volumeAmount"] = max(int(detail.get("volume_raw", 0) or 0), int(current.get("volumeAmount", 0) or 0))
                 current["price"] = int(detail.get("price", current.get("price", 0)) or 0)
                 current["changeRate"] = float(detail.get("changeRate", current.get("changeRate", 0.0)) or 0.0)
+            # 업종 정보 추가
+            sector = _fetch_sector(current["code"])
+            if sector:
+                current["sector"] = sector
         enriched.append(current)
     return enriched
 
