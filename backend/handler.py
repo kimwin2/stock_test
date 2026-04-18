@@ -129,6 +129,7 @@ def lambda_handler(event, context):
         dashboard_data = {
             "updatedAt": datetime.now(KST).isoformat(),
             "antwinnerSignals": analysis.get("antwinnerSignals", []),
+            "infostockSignals": analysis.get("infostockSignals", []),
             "youtubeSignals": analysis.get("youtubeSignals", []),
             "telegramSignals": analysis.get("telegramSignals", []),
             "priceSignalCandidates": analysis.get("priceSignalCandidates", []),

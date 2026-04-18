@@ -1,5 +1,5 @@
 {
-  "collectedAt": "2026-04-17T21:06:51.369826",
+  "collectedAt": "2026-04-18T23:09:50.862367",
   "source": "antwinner.com",
   "topN": 5,
   "themes": [
@@ -56,10 +56,10 @@
     },
     {
       "thema": "진단키트",
-      "average_rate": 16.21,
-      "all_avg_rate": 10.07,
-      "rising_ratio": "76.47%",
-      "stock_count": 17,
+      "average_rate": 16.62,
+      "all_avg_rate": 10.14,
+      "rising_ratio": "77.78%",
+      "stock_count": 18,
       "companies": [
         {
           "current_price": "6,760",
@@ -166,53 +166,53 @@
       ]
     },
     {
-      "thema": "폐렴",
-      "average_rate": 8.82,
-      "all_avg_rate": 6.13,
-      "rising_ratio": "90.00%",
-      "stock_count": 10,
+      "thema": "조선기자재",
+      "average_rate": 9.19,
+      "all_avg_rate": 5.47,
+      "rising_ratio": "88.89%",
+      "stock_count": 18,
       "companies": [
         {
-          "current_price": "3,785",
-          "fluctuation": "13.83%",
-          "stock_code": "950130",
-          "stockname": "엑세스바이오",
-          "volume": "117억"
+          "current_price": "44,000",
+          "fluctuation": "29.99%",
+          "stock_code": "077970",
+          "stockname": "STX엔진",
+          "volume": "1517억"
         },
         {
-          "current_price": "27,350",
-          "fluctuation": "9.84%",
-          "stock_code": "096530",
-          "stockname": "씨젠",
-          "volume": "696억"
+          "current_price": "56,100",
+          "fluctuation": "16.39%",
+          "stock_code": "082740",
+          "stockname": "한화엔진",
+          "volume": "2873억"
         },
         {
-          "current_price": "3,235",
-          "fluctuation": "8.19%",
-          "stock_code": "058110",
-          "stockname": "멕아이씨에스",
-          "volume": "149억"
+          "current_price": "13,480",
+          "fluctuation": "14.92%",
+          "stock_code": "010820",
+          "stockname": "퍼스텍",
+          "volume": "3562억"
         },
         {
-          "current_price": "1,723",
-          "fluctuation": "8.16%",
-          "stock_code": "065950",
-          "stockname": "웰크론",
-          "volume": "13억"
+          "current_price": "4,105",
+          "fluctuation": "10.20%",
+          "stock_code": "073010",
+          "stockname": "케이에스피",
+          "volume": "98억"
         },
         {
-          "current_price": "2,400",
-          "fluctuation": "7.14%",
-          "stock_code": "109820",
-          "stockname": "진매트릭스",
-          "volume": "108억"
+          "current_price": "12,850",
+          "fluctuation": "9.92%",
+          "stock_code": "054540",
+          "stockname": "삼영엠텍",
+          "volume": "497억"
         },
         {
-          "current_price": "9,310",
-          "fluctuation": "6.77%",
-          "stock_code": "137310",
-          "stockname": "에스디바이오센서",
-          "volume": "89억"
+          "current_price": "12,100",
+          "fluctuation": "8.72%",
+          "stock_code": "064820",
+          "stockname": "케이프",
+          "volume": "51억"
         }
       ]
     }

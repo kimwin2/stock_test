@@ -24,6 +24,8 @@ try:
     from youtube_signals import fetch_latest_youtube_theme_signals
     from antwinner.collector import fetch_antwinner_top_themes, build_antwinner_payload
     from antwinner.store import load_antwinner_payload, save_antwinner_payload
+    from infostock.collector import fetch_infostock_top_themes, build_infostock_payload
+    from infostock.store import load_infostock_payload, save_infostock_payload
 except ModuleNotFoundError:
     from .stock_data import STOCK_CODE_MAP
     from .price_signals.store import load_price_signal_payload
@@ -31,6 +33,8 @@ except ModuleNotFoundError:
     from .youtube_signals import fetch_latest_youtube_theme_signals
     from .antwinner.collector import fetch_antwinner_top_themes, build_antwinner_payload
     from .antwinner.store import load_antwinner_payload, save_antwinner_payload
+    from .infostock.collector import fetch_infostock_top_themes, build_infostock_payload
+    from .infostock.store import load_infostock_payload, save_infostock_payload
 
 # Windows cp949 콘솔 인코딩 문제 해결
 if sys.stdout.encoding != 'utf-8':
@@ -46,6 +50,7 @@ DEFAULT_THEME_ANALYSIS_MAX_TOKENS = 3000
 DEFAULT_THEME_ANALYSIS_TEMPERATURE = 0.3
 GOOGLE_NEWS_FALLBACK_LIMIT = 3
 HEADLINE_MAX_AGE_HOURS = 36
+INFOSTOCK_STOCK_MATCH_MOVER_LIMIT = 40
 GOOGLE_NEWS_SKIP_KEYWORDS = {
     "블로그",
     "blog",
@@ -378,7 +383,9 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
    - ★ 표시가 된 기사는 실제 주가 움직임이 확인된 기사이므로 테마 선정 시 더 높은 가중치를 부여하세요
    - ◆ 표시가 된 기사는 유튜브 외부 시그널과 직접 겹치는 기사이므로 매우 높은 가중치를 부여하세요
    - ● 표시가 된 기사는 개미승리 실시간 상위 테마와 겹치는 기사이므로 매우 높은 가중치를 부여하세요
+   - ▲ 표시가 된 인포스탁 장중 강세 테마는 장중 시세 흐름을 빠르게 반영하는 고신뢰 시그널이므로, 개미승리와 중복 제거 후 남은 테마는 매우 강하게 반영하세요
    - `개미승리 실시간 테마 시그널`은 실제 장중 등락률과 거래대금 기반의 고신뢰 시그널입니다. 상위 테마 중 뉴스에서 조금이라도 관련 기사가 있는 테마는 적극적으로 반영하세요. 다만 관련종목(relatedStocks)은 개미승리 종목만 나열하지 말고, 뉴스와 다른 시그널에서 언급된 종목을 섞어 다양하게 구성하세요
+   - `인포스탁 장중 강세 테마`는 로그인 없이 확인 가능한 실시간 강세 테마 요약입니다. 개미승리와 겹치지 않는 상위 테마는 우선순위를 매우 높게 두고, 관련종목은 제공된 급등주 후보 중 실제 연관성이 높은 종목만 최대 4개까지 반영하세요
    - `심플 관심종목 TV`의 최신 `내일 관심테마!` 및 `당일 관심테마!` 영상은 고신뢰 선행 시그널입니다. 뉴스와 겹치면 최우선 반영하고, 일부만 겹쳐도 강하게 반영하세요
    - `실시간 텔레그램 시그널`은 장중 선행 시그널입니다. 뉴스가 약하더라도 초기 형성 테마 후보로 강하게 검토하세요
    - `가격 기반 테마 후보`는 급등률, 상한가, 종목 동조화로 포착한 장중 수급 시그널입니다. 기사 반복도가 약해도 실제 종목군이 강하게 움직이면 매우 강하게 반영하세요
@@ -431,6 +438,9 @@ USER_PROMPT_TEMPLATE = """아래는 오늘({date}) 수집된 증권 뉴스 기�
 
 === 📊 개미승리 실시간 테마 시그널 (장중 등락률 상위 5 · 고신뢰) ===
 {antwinner_text}
+
+=== ▲ 인포스탁 장중 강세 테마 (개미승리 중복 제거 후 · 최우선 반영) ===
+{infostock_text}
 
 === 외부 고신뢰 시그널: 심플 관심종목 TV ===
 {youtube_text}
@@ -531,6 +541,354 @@ def _is_priority_article(title: str) -> bool:
 
 def _normalize_theme_name(value: str) -> str:
     return "".join((value or "").lower().split())
+
+
+def _strip_parenthetical_text(value: str) -> str:
+    return re.sub(r"\([^)]*\)", "", value or "")
+
+
+def _compact_theme_text(value: str) -> str:
+    base = _strip_parenthetical_text(value)
+    return re.sub(r"[^0-9A-Za-z가-힣]+", "", base or "").lower()
+
+
+def _theme_tokens(value: str) -> set[str]:
+    tokens: set[str] = set()
+    base = _strip_parenthetical_text(value)
+    for chunk in re.split(r"[/,·|]+", base or ""):
+        normalized = re.sub(r"[^0-9A-Za-z가-힣]+", "", chunk or "").lower()
+        if len(normalized) < 2:
+            continue
+        if normalized in {"관련주", "테마"}:
+            continue
+        tokens.add(normalized)
+    return tokens
+
+
+THEME_SIMILARITY_FAMILIES = {
+    "pandemic": {
+        "코로나",
+        "백신",
+        "진단",
+        "진단키트",
+        "방역",
+        "치료제",
+        "바이러스",
+        "니파",
+        "폐렴",
+        "음압",
+        "mrna",
+    },
+    "space": {
+        "스페이스x",
+        "우주",
+        "우주항공",
+        "위성",
+        "누리호",
+        "스타링크",
+    },
+}
+
+
+def _theme_family_keys(value: str) -> set[str]:
+    compact = _compact_theme_text(value)
+    if not compact:
+        return set()
+
+    matched: set[str] = set()
+    for family_name, keywords in THEME_SIMILARITY_FAMILIES.items():
+        if any(keyword in compact for keyword in keywords):
+            matched.add(family_name)
+    return matched
+
+
+def _themes_are_similar(left: str, right: str) -> bool:
+    left_compact = _compact_theme_text(left)
+    right_compact = _compact_theme_text(right)
+    if not left_compact or not right_compact:
+        return False
+
+    if left_compact == right_compact:
+        return True
+    if left_compact in right_compact or right_compact in left_compact:
+        return True
+    if _theme_family_keys(left) & _theme_family_keys(right):
+        return True
+
+    left_tokens = _theme_tokens(left)
+    right_tokens = _theme_tokens(right)
+    if not left_tokens or not right_tokens:
+        return False
+
+    overlap = left_tokens & right_tokens
+    if not overlap:
+        return False
+
+    return len(overlap) >= min(len(left_tokens), len(right_tokens))
+
+
+def _prune_infostock_signals_against_antwinner(
+    infostock_signals: list[dict],
+    antwinner_signals: list[dict],
+) -> list[dict]:
+    if not infostock_signals:
+        return []
+
+    antwinner_names = [theme.get("thema", "") for theme in antwinner_signals]
+    filtered: list[dict] = []
+
+    for signal in infostock_signals:
+        theme_name = signal.get("themeName", "")
+        raw_theme_name = signal.get("rawThemeName", theme_name)
+
+        duplicate_name = next(
+            (
+                ant_name
+                for ant_name in antwinner_names
+                if _themes_are_similar(theme_name, ant_name) or _themes_are_similar(raw_theme_name, ant_name)
+            ),
+            None,
+        )
+        if duplicate_name:
+            print(
+                f"  [인포스탁-중복제거] '{theme_name}' → 개미승리 '{duplicate_name}'와 유사하여 제외"
+            )
+            continue
+
+        already_selected = next(
+            (
+                selected.get("themeName", "")
+                for selected in filtered
+                if _themes_are_similar(theme_name, selected.get("themeName", ""))
+            ),
+            None,
+        )
+        if already_selected:
+            print(
+                f"  [인포스탁-중복제거] '{theme_name}' → 인포스탁 내 '{already_selected}'와 유사하여 제외"
+            )
+            continue
+
+        filtered.append(dict(signal))
+
+    for idx, signal in enumerate(filtered, 1):
+        signal["rank"] = idx
+
+    return filtered
+
+
+def _build_price_signal_stock_hint_map(price_signal_payload: dict) -> dict[str, list[str]]:
+    hints: dict[str, list[str]] = {}
+    for candidate in price_signal_payload.get("candidates", []) or []:
+        theme_name = candidate.get("themeName", "")
+        if not theme_name:
+            continue
+        for stock_name in candidate.get("matchedStocks", []) or []:
+            if not stock_name:
+                continue
+            bucket = hints.setdefault(stock_name, [])
+            if theme_name not in bucket:
+                bucket.append(theme_name)
+    return hints
+
+
+def _select_infostock_match_movers(price_signal_payload: dict, limit: int = INFOSTOCK_STOCK_MATCH_MOVER_LIMIT) -> list[dict]:
+    movers = list(price_signal_payload.get("movers", []) or [])
+    ordered = sorted(
+        movers,
+        key=lambda item: (
+            bool(item.get("upperLimit")),
+            float(item.get("changeRate", 0.0) or 0.0),
+            int(item.get("volumeAmount", 0) or 0),
+        ),
+        reverse=True,
+    )
+
+    deduped: list[dict] = []
+    seen_names: set[str] = set()
+    for mover in ordered:
+        name = (mover.get("name") or "").strip()
+        if not name or name in seen_names:
+            continue
+        seen_names.add(name)
+        deduped.append(mover)
+        if len(deduped) >= limit:
+            break
+
+    return deduped
+
+
+def _build_infostock_stock_match_request(user_prompt: str) -> dict:
+    request = {
+        "model": _get_theme_analysis_model(),
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "당신은 한국 주식 장중 급등주와 테마를 연결하는 분석가입니다. "
+                    "주어진 테마와 급등주 후보를 보고 실제 연관성이 높은 종목만 고르세요. "
+                    "정확도가 낮으면 적게 고르고, 억지 매칭은 하지 마세요. "
+                    "응답은 반드시 JSON 객체로만 반환하세요."
+                ),
+            },
+            {"role": "user", "content": user_prompt},
+        ],
+        "response_format": {"type": "json_object"},
+    }
+
+    model_name = request["model"]
+    if model_name.startswith("gpt-5"):
+        request["max_completion_tokens"] = 1200
+        request["reasoning_effort"] = "minimal"
+    else:
+        request["temperature"] = 0.1
+        request["max_tokens"] = 900
+
+    return request
+
+
+def _fallback_infostock_stock_match(
+    signal: dict,
+    movers: list[dict],
+    stock_theme_hints: dict[str, list[str]],
+) -> list[str]:
+    matched: list[str] = []
+    for mover in movers:
+        stock_name = mover.get("name", "")
+        if not stock_name:
+            continue
+        hinted_themes = stock_theme_hints.get(stock_name, [])
+        if any(_themes_are_similar(signal.get("themeName", ""), hint) for hint in hinted_themes):
+            matched.append(stock_name)
+        if len(matched) >= 4:
+            break
+    return matched[:4]
+
+
+def _match_infostock_stocks_with_llm(
+    client: OpenAI,
+    signal: dict,
+    movers: list[dict],
+    stock_theme_hints: dict[str, list[str]],
+) -> dict:
+    reference_stock_names = {
+        stock_name.strip()
+        for stock_name in signal.get("referenceStocks", []) or []
+        if stock_name and stock_name.strip()
+    }
+    candidate_movers = [
+        mover for mover in movers
+        if (mover.get("name") or "").strip() in reference_stock_names
+    ]
+    effective_movers = candidate_movers or movers
+
+    mover_lines: list[str] = []
+    allowed_names: list[str] = []
+    for idx, mover in enumerate(effective_movers, 1):
+        stock_name = (mover.get("name") or "").strip()
+        if not stock_name:
+            continue
+        allowed_names.append(stock_name)
+        hinted = ", ".join(stock_theme_hints.get(stock_name, [])[:3]) or "없음"
+        upper_limit = "상한가" if mover.get("upperLimit") else "일반급등"
+        mover_lines.append(
+            f"{idx}. {stock_name} | 등락률 {float(mover.get('changeRate', 0.0) or 0.0):+.2f}%"
+            f" | {upper_limit} | 힌트 테마: {hinted}"
+        )
+
+    user_prompt = "\n".join(
+        [
+            f"테마명: {signal.get('themeName', '')}",
+            f"원문 테마명: {signal.get('rawThemeName', signal.get('themeName', ''))}",
+            (
+                "인포스탁 공개 테마표 교집합 후보: "
+                + (", ".join(sorted(reference_stock_names)) or "없음")
+            ),
+            "",
+            "아래 급등종목 후보 중 이 테마와 실제 연관성이 높은 한국 상장 종목만 최대 4개 고르세요.",
+            "규칙:",
+            "- 반드시 아래 후보 종목명 중에서만 선택하세요.",
+            "- 정확한 근거가 약하면 0~3개만 선택해도 됩니다.",
+            "- 투자지주/벤처투자/바이오/AI 같은 범용 이름만 보고 억지로 넣지 마세요.",
+            "- 테마와 직접 연결되는 사업/재료/섹터인 경우만 고르세요.",
+            "- 인포스탁 공개 테마표 교집합 후보가 있으면 우선적으로 검토하세요.",
+            "",
+            "급등종목 후보:",
+            *mover_lines,
+            "",
+            '응답 형식: {"matchedStocks":["종목1","종목2"],"reasoning":"한 줄 설명"}',
+        ]
+    )
+
+    matched_stocks: list[str] = []
+    reasoning = ""
+    try:
+        response = client.chat.completions.create(**_build_infostock_stock_match_request(user_prompt))
+        payload = json.loads(response.choices[0].message.content or "{}")
+        reasoning = (payload.get("reasoning") or "").strip()
+        for stock_name in payload.get("matchedStocks", []) or []:
+            if stock_name in allowed_names and stock_name not in matched_stocks:
+                matched_stocks.append(stock_name)
+            if len(matched_stocks) >= 4:
+                break
+    except Exception as e:
+        print(
+            f"  [!] 인포스탁 급등주 매칭 실패 ({signal.get('themeName', '')}): {e}"
+        )
+
+    if reference_stock_names:
+        preferred_matched = [stock for stock in matched_stocks if stock in reference_stock_names]
+        if preferred_matched:
+            matched_stocks = preferred_matched[:4]
+        elif candidate_movers:
+            matched_stocks = [
+                (mover.get("name") or "").strip()
+                for mover in candidate_movers
+                if (mover.get("name") or "").strip()
+            ][:4]
+            if not reasoning:
+                reasoning = "인포스탁 공개 테마표와 급등주 교집합 후보를 우선 반영했습니다."
+
+    if not matched_stocks:
+        matched_stocks = _fallback_infostock_stock_match(signal, movers, stock_theme_hints)
+        if matched_stocks and not reasoning:
+            reasoning = "가격 기반 테마 후보와 겹치는 급등주를 fallback으로 연결했습니다."
+
+    enriched = dict(signal)
+    enriched["matchedStocks"] = matched_stocks[:4]
+    enriched["matchReasoning"] = reasoning
+    return enriched
+
+
+def _match_infostock_signals_with_movers(
+    client: OpenAI,
+    infostock_signals: list[dict],
+    price_signal_payload: dict,
+) -> list[dict]:
+    if not infostock_signals:
+        return []
+
+    movers = _select_infostock_match_movers(price_signal_payload)
+    stock_theme_hints = _build_price_signal_stock_hint_map(price_signal_payload)
+    if not movers:
+        print("  [!] 인포스탁 급등주 매칭용 movers 데이터가 없습니다.")
+        return [{**signal, "matchedStocks": [], "matchReasoning": ""} for signal in infostock_signals]
+
+    matched_signals: list[dict] = []
+    for signal in infostock_signals:
+        enriched = _match_infostock_stocks_with_llm(
+            client=client,
+            signal=signal,
+            movers=movers,
+            stock_theme_hints=stock_theme_hints,
+        )
+        stocks_text = ", ".join(enriched.get("matchedStocks", [])) or "매치 없음"
+        print(
+            f"  [▲] 인포스탁 '{enriched.get('themeName', '')}' 급등주 매치 → {stocks_text}"
+        )
+        matched_signals.append(enriched)
+
+    return matched_signals
 
 
 def _extract_meaningful_terms(text: str) -> list[str]:
@@ -883,6 +1241,33 @@ def _get_price_signal_payload() -> dict:
         return {}
 
 
+def _get_infostock_signals() -> list[dict]:
+    """인포스탁 장중 강세 테마 상위 3개를 수집합니다."""
+    try:
+        themes = fetch_infostock_top_themes(top_n=3)
+    except Exception as e:
+        print(f"  [!] 인포스탁 시그널 수집 실패: {e}")
+        themes = []
+
+    if themes:
+        payload = build_infostock_payload(themes)
+        try:
+            save_infostock_payload(payload)
+        except Exception as e:
+            print(f"  [!] 인포스탁 시그널 저장 실패: {e}")
+        return themes
+
+    try:
+        cached = load_infostock_payload()
+        if cached:
+            print("  [!] 캐시에서 인포스탁 데이터 로드")
+            return cached.get("themes", [])
+    except Exception as e:
+        print(f"  [!] 인포스탁 캐시 로드 실패: {e}")
+
+    return []
+
+
 def _get_antwinner_signals() -> list[dict]:
     """개미승리 실시간 상위 5개 테마 시그널을 수집합니다."""
     try:
@@ -936,6 +1321,27 @@ def _is_antwinner_weighted_article(article: dict, antwinner_keywords: set[str]) 
     return any(keyword in haystack for keyword in antwinner_keywords)
 
 
+def _get_infostock_keywords(infostock_signals: list[dict]) -> set[str]:
+    keywords = set()
+    for theme in infostock_signals:
+        theme_name = theme.get("themeName", "")
+        raw_theme_name = theme.get("rawThemeName", "")
+        if theme_name:
+            keywords.add(theme_name)
+        if raw_theme_name:
+            keywords.add(raw_theme_name)
+    return {keyword for keyword in keywords if keyword}
+
+
+def _is_infostock_weighted_article(article: dict, infostock_keywords: set[str]) -> bool:
+    haystack = " ".join([
+        article.get("title", ""),
+        article.get("summary", ""),
+        article.get("source", ""),
+    ])
+    return any(keyword in haystack for keyword in infostock_keywords)
+
+
 def _get_youtube_keywords(youtube_signals: list[dict]) -> set[str]:
     keywords = set()
     for signal in youtube_signals:
@@ -975,6 +1381,21 @@ def format_antwinner_signals_for_prompt(antwinner_signals: list[dict]) -> str:
         lines.append(
             f"  {i}. [{thema}] 평균등락률 {avg_rate:+.2f}% | 상승비율 {rising_ratio}"
             f" | 종목: {stocks_str}"
+        )
+    return "\n".join(lines)
+
+
+def format_infostock_signals_for_prompt(infostock_signals: list[dict]) -> str:
+    if not infostock_signals:
+        return "개미승리 중복 제거 후 남은 테마 없음"
+
+    lines = []
+    for signal in infostock_signals:
+        matched_stocks = ", ".join(signal.get("matchedStocks", [])) or "GPT 매치 없음"
+        lines.append(
+            f"  {signal.get('rank', 0)}. [{signal.get('themeName', '')}]"
+            f" | 원문: {signal.get('rawThemeName', '')}"
+            f" | 급등주 매치: {matched_stocks}"
         )
     return "\n".join(lines)
 
@@ -1117,13 +1538,138 @@ def _build_theme_from_price_candidate(candidate: dict, articles: list[dict]) -> 
     }
 
 
+def _build_theme_from_infostock_signal(signal: dict, articles: list[dict]) -> dict:
+    article_idx = _find_representative_article_index(
+        articles,
+        {
+            "themeName": signal.get("themeName", ""),
+            "matchedStocks": list(signal.get("matchedStocks", []))[:4],
+            "matchedArticles": [],
+        },
+    )
+    headline = f"인포스탁 장중 강세 {signal.get('themeName', '')}"
+    return {
+        "themeName": signal.get("themeName", ""),
+        "headline": headline[:50],
+        "representativeArticleIndex": article_idx,
+        "relatedStocks": list(signal.get("matchedStocks", []))[:4],
+        "reasoning": (
+            f"인포스탁 장중 강세 {signal.get('rank', 0)}위 테마"
+            f" ({signal.get('rawThemeName', signal.get('themeName', ''))})"
+        ),
+        "injectedByPostProcess": True,
+        "source": "infostock",
+        "_from_infostock": True,
+    }
+
+
+def _find_infostock_replaceable_theme_index(themes: list[dict], signal: dict) -> int | None:
+    replaceable = {_normalize_theme_name(name) for name in POSTPROCESS_REPLACEABLE_THEMES}
+    signal_name = signal.get("themeName", "")
+
+    for idx, theme in enumerate(themes):
+        if theme.get("_from_antwinner") or theme.get("_from_infostock"):
+            continue
+        normalized = _normalize_theme_name(theme.get("themeName", ""))
+        if normalized in replaceable:
+            return idx
+
+    fallback_idx = None
+    fallback_score = float("inf")
+    for idx, theme in enumerate(themes):
+        theme_name = theme.get("themeName", "")
+        if theme.get("_from_antwinner") or theme.get("_from_infostock"):
+            continue
+        if _themes_are_similar(signal_name, theme_name):
+            continue
+        stock_count = len(theme.get("relatedStocks", []))
+        score = stock_count * 10
+        if theme.get("source") == "price_signals":
+            score += 5
+        if score < fallback_score:
+            fallback_score = score
+            fallback_idx = idx
+
+    return fallback_idx
+
+
+def apply_infostock_priority_postprocess(
+    result: dict,
+    infostock_signals: list[dict],
+    articles: list[dict],
+) -> dict:
+    themes = list(result.get("themes", []))
+    if not themes or not infostock_signals:
+        return result
+
+    for signal in infostock_signals:
+        if not signal.get("matchedStocks"):
+            print(
+                f"  [▲] 인포스탁 '{signal.get('themeName', '')}'는 급등주 매치가 없어 주입을 건너뜁니다."
+            )
+            continue
+
+        matched_idx = next(
+            (
+                idx
+                for idx, theme in enumerate(themes)
+                if _themes_are_similar(signal.get("themeName", ""), theme.get("themeName", ""))
+            ),
+            None,
+        )
+
+        if matched_idx is not None:
+            themes[matched_idx]["themeName"] = signal.get("themeName", themes[matched_idx].get("themeName", ""))
+            themes[matched_idx]["headline"] = f"인포스탁 장중 강세 {signal.get('themeName', '')}"[:50]
+            themes[matched_idx]["relatedStocks"] = list(signal.get("matchedStocks", []))[:4]
+            themes[matched_idx]["reasoning"] = (
+                f"인포스탁 장중 강세 {signal.get('rank', 0)}위 테마"
+                f" ({signal.get('rawThemeName', signal.get('themeName', ''))})"
+            )
+            themes[matched_idx]["_from_infostock"] = True
+            themes[matched_idx]["source"] = "infostock"
+            print(
+                f"  [▲] 인포스탁 '{signal.get('themeName', '')}' 이미 포함 → 급등주 매치로 종목 교체"
+            )
+            continue
+
+        replace_idx = _find_infostock_replaceable_theme_index(themes, signal)
+        if replace_idx is None:
+            if len(themes) >= 7:
+                print(f"  [!] 인포스탁 '{signal.get('themeName', '')}'를 삽입할 슬롯이 없습니다.")
+                continue
+            themes.append(_build_theme_from_infostock_signal(signal, articles))
+            print(f"  [▲] 인포스탁 '{signal.get('themeName', '')}'를 신규 추가했습니다.")
+            continue
+
+        replaced_name = themes[replace_idx].get("themeName", "")
+        themes[replace_idx] = _build_theme_from_infostock_signal(signal, articles)
+        themes[replace_idx]["replacedThemeName"] = replaced_name
+        print(
+            f"  [▲] 인포스탁 '{signal.get('themeName', '')}'를 반영하며 "
+            f"'{replaced_name}' 테마를 교체했습니다."
+        )
+
+    result["themes"] = themes
+    return result
+
+
+def _prioritize_external_signal_themes(themes: list[dict]) -> list[dict]:
+    return sorted(
+        themes,
+        key=lambda theme: (
+            0 if theme.get("_from_antwinner") else 1 if theme.get("_from_infostock") else 2
+        ),
+    )
+
+
 def _find_replaceable_theme_index(themes: list[dict], price_candidates: list[dict]) -> int | None:
     candidate_names = {_normalize_theme_name(item.get("themeName", "")) for item in price_candidates[:6]}
     replaceable = {_normalize_theme_name(name) for name in POSTPROCESS_REPLACEABLE_THEMES}
 
     for idx, theme in enumerate(themes):
         # 개미승리 테마는 교체 불가
-        if theme.get("_from_antwinner"):
+        if theme.get("_from_antwinner") or theme.get("_from_infostock"):
             continue
         normalized = _normalize_theme_name(theme.get("themeName", ""))
         if normalized in replaceable:
@@ -1134,7 +1680,7 @@ def _find_replaceable_theme_index(themes: list[dict], price_candidates: list[dic
     for idx, theme in enumerate(themes):
         normalized = _normalize_theme_name(theme.get("themeName", ""))
         # 개미승리 테마, price_signal 후보와 동명 테마는 교체 불가
-        if theme.get("_from_antwinner"):
+        if theme.get("_from_antwinner") or theme.get("_from_infostock"):
             continue
         if normalized in candidate_names:
             continue
@@ -1293,11 +1839,14 @@ def sort_articles_for_prompt(
     articles: list[dict],
     youtube_signals: list[dict] | None = None,
     antwinner_signals: list[dict] | None = None,
+    infostock_signals: list[dict] | None = None,
 ) -> list[dict]:
     youtube_keywords = _get_youtube_keywords(youtube_signals or [])
     antwinner_keywords = _get_antwinner_keywords(antwinner_signals or [])
+    infostock_keywords = _get_infostock_keywords(infostock_signals or [])
 
     antwinner_priority = []
+    infostock_priority = []
     youtube_priority = []
     priority = []
     normal = []
@@ -1305,6 +1854,8 @@ def sort_articles_for_prompt(
         title = article.get("title", "").strip()
         if _is_antwinner_weighted_article(article, antwinner_keywords):
             antwinner_priority.append(article)
+        elif _is_infostock_weighted_article(article, infostock_keywords):
+            infostock_priority.append(article)
         elif _is_youtube_weighted_article(article, youtube_keywords):
             youtube_priority.append(article)
         elif _is_priority_article(title):
@@ -1312,13 +1863,14 @@ def sort_articles_for_prompt(
         else:
             normal.append(article)
 
-    return antwinner_priority + youtube_priority + priority + normal
+    return antwinner_priority + infostock_priority + youtube_priority + priority + normal
 
 
 def format_articles_for_prompt(
     articles: list[dict],
     youtube_signals: list[dict] | None = None,
     antwinner_signals: list[dict] | None = None,
+    infostock_signals: list[dict] | None = None,
 ) -> str:
     """
     기사 리스트를 프롬프트에 넣을 텍스트로 변환합니다.
@@ -1328,16 +1880,29 @@ def format_articles_for_prompt(
     """
     youtube_keywords = _get_youtube_keywords(youtube_signals or [])
     antwinner_keywords = _get_antwinner_keywords(antwinner_signals or [])
-    sorted_articles = sort_articles_for_prompt(articles, youtube_signals, antwinner_signals)
+    infostock_keywords = _get_infostock_keywords(infostock_signals or [])
+    sorted_articles = sort_articles_for_prompt(
+        articles,
+        youtube_signals,
+        antwinner_signals,
+        infostock_signals,
+    )
     antwinner_priority_count = sum(1 for article in sorted_articles if _is_antwinner_weighted_article(article, antwinner_keywords))
+    infostock_priority_count = sum(
+        1 for article in sorted_articles
+        if not _is_antwinner_weighted_article(article, antwinner_keywords)
+        and _is_infostock_weighted_article(article, infostock_keywords)
+    )
     youtube_priority_count = sum(
         1 for article in sorted_articles
         if not _is_antwinner_weighted_article(article, antwinner_keywords)
+        and not _is_infostock_weighted_article(article, infostock_keywords)
         and _is_youtube_weighted_article(article, youtube_keywords)
     )
     priority_count = sum(
         1 for article in sorted_articles
         if not _is_antwinner_weighted_article(article, antwinner_keywords)
+        and not _is_infostock_weighted_article(article, infostock_keywords)
         and not _is_youtube_weighted_article(article, youtube_keywords)
         and _is_priority_article(article.get("title", "").strip())
     )
@@ -1347,9 +1912,12 @@ def format_articles_for_prompt(
         title = article.get("title", "").strip()
         summary = article.get("summary", "").strip()
         is_antwinner_weighted = _is_antwinner_weighted_article(article, antwinner_keywords)
+        is_infostock_weighted = _is_infostock_weighted_article(article, infostock_keywords)
         is_youtube_weighted = _is_youtube_weighted_article(article, youtube_keywords)
         if is_antwinner_weighted:
             marker = "●"
+        elif is_infostock_weighted:
+            marker = "▲"
         elif is_youtube_weighted:
             marker = "◆"
         elif _is_priority_article(title):
@@ -1363,6 +1931,8 @@ def format_articles_for_prompt(
 
     if antwinner_priority_count:
         print(f"  [●] 개미승리 테마 연관 기사 {antwinner_priority_count}개를 최상단에 배치했습니다.")
+    if infostock_priority_count:
+        print(f"  [▲] 인포스탁 테마 연관 기사 {infostock_priority_count}개를 상단 우선 배치했습니다.")
     if youtube_priority_count:
         print(f"  [◆] 유튜브 시그널 연관 기사 {youtube_priority_count}개를 최상단에 배치했습니다.")
     if priority_count:
@@ -1537,20 +2107,39 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
     client = get_openai_client()
 
     antwinner_signals = _get_antwinner_signals()
+    infostock_signals = _get_infostock_signals()
+    infostock_signals = _prune_infostock_signals_against_antwinner(infostock_signals, antwinner_signals)
     youtube_signals = _get_youtube_signals()
     telegram_signals = _get_telegram_signals()
     price_signal_payload = _get_price_signal_payload()
-    sorted_articles = sort_articles_for_prompt(articles, youtube_signals, antwinner_signals)
+    infostock_signals = _match_infostock_signals_with_movers(
+        client=client,
+        infostock_signals=infostock_signals,
+        price_signal_payload=price_signal_payload,
+    )
+    sorted_articles = sort_articles_for_prompt(
+        articles,
+        youtube_signals,
+        antwinner_signals,
+        infostock_signals,
+    )
     antwinner_text = format_antwinner_signals_for_prompt(antwinner_signals)
+    infostock_text = format_infostock_signals_for_prompt(infostock_signals)
     youtube_text = format_youtube_signals_for_prompt(youtube_signals)
     telegram_text = format_telegram_signals_for_prompt(telegram_signals)
     price_signal_text = format_price_signal_candidates_for_prompt(price_signal_payload)
     candidate_text = format_theme_candidates_for_prompt(articles, telegram_signals)
-    articles_text = format_articles_for_prompt(articles, youtube_signals, antwinner_signals)
+    articles_text = format_articles_for_prompt(
+        articles,
+        youtube_signals,
+        antwinner_signals,
+        infostock_signals,
+    )
     user_prompt = USER_PROMPT_TEMPLATE.format(
         date=date_str,
         count=len(articles),
         antwinner_text=antwinner_text,
+        infostock_text=infostock_text,
         youtube_text=youtube_text,
         telegram_text=telegram_text,
         price_signal_text=price_signal_text,
@@ -1573,14 +2162,17 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
         result = json.loads(result_text)
         result["antwinnerSignals"] = antwinner_signals
+        result["infostockSignals"] = infostock_signals
         result["youtubeSignals"] = youtube_signals
         result["telegramSignals"] = telegram_signals
         result["priceSignalPayload"] = price_signal_payload
         result["priceSignalCandidates"] = price_signal_payload.get("candidates", [])
         # ── 개미승리 상위 2개 테마 강제 포함 후처리 (price_signals보다 먼저!) ──
         result = _apply_antwinner_top2_postprocess(result, antwinner_signals)
+        result = apply_infostock_priority_postprocess(result, infostock_signals, sorted_articles)
 
         result = apply_price_signal_postprocess(result, sorted_articles)
+        result["themes"] = _prioritize_external_signal_themes(list(result.get("themes", [])))
 
         # 검증: themes 키 존재 및 5개인지
         if "themes" not in result:
@@ -1611,6 +2203,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
                 print(f"  [!] 테마 '{theme.get('themeName')}'의 관련 종목이 부족합니다.")
 
             theme.pop("_from_antwinner", False)
+            theme.pop("_from_infostock", False)
             _bind_verified_headline(theme, sorted_articles, used_article_indices, used_headline_urls)
 
         print(f"\n[INFO] 추출된 테마:")
