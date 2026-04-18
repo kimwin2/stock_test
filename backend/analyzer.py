@@ -868,23 +868,34 @@ def _match_infostock_signals_with_movers(
     if not infostock_signals:
         return []
 
-    movers = _select_infostock_match_movers(price_signal_payload)
-    stock_theme_hints = _build_price_signal_stock_hint_map(price_signal_payload)
-    if not movers:
-        print("  [!] 인포스탁 급등주 매칭용 movers 데이터가 없습니다.")
-        return [{**signal, "matchedStocks": [], "matchReasoning": ""} for signal in infostock_signals]
+    # 인포스탁 공개 테마표에서 수집한 대표 종목을 그대로 사용합니다.
+    # 급등주/GPT 매칭은 보조 실험 경로로 남겨두되, 운영 파이프라인에서는 쓰지 않습니다.
+    _ = client
+    _ = price_signal_payload
 
     matched_signals: list[dict] = []
     for signal in infostock_signals:
-        enriched = _match_infostock_stocks_with_llm(
-            client=client,
-            signal=signal,
-            movers=movers,
-            stock_theme_hints=stock_theme_hints,
+        matched_stocks: list[str] = []
+        seen: set[str] = set()
+        for stock_name in signal.get("referenceStocks", []) or []:
+            normalized = (stock_name or "").strip()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            matched_stocks.append(normalized)
+            if len(matched_stocks) >= 4:
+                break
+
+        enriched = dict(signal)
+        enriched["matchedStocks"] = matched_stocks
+        enriched["matchReasoning"] = (
+            "인포스탁 공개 테마표 대표 종목을 우선 반영했습니다."
+            if matched_stocks
+            else ""
         )
         stocks_text = ", ".join(enriched.get("matchedStocks", [])) or "매치 없음"
         print(
-            f"  [▲] 인포스탁 '{enriched.get('themeName', '')}' 급등주 매치 → {stocks_text}"
+            f"  [▲] 인포스탁 '{enriched.get('themeName', '')}' 공개 종목표 → {stocks_text}"
         )
         matched_signals.append(enriched)
 
@@ -1391,11 +1402,11 @@ def format_infostock_signals_for_prompt(infostock_signals: list[dict]) -> str:
 
     lines = []
     for signal in infostock_signals:
-        matched_stocks = ", ".join(signal.get("matchedStocks", [])) or "GPT 매치 없음"
+        matched_stocks = ", ".join(signal.get("matchedStocks", [])) or "인포스탁 종목 없음"
         lines.append(
             f"  {signal.get('rank', 0)}. [{signal.get('themeName', '')}]"
             f" | 원문: {signal.get('rawThemeName', '')}"
-            f" | 급등주 매치: {matched_stocks}"
+            f" | 인포스탁 종목: {matched_stocks}"
         )
     return "\n".join(lines)
 
@@ -1605,7 +1616,7 @@ def apply_infostock_priority_postprocess(
     for signal in infostock_signals:
         if not signal.get("matchedStocks"):
             print(
-                f"  [▲] 인포스탁 '{signal.get('themeName', '')}'는 급등주 매치가 없어 주입을 건너뜁니다."
+                f"  [▲] 인포스탁 '{signal.get('themeName', '')}'는 공개 종목표가 없어 주입을 건너뜁니다."
             )
             continue
 
@@ -1629,7 +1640,7 @@ def apply_infostock_priority_postprocess(
             themes[matched_idx]["_from_infostock"] = True
             themes[matched_idx]["source"] = "infostock"
             print(
-                f"  [▲] 인포스탁 '{signal.get('themeName', '')}' 이미 포함 → 급등주 매치로 종목 교체"
+                f"  [▲] 인포스탁 '{signal.get('themeName', '')}' 이미 포함 → 공개 종목표 기준으로 종목 교체"
             )
             continue
 
