@@ -12,7 +12,7 @@
         "랩지노믹스",
         "엑세스바이오"
       ],
-      "reasoning": "개미승리 상위 테마(진단키트)와 가격기반 급등군이 겹쳐 거래대금·등락률이 크게 형성되어 우선 반영.",
+      "reasoning": "개미승리·가격기반 시그널과 기사(1번 등)가 반복적으로 진단키트·백신·분자진단 재료를 지목, 거래대금·등락률 강하게 형성되어 테마 선정.",
       "_antwinner_stock_codes": {
         "셀리드": "299660",
         "진원생명과학": "011000",
@@ -63,15 +63,15 @@
       "headlineLinkConfidence": "verified"
     },
     {
-      "themeName": "니파",
-      "headline": "니파바이러스 공포 재부각에 관련 바이오주 대량 급등",
+      "themeName": "니파바이러스",
+      "headline": "코로나 19 ‘시카다 변이’가 뭔데? 확산 상황, 전망 살펴보면…😷🦠 - 뉴닉",
       "representativeArticleIndex": 0,
       "relatedStocks": [
         "신풍제약",
         "그린생명과학",
         "우정바이오"
       ],
-      "reasoning": "개미승리에서 니파바이러스가 상위에 있고 관련 백신·치료 기대감으로 특정 바이오주들이 급등해 별도 테마로 반영.",
+      "reasoning": "개미승리 상위(니파바이러스)에서 높은 등락률 관측되고 뉴스가 진단·백신 군과 겹쳐 별도 테마로 반영.",
       "_antwinner_stock_codes": {
         "셀리드": "299660",
         "진원생명과학": "011000",
@@ -95,11 +95,22 @@
       },
       "headlineLinks": [
         {
-          "url": "https://news.google.com/search?q=%EB%8B%88%ED%8C%8C%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
-          "title": "니파 관련주 Google 뉴스 검색",
+          "url": "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1NZjdmQXRVOFpFamZIX2hkUFJmQVpSSmQ5eUdMbFFZNGpsQUtMZ1BqY2Vfb21LallDOXJYbWxnUEduU3BscXNseEdnMGg2YnBYYmo4?oc=5",
+          "title": "코로나 19 ‘시카다 변이’가 뭔데? 확산 상황, 전망 살펴보면…😷🦠 - 뉴닉",
+          "sourceType": "google_news_result",
+          "confidence": "fallback",
+          "query": "니파바이러스",
+          "articleIndex": 0,
+          "sourceName": "뉴닉",
+          "publishedAt": "Fri, 17 Apr 2026 06:36:09 GMT",
+          "matchScore": 0.0
+        },
+        {
+          "url": "https://news.google.com/search?q=%EB%8B%88%ED%8C%8C%EB%B0%94%EC%9D%B4%EB%9F%AC%EC%8A%A4&hl=ko&gl=KR&ceid=KR:ko",
+          "title": "니파바이러스 Google 뉴스 검색",
           "sourceType": "google_news_search",
           "confidence": "fallback",
-          "query": "니파 관련주",
+          "query": "니파바이러스",
           "articleIndex": 0,
           "sourceName": "",
           "publishedAt": "",
@@ -107,18 +118,18 @@
         }
       ],
       "headlineLink": {
-        "url": "https://news.google.com/search?q=%EB%8B%88%ED%8C%8C%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
-        "title": "니파 관련주 Google 뉴스 검색",
-        "sourceType": "google_news_search",
+        "url": "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1NZjdmQXRVOFpFamZIX2hkUFJmQVpSSmQ5eUdMbFFZNGpsQUtMZ1BqY2Vfb21LallDOXJYbWxnUEduU3BscXNseEdnMGg2YnBYYmo4?oc=5",
+        "title": "코로나 19 ‘시카다 변이’가 뭔데? 확산 상황, 전망 살펴보면…😷🦠 - 뉴닉",
+        "sourceType": "google_news_result",
         "confidence": "fallback",
-        "query": "니파 관련주",
+        "query": "니파바이러스",
         "articleIndex": 0,
-        "sourceName": "",
-        "publishedAt": "",
+        "sourceName": "뉴닉",
+        "publishedAt": "Fri, 17 Apr 2026 06:36:09 GMT",
         "matchScore": 0.0
       },
-      "headlineUrl": "https://news.google.com/search?q=%EB%8B%88%ED%8C%8C%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
-      "headlineLinkSource": "google_news_search",
+      "headlineUrl": "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1NZjdmQXRVOFpFamZIX2hkUFJmQVpSSmQ5eUdMbFFZNGpsQUtMZ1BqY2Vfb21LallDOXJYbWxnUEduU3BscXNseEdnMGg2YnBYYmo4?oc=5",
+      "headlineLinkSource": "google_news_result",
       "headlineLinkConfidence": "fallback"
     },
     {
@@ -126,8 +137,10 @@
       "headline": "스페이스X 품을 우주 ETF 떴다…‘패시브’로 담을까? ‘액티브’로 담을까?[ETF언박싱]",
       "representativeArticleIndex": 3,
       "relatedStocks": [
+        "와이제이링크",
+        "미래에셋벤처투자",
         "나노팀",
-        "미래에셋벤처투자"
+        "에이치브이엠"
       ],
       "reasoning": "인포스탁 장중 강세 1위 테마 (스페이스X(SpaceX))",
       "_antwinner_stock_codes": {
@@ -181,58 +194,25 @@
       "headlineLinkConfidence": "verified"
     },
     {
-      "themeName": "백신·바이오(백신·유전자치료·진단 연관)",
-      "headline": "코로나 변이 확산에 신풍제약 주가 한때 26% 급등 - 메디칼업저버",
+      "themeName": "백신·분자진단·면역치료(바이오플랫폼·진단키트)",
+      "headline": "백신·분자진단·면역치료(바이오플랫폼·진단키트) 테마 강세",
       "representativeArticleIndex": 0,
       "relatedStocks": [
         "기가레인",
         "조이웍스앤코",
         "링크드"
       ],
-      "reasoning": "셀리드·진원생명과학·수젠텍은 백신·바이오의약(개발·위탁생산) 관련 기업이며, 랩지노믹스·엑세스바이오는 분자진단·진단키트 업체다. 오늘 시장에서는 감염병·임상·허가·검사 수요 같은 공통 재료로 바이오(백신/치료제)와 진단주가 동반 급등한 것으로 보임. (모두 바이오·진단·의약 관련 업종으로 분류 가능) 급등주 8종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 8개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다. 연관 기사 1건이 감지됐습니다.",
+      "reasoning": "셀리드(면역치료·백신 플랫폼), 진원생명과학(DNA 백신·플랫폼 기업), 수젠텍(분자진단·체외진단 기술), 엑세스바이오(진단키트 제조)는 모두 백신 개발 플랫폼 및 분자진단/진단키트 중심의 사업 모델을 가지고 있어 동일한 시장 재료(백신·진단 관련 뉴스·임상·수출 등)에 동반 반응할 가능성이 높음. seedThemes의 바이오/백신 군에서 임상·진단 관련 종목들을 통합해 범위를 구체화함. 급등주 8종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 8개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다.",
       "injectedByPostProcess": true,
       "source": "price_signals",
-      "replacedThemeName": "백신",
+      "replacedThemeName": "반도체",
       "headlineLinks": [
         {
-          "url": "https://news.google.com/rss/articles/CBMia0FVX3lxTE5Rd0p4aS1xeWxMbFlLMTAxQkdXcC1MRWxMd1FRQjRSbW1vWG92V2VneUZKa212SkZhR1llbkw5TDFyT1pYNzZHMFBwN0pFaVhyLUZLempxS3ZuZUtobDFEYzdCZnpva2syc1Q0?oc=5",
-          "title": "코로나 변이 확산에 신풍제약 주가 한때 26% 급등 - 메디칼업저버",
-          "sourceType": "google_news_result",
-          "confidence": "fallback",
-          "query": "백신·바이오(백신·유전자치료·진단 연관) 관련주",
-          "articleIndex": 0,
-          "sourceName": "메디칼업저버",
-          "publishedAt": "Fri, 17 Apr 2026 03:01:28 GMT",
-          "matchScore": 0.0
-        },
-        {
-          "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxOemViaFRNMVJieTZ0alE2U0IzVzJ4ajBKVjZsbkJpSkdFMmhaY1VyZVk4dms3VXZqS1Bxd29LRTVpYTA1c3liZWg0U0UyNmF0RGNQQkdIYmhqcHNDY09CNTctYnFVM09GMzVLREpHamplWVdEYkk4TXZuN195ajk2RUxmcWVkQQ?oc=5",
-          "title": "코스피, 0.55% 하락한 6191.92 마감...삼성전자·SK하이닉스 약세 - 글로벌이코노믹",
-          "sourceType": "google_news_result",
-          "confidence": "fallback",
-          "query": "백신·바이오(백신·유전자치료·진단 연관) 관련주",
-          "articleIndex": 0,
-          "sourceName": "글로벌이코노믹",
-          "publishedAt": "Fri, 17 Apr 2026 06:56:29 GMT",
-          "matchScore": 0.0
-        },
-        {
-          "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBHWUhEX0dfUl8wVmJFc283dXp2S0RyZjU3YnpCaVV2d2Nkb1Vfa1N5dXBjdnQ4akY0dTFyZUZSbmFXZ21DTmpnRW5EMThsdVdjUWo0YUYybTVscC02bTRzaTNXVjh2aVFRTGt2TlV30gFuQVVfeXFMUEdZSERfR19SXzBWYkVzbzd1enZLRHJmNTdiekJpVXZ3Y2RvVV9rU3l1cGN2dDhqRjR1MXJlRlJuYVdnbUNOamdFbkQxOGx1V2NRajRhRjJtNWxwLTZtNHNpM1dWOHZpUVFMa3ZOVXc?oc=5",
-          "title": "코로나 변이 백신·진단키트 테마에 제약 관련株 '들썩' - 머니투데이 - mt.co.kr",
-          "sourceType": "google_news_result",
-          "confidence": "fallback",
-          "query": "백신·바이오(백신·유전자치료·진단 연관) 코로나 변이",
-          "articleIndex": 0,
-          "sourceName": "mt.co.kr",
-          "publishedAt": "Fri, 17 Apr 2026 07:45:09 GMT",
-          "matchScore": 0.0
-        },
-        {
-          "url": "https://news.google.com/search?q=%EB%B0%B1%EC%8B%A0%C2%B7%EB%B0%94%EC%9D%B4%EC%98%A4%28%EB%B0%B1%EC%8B%A0%C2%B7%EC%9C%A0%EC%A0%84%EC%9E%90%EC%B9%98%EB%A3%8C%C2%B7%EC%A7%84%EB%8B%A8%20%EC%97%B0%EA%B4%80%29%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
-          "title": "백신·바이오(백신·유전자치료·진단 연관) 관련주 Google 뉴스 검색",
+          "url": "https://news.google.com/search?q=%EB%B0%B1%EC%8B%A0%C2%B7%EB%B6%84%EC%9E%90%EC%A7%84%EB%8B%A8%C2%B7%EB%A9%B4%EC%97%AD%EC%B9%98%EB%A3%8C%28%EB%B0%94%EC%9D%B4%EC%98%A4%ED%94%8C%EB%9E%AB%ED%8F%BC%C2%B7%EC%A7%84%EB%8B%A8%ED%82%A4%ED%8A%B8%29%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+          "title": "백신·분자진단·면역치료(바이오플랫폼·진단키트) 관련주 Google 뉴스 검색",
           "sourceType": "google_news_search",
           "confidence": "fallback",
-          "query": "백신·바이오(백신·유전자치료·진단 연관) 관련주",
+          "query": "백신·분자진단·면역치료(바이오플랫폼·진단키트) 관련주",
           "articleIndex": 0,
           "sourceName": "",
           "publishedAt": "",
@@ -240,157 +220,72 @@
         }
       ],
       "headlineLink": {
-        "url": "https://news.google.com/rss/articles/CBMia0FVX3lxTE5Rd0p4aS1xeWxMbFlLMTAxQkdXcC1MRWxMd1FRQjRSbW1vWG92V2VneUZKa212SkZhR1llbkw5TDFyT1pYNzZHMFBwN0pFaVhyLUZLempxS3ZuZUtobDFEYzdCZnpva2syc1Q0?oc=5",
-        "title": "코로나 변이 확산에 신풍제약 주가 한때 26% 급등 - 메디칼업저버",
-        "sourceType": "google_news_result",
+        "url": "https://news.google.com/search?q=%EB%B0%B1%EC%8B%A0%C2%B7%EB%B6%84%EC%9E%90%EC%A7%84%EB%8B%A8%C2%B7%EB%A9%B4%EC%97%AD%EC%B9%98%EB%A3%8C%28%EB%B0%94%EC%9D%B4%EC%98%A4%ED%94%8C%EB%9E%AB%ED%8F%BC%C2%B7%EC%A7%84%EB%8B%A8%ED%82%A4%ED%8A%B8%29%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+        "title": "백신·분자진단·면역치료(바이오플랫폼·진단키트) 관련주 Google 뉴스 검색",
+        "sourceType": "google_news_search",
         "confidence": "fallback",
-        "query": "백신·바이오(백신·유전자치료·진단 연관) 관련주",
+        "query": "백신·분자진단·면역치료(바이오플랫폼·진단키트) 관련주",
         "articleIndex": 0,
-        "sourceName": "메디칼업저버",
-        "publishedAt": "Fri, 17 Apr 2026 03:01:28 GMT",
+        "sourceName": "",
+        "publishedAt": "",
         "matchScore": 0.0
       },
-      "headlineUrl": "https://news.google.com/rss/articles/CBMia0FVX3lxTE5Rd0p4aS1xeWxMbFlLMTAxQkdXcC1MRWxMd1FRQjRSbW1vWG92V2VneUZKa212SkZhR1llbkw5TDFyT1pYNzZHMFBwN0pFaVhyLUZLempxS3ZuZUtobDFEYzdCZnpva2syc1Q0?oc=5",
-      "headlineLinkSource": "google_news_result",
+      "headlineUrl": "https://news.google.com/search?q=%EB%B0%B1%EC%8B%A0%C2%B7%EB%B6%84%EC%9E%90%EC%A7%84%EB%8B%A8%C2%B7%EB%A9%B4%EC%97%AD%EC%B9%98%EB%A3%8C%28%EB%B0%94%EC%9D%B4%EC%98%A4%ED%94%8C%EB%9E%AB%ED%8F%BC%C2%B7%EC%A7%84%EB%8B%A8%ED%82%A4%ED%8A%B8%29%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+      "headlineLinkSource": "google_news_search",
       "headlineLinkConfidence": "fallback"
     },
     {
-      "themeName": "조선",
-      "headline": "한화그룹, 방산·조선이 벌고 있는데 현금 가뭄...왜? [fn마켓워치]",
-      "representativeArticleIndex": 60,
+      "themeName": "전통 제약·완제품·헬스케어 유통·의약품",
+      "headline": "전통 제약·완제품·헬스케어 유통·의약품 테마 강세",
+      "representativeArticleIndex": 0,
       "relatedStocks": [
-        "STX엔진",
-        "한화엔진",
-        "현대중공업",
-        "대우조선해양",
-        "퍼스텍",
-        "한국조선해양"
+        "신풍제약우"
       ],
-      "reasoning": "개미승리 및 기사(개별)에서 조선기자재가 장중 강세를 보였고 거래대금 유입 가능성이 커 대표 테마로 선정.",
-      "_antwinner_stock_codes": {
-        "셀리드": "299660",
-        "진원생명과학": "011000",
-        "신풍제약": "019170",
-        "랩지노믹스": "084650",
-        "그린생명과학": "114450",
-        "우정바이오": "215380",
-        "수젠텍": "253840",
-        "오상헬스케어": "036220",
-        "엑세스바이오": "950130",
-        "인바이오젠": "101140",
-        "성일하이텍": "365340",
-        "새빗켐": "107600",
-        "코스모화학": "005420",
-        "STX엔진": "077970",
-        "한화엔진": "082740",
-        "퍼스텍": "010820",
-        "케이에스피": "073010",
-        "삼영엠텍": "054540",
-        "케이프": "064820"
-      },
+      "reasoning": "신풍제약 및 신풍제약우는 동일 전통 제약 계열(우선주 포함)으로 묶고, 오상헬스케어·휴온스글로벌은 의약품·헬스케어 제품의 제조·유통·상업화 측면에서 전통 제약·상업화 중심 기업군에 해당. 임상·플랫폼 중심의 백신·진단 그룹과는 성격이 달라 별도 테마로 분리함. (아이진은 백신·연구 성격이 강해 본 테마에서 제외.) 급등주 8종목이 묶였고 평균 상승률은 29.2%입니다. 상한가 종목 6개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다.",
+      "injectedByPostProcess": true,
+      "source": "price_signals",
+      "replacedThemeName": "조선기자재",
       "headlineLinks": [
         {
-          "url": "https://n.news.naver.com/mnews/article/014/0005509576",
-          "title": "한화그룹, 방산·조선이 벌고 있는데 현금 가뭄...왜? [fn마켓워치]",
-          "sourceType": "crawler_article",
-          "confidence": "verified",
-          "query": "",
-          "articleIndex": 60,
-          "sourceName": "파이낸셜뉴스",
-          "publishedAt": "2026-04-18 06:01:22",
-          "matchScore": 10.0
+          "url": "https://news.google.com/search?q=%EC%A0%84%ED%86%B5%20%EC%A0%9C%EC%95%BD%C2%B7%EC%99%84%EC%A0%9C%ED%92%88%C2%B7%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4%20%EC%9C%A0%ED%86%B5%C2%B7%EC%9D%98%EC%95%BD%ED%92%88%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+          "title": "전통 제약·완제품·헬스케어 유통·의약품 관련주 Google 뉴스 검색",
+          "sourceType": "google_news_search",
+          "confidence": "fallback",
+          "query": "전통 제약·완제품·헬스케어 유통·의약품 관련주",
+          "articleIndex": 0,
+          "sourceName": "",
+          "publishedAt": "",
+          "matchScore": 0.0
         }
       ],
       "headlineLink": {
-        "url": "https://n.news.naver.com/mnews/article/014/0005509576",
-        "title": "한화그룹, 방산·조선이 벌고 있는데 현금 가뭄...왜? [fn마켓워치]",
-        "sourceType": "crawler_article",
-        "confidence": "verified",
-        "query": "",
-        "articleIndex": 60,
-        "sourceName": "파이낸셜뉴스",
-        "publishedAt": "2026-04-18 06:01:22",
-        "matchScore": 10.0
+        "url": "https://news.google.com/search?q=%EC%A0%84%ED%86%B5%20%EC%A0%9C%EC%95%BD%C2%B7%EC%99%84%EC%A0%9C%ED%92%88%C2%B7%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4%20%EC%9C%A0%ED%86%B5%C2%B7%EC%9D%98%EC%95%BD%ED%92%88%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+        "title": "전통 제약·완제품·헬스케어 유통·의약품 관련주 Google 뉴스 검색",
+        "sourceType": "google_news_search",
+        "confidence": "fallback",
+        "query": "전통 제약·완제품·헬스케어 유통·의약품 관련주",
+        "articleIndex": 0,
+        "sourceName": "",
+        "publishedAt": "",
+        "matchScore": 0.0
       },
-      "headlineUrl": "https://n.news.naver.com/mnews/article/014/0005509576",
-      "headlineLinkSource": "crawler_article",
-      "headlineLinkConfidence": "verified"
-    },
-    {
-      "themeName": "반도체",
-      "headline": "IT·반도체·이차전지 상승 랠리 주도…삼성전기, LG이노텍 신고가 돌파 [매경 자이앤트]",
-      "representativeArticleIndex": 104,
-      "relatedStocks": [
-        "삼성전자",
-        "SK하이닉스",
-        "삼성전기",
-        "LG이노텍",
-        "SEMI(대체종목)",
-        "원익IPS"
-      ],
-      "reasoning": "뉴스에서 AI·TSMC 실적 호조와 함께 국내 반도체·소부장 랠리가 반복적으로 언급되어 핵심 주도업종으로 선정.",
-      "_antwinner_stock_codes": {
-        "셀리드": "299660",
-        "진원생명과학": "011000",
-        "신풍제약": "019170",
-        "랩지노믹스": "084650",
-        "그린생명과학": "114450",
-        "우정바이오": "215380",
-        "수젠텍": "253840",
-        "오상헬스케어": "036220",
-        "엑세스바이오": "950130",
-        "인바이오젠": "101140",
-        "성일하이텍": "365340",
-        "새빗켐": "107600",
-        "코스모화학": "005420",
-        "STX엔진": "077970",
-        "한화엔진": "082740",
-        "퍼스텍": "010820",
-        "케이에스피": "073010",
-        "삼영엠텍": "054540",
-        "케이프": "064820"
-      },
-      "headlineLinks": [
-        {
-          "url": "https://n.news.naver.com/mnews/article/009/0005667709",
-          "title": "IT·반도체·이차전지 상승 랠리 주도…삼성전기, LG이노텍 신고가 돌파 [매경 자이앤트]",
-          "sourceType": "crawler_article",
-          "confidence": "verified",
-          "query": "",
-          "articleIndex": 104,
-          "sourceName": "매일경제",
-          "publishedAt": "2026-04-17 17:51",
-          "matchScore": 22.0
-        }
-      ],
-      "headlineLink": {
-        "url": "https://n.news.naver.com/mnews/article/009/0005667709",
-        "title": "IT·반도체·이차전지 상승 랠리 주도…삼성전기, LG이노텍 신고가 돌파 [매경 자이앤트]",
-        "sourceType": "crawler_article",
-        "confidence": "verified",
-        "query": "",
-        "articleIndex": 104,
-        "sourceName": "매일경제",
-        "publishedAt": "2026-04-17 17:51",
-        "matchScore": 22.0
-      },
-      "headlineUrl": "https://n.news.naver.com/mnews/article/009/0005667709",
-      "headlineLinkSource": "crawler_article",
-      "headlineLinkConfidence": "verified"
+      "headlineUrl": "https://news.google.com/search?q=%EC%A0%84%ED%86%B5%20%EC%A0%9C%EC%95%BD%C2%B7%EC%99%84%EC%A0%9C%ED%92%88%C2%B7%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4%20%EC%9C%A0%ED%86%B5%C2%B7%EC%9D%98%EC%95%BD%ED%92%88%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+      "headlineLinkSource": "google_news_search",
+      "headlineLinkConfidence": "fallback"
     },
     {
       "themeName": "2차전지",
-      "headline": "엘앤에프·씨아이에스 등 2차전지 관련주 다시 반등 - gukjenews.com",
+      "headline": "[생생한 주식쇼 생쇼] 실적 장세 돌입, 반도체·이차전지 주도주에 집중 - 매일경제 마켓",
       "representativeArticleIndex": 0,
       "relatedStocks": [
         "삼성SDI",
-        "엘앤에프",
-        "포스코케미칼",
-        "에코프로비엠",
         "새빗켐",
-        "성일하이텍"
+        "성일하이텍",
+        "코스모화학",
+        "엘앤에프",
+        "포스코케미칼"
       ],
-      "reasoning": "기사(10번)에서 삼성SDI 협력 소식으로 배터리 관련주가 급등했고 개미승리 가격군(폐배터리 등)과 연계되어 수급 유입 예상.",
+      "reasoning": "기사(8번)에서 삼성SDI 호재로 배터리 관련주가 급등했고 개미승리·가격기반(폐배터리 포함) 신호와 결합돼 거래대금 유입 기대.",
       "_antwinner_stock_codes": {
         "셀리드": "299660",
         "진원생명과학": "011000",
@@ -413,17 +308,6 @@
         "케이프": "064820"
       },
       "headlineLinks": [
-        {
-          "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBUTHVnaEkxdTVPSEI0YlV0Mnc2SjAzOEtWYUZsM1AwNjVyRUZhWEpZc1FGQ1BBTk5iaVM2YnZqZ0JYeXVubFhCeUt5NnluTFVJNW5iVnFqR0xKRC16cGk1VG5DNFIxUjF0R2h1VDdn?oc=5",
-          "title": "엘앤에프·씨아이에스 등 2차전지 관련주 다시 반등 - gukjenews.com",
-          "sourceType": "google_news_result",
-          "confidence": "fallback",
-          "query": "2차전지 관련주",
-          "articleIndex": 0,
-          "sourceName": "gukjenews.com",
-          "publishedAt": "Fri, 17 Apr 2026 02:41:39 GMT",
-          "matchScore": 0.0
-        },
         {
           "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE5jeG9sclBucVFwTlNJRHUwcEl1RHhSLThudWpRR1VXM0RhYkJ6YUd0NkQzanBjVzVCaFFvSERucTFTTlFFcHVqUDBHMkZNa0ozdlE?oc=5",
           "title": "[생생한 주식쇼 생쇼] 실적 장세 돌입, 반도체·이차전지 주도주에 집중 - 매일경제 마켓",
@@ -436,14 +320,25 @@
           "matchScore": 0.0
         },
         {
-          "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTFBoWFlwRWJ4VkZtX25hQVJRVTU0azJ5NzQ4blkwNEIxUVp6c0R6YlVrUVRnVkY3NTYzdV9kSDFSTGNzUm1IYVdOX0hQUVNhR1pSR05jdHM5NjFTMWkxNU4xQ21aYndiRjBhaXZaZmNwSzJlc3Qtc3c?oc=5",
-          "title": "[테마시황] 공급 불안 속 리튬 가격 급등, 2차전지 및 리튬 테마株 동반 강세 - 인포스탁데일리",
+          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE44cnpPYWlQeXRoNDNYSHpER09mTG1DN1hGcGhiUmZ1bjBxdXd5WlJ4WU1UUl93VEgzNDNXZXBJM2dmdXpPb3FrbkJVS2xVYzA2Z0dOT1VtekzSAVhBVV95cUxOOHJ6T2FpUHl0aDQzWEh6REdPZkxtQzdYRnBoYlJmdW4wcXV3eVpSeFlNVFJfd1RIMzQzV2VwSTNnZnV6T29xa25CVUtsVWMwNmdHTk9VbXpM?oc=5",
+          "title": "[증시 인사이트] 국내증시 혼조 마감…코스피 내리고 코스닥 오르고 - SBS Biz",
+          "sourceType": "google_news_result",
+          "confidence": "fallback",
+          "query": "2차전지 관련주",
+          "articleIndex": 0,
+          "sourceName": "SBS Biz",
+          "publishedAt": "Fri, 17 Apr 2026 07:43:00 GMT",
+          "matchScore": 0.0
+        },
+        {
+          "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTFBKR2I4TXBLeFVHU3Iwem54QUlqalEtVElrRlVxcHI2bHRzZjhId0tmNE9KZnk4aEhhYzBKa0pWc21ZaUZ4dXdYSkJHNmpHMWxrbDFZVmFZOFY5UzcxRGRQMVNHTGoyZFdzN1g4UkZYS1dOUGlJUGc?oc=5",
+          "title": "[0417마감체크] 코스피, 외국인 2조 순매도에 6190선 마감... 코스닥은 상승 - 인포스탁데일리",
           "sourceType": "google_news_result",
           "confidence": "fallback",
           "query": "2차전지 관련주",
           "articleIndex": 0,
           "sourceName": "인포스탁데일리",
-          "publishedAt": "Fri, 17 Apr 2026 02:36:45 GMT",
+          "publishedAt": "Fri, 17 Apr 2026 08:14:50 GMT",
           "matchScore": 0.0
         },
         {
@@ -459,19 +354,81 @@
         }
       ],
       "headlineLink": {
-        "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBUTHVnaEkxdTVPSEI0YlV0Mnc2SjAzOEtWYUZsM1AwNjVyRUZhWEpZc1FGQ1BBTk5iaVM2YnZqZ0JYeXVubFhCeUt5NnluTFVJNW5iVnFqR0xKRC16cGk1VG5DNFIxUjF0R2h1VDdn?oc=5",
-        "title": "엘앤에프·씨아이에스 등 2차전지 관련주 다시 반등 - gukjenews.com",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE5jeG9sclBucVFwTlNJRHUwcEl1RHhSLThudWpRR1VXM0RhYkJ6YUd0NkQzanBjVzVCaFFvSERucTFTTlFFcHVqUDBHMkZNa0ozdlE?oc=5",
+        "title": "[생생한 주식쇼 생쇼] 실적 장세 돌입, 반도체·이차전지 주도주에 집중 - 매일경제 마켓",
         "sourceType": "google_news_result",
         "confidence": "fallback",
         "query": "2차전지 관련주",
         "articleIndex": 0,
-        "sourceName": "gukjenews.com",
-        "publishedAt": "Fri, 17 Apr 2026 02:41:39 GMT",
+        "sourceName": "매일경제 마켓",
+        "publishedAt": "Fri, 17 Apr 2026 05:32:05 GMT",
         "matchScore": 0.0
       },
-      "headlineUrl": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBUTHVnaEkxdTVPSEI0YlV0Mnc2SjAzOEtWYUZsM1AwNjVyRUZhWEpZc1FGQ1BBTk5iaVM2YnZqZ0JYeXVubFhCeUt5NnluTFVJNW5iVnFqR0xKRC16cGk1VG5DNFIxUjF0R2h1VDdn?oc=5",
+      "headlineUrl": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE5jeG9sclBucVFwTlNJRHUwcEl1RHhSLThudWpRR1VXM0RhYkJ6YUd0NkQzanBjVzVCaFFvSERucTFTTlFFcHVqUDBHMkZNa0ozdlE?oc=5",
       "headlineLinkSource": "google_news_result",
       "headlineLinkConfidence": "fallback"
+    },
+    {
+      "themeName": "방산",
+      "headline": "\"지금이 제일 싸다\" 증권가 입 모은 방산주는?[주末머니]",
+      "representativeArticleIndex": 48,
+      "relatedStocks": [
+        "현대로템",
+        "한화에어로스페이스",
+        "LIG넥스원",
+        "한화시스템",
+        "한화디펜스",
+        "퍼스텍"
+      ],
+      "reasoning": "중동 정세·정상회담·방산 수출 확대 기사(48·86번 등)로 방산업종 수급이 꾸준히 유입되어 테마성이 강함.",
+      "_antwinner_stock_codes": {
+        "셀리드": "299660",
+        "진원생명과학": "011000",
+        "신풍제약": "019170",
+        "랩지노믹스": "084650",
+        "그린생명과학": "114450",
+        "우정바이오": "215380",
+        "수젠텍": "253840",
+        "오상헬스케어": "036220",
+        "엑세스바이오": "950130",
+        "인바이오젠": "101140",
+        "성일하이텍": "365340",
+        "새빗켐": "107600",
+        "코스모화학": "005420",
+        "STX엔진": "077970",
+        "한화엔진": "082740",
+        "퍼스텍": "010820",
+        "케이에스피": "073010",
+        "삼영엠텍": "054540",
+        "케이프": "064820"
+      },
+      "headlineLinks": [
+        {
+          "url": "https://n.news.naver.com/mnews/article/277/0005751288",
+          "title": "\"지금이 제일 싸다\" 증권가 입 모은 방산주는?[주末머니]",
+          "sourceType": "crawler_article",
+          "confidence": "verified",
+          "query": "",
+          "articleIndex": 48,
+          "sourceName": "아시아경제",
+          "publishedAt": "2026-04-18 07:14:00",
+          "matchScore": 14.0
+        }
+      ],
+      "headlineLink": {
+        "url": "https://n.news.naver.com/mnews/article/277/0005751288",
+        "title": "\"지금이 제일 싸다\" 증권가 입 모은 방산주는?[주末머니]",
+        "sourceType": "crawler_article",
+        "confidence": "verified",
+        "query": "",
+        "articleIndex": 48,
+        "sourceName": "아시아경제",
+        "publishedAt": "2026-04-18 07:14:00",
+        "matchScore": 14.0
+      },
+      "headlineUrl": "https://n.news.naver.com/mnews/article/277/0005751288",
+      "headlineLinkSource": "crawler_article",
+      "headlineLinkConfidence": "verified"
     }
   ],
   "antwinnerSignals": [
@@ -714,16 +671,18 @@
       "dailyThemeName": "스페이스X(SpaceX)",
       "dailyThemeTitle": "데일리 테마(스페이스X(SpaceX)/ 우주항공산업(누리호/인공위성 등),코로나19 관련주,조선/ 조선기자재,2차전지/ 리튬 등,방위산업/전쟁 및 테러,반도체 장비/ 반도체 재료/부품/ 시스템반도체,화장품)",
       "matchedStocks": [
+        "와이제이링크",
+        "미래에셋벤처투자",
         "나노팀",
-        "미래에셋벤처투자"
+        "에이치브이엠"
       ],
-      "matchReasoning": "나노팀은 항공·우주용 고기능 소재·부품(정밀가공·소재기술) 연관 가능성이 있어 우주 발사체 부품 수요와 직접적 연관성이 상대적으로 높음; 미래에셋벤처투자는 스페이스X 관련 스타트업이나 우주산업 벤처에 대한 투자·지분 보유 가능성(벤처투자업 특성)으로 교집합 후보여서 제한적으로 연관성이 인정되며, 와이제이링크는 바이오 중심으로 테마 불일치해 제외함."
+      "matchReasoning": "인포스탁 공개 테마표 대표 종목을 우선 반영했습니다."
     }
   ],
   "youtubeSignals": [],
   "telegramSignals": [],
   "priceSignalPayload": {
-    "collectedAt": "2026-04-18T23:09:49.747197+09:00",
+    "collectedAt": "2026-04-19T02:19:25.938316+09:00",
     "markets": [
       "KOSPI",
       "KOSDAQ"
@@ -1872,8 +1831,8 @@
     ],
     "candidates": [
       {
-        "themeName": "백신·바이오(백신·유전자치료·진단 연관)",
-        "score": 459.03,
+        "themeName": "백신·분자진단·면역치료(바이오플랫폼·진단키트)",
+        "score": 457.53,
         "matchedStocks": [
           "셀리드",
           "진원생명과학",
@@ -1884,26 +1843,49 @@
           "빛과전자",
           "와이제이링크"
         ],
-        "matchedArticles": [
-          "코로나 변이 ‘재확산’ 우려…진단키트·백신株 줄줄이 상한가 [이런국장 저런주식]"
-        ],
+        "matchedArticles": [],
         "matchedTelegramMessages": [],
         "keywords": [
-          "백신",
-          "유전자·바이오의약",
+          "백신 플랫폼",
+          "유전자·DNA 백신",
+          "분자진단",
           "진단키트",
-          "임상/허가 기대",
-          "바이오CDMO/검사",
+          "면역치료",
           "셀리드"
         ],
-        "reasoning": "셀리드·진원생명과학·수젠텍은 백신·바이오의약(개발·위탁생산) 관련 기업이며, 랩지노믹스·엑세스바이오는 분자진단·진단키트 업체다. 오늘 시장에서는 감염병·임상·허가·검사 수요 같은 공통 재료로 바이오(백신/치료제)와 진단주가 동반 급등한 것으로 보임. (모두 바이오·진단·의약 관련 업종으로 분류 가능) 급등주 8종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 8개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다. 연관 기사 1건이 감지됐습니다."
+        "reasoning": "셀리드(면역치료·백신 플랫폼), 진원생명과학(DNA 백신·플랫폼 기업), 수젠텍(분자진단·체외진단 기술), 엑세스바이오(진단키트 제조)는 모두 백신 개발 플랫폼 및 분자진단/진단키트 중심의 사업 모델을 가지고 있어 동일한 시장 재료(백신·진단 관련 뉴스·임상·수출 등)에 동반 반응할 가능성이 높음. seedThemes의 바이오/백신 군에서 임상·진단 관련 종목들을 통합해 범위를 구체화함. 급등주 8종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 8개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다."
+      },
+      {
+        "themeName": "전통 제약·완제품·헬스케어 유통·의약품",
+        "score": 426.54,
+        "matchedStocks": [
+          "신풍제약우",
+          "신풍제약",
+          "기가레인",
+          "조이웍스앤코",
+          "셀리드",
+          "링크드",
+          "진원생명과학",
+          "수젠텍"
+        ],
+        "matchedArticles": [],
+        "matchedTelegramMessages": [],
+        "keywords": [
+          "제약",
+          "우선주(동일사업군)",
+          "의약품 유통·판매",
+          "헬스케어 제품",
+          "신풍제약우",
+          "신풍제약"
+        ],
+        "reasoning": "신풍제약 및 신풍제약우는 동일 전통 제약 계열(우선주 포함)으로 묶고, 오상헬스케어·휴온스글로벌은 의약품·헬스케어 제품의 제조·유통·상업화 측면에서 전통 제약·상업화 중심 기업군에 해당. 임상·플랫폼 중심의 백신·진단 그룹과는 성격이 달라 별도 테마로 분리함. (아이진은 백신·연구 성격이 강해 본 테마에서 제외.) 급등주 8종목이 묶였고 평균 상승률은 29.2%입니다. 상한가 종목 6개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다."
       }
     ]
   },
   "priceSignalCandidates": [
     {
-      "themeName": "백신·바이오(백신·유전자치료·진단 연관)",
-      "score": 459.03,
+      "themeName": "백신·분자진단·면역치료(바이오플랫폼·진단키트)",
+      "score": 457.53,
       "matchedStocks": [
         "셀리드",
         "진원생명과학",
@@ -1914,19 +1896,42 @@
         "빛과전자",
         "와이제이링크"
       ],
-      "matchedArticles": [
-        "코로나 변이 ‘재확산’ 우려…진단키트·백신株 줄줄이 상한가 [이런국장 저런주식]"
-      ],
+      "matchedArticles": [],
       "matchedTelegramMessages": [],
       "keywords": [
-        "백신",
-        "유전자·바이오의약",
+        "백신 플랫폼",
+        "유전자·DNA 백신",
+        "분자진단",
         "진단키트",
-        "임상/허가 기대",
-        "바이오CDMO/검사",
+        "면역치료",
         "셀리드"
       ],
-      "reasoning": "셀리드·진원생명과학·수젠텍은 백신·바이오의약(개발·위탁생산) 관련 기업이며, 랩지노믹스·엑세스바이오는 분자진단·진단키트 업체다. 오늘 시장에서는 감염병·임상·허가·검사 수요 같은 공통 재료로 바이오(백신/치료제)와 진단주가 동반 급등한 것으로 보임. (모두 바이오·진단·의약 관련 업종으로 분류 가능) 급등주 8종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 8개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다. 연관 기사 1건이 감지됐습니다."
+      "reasoning": "셀리드(면역치료·백신 플랫폼), 진원생명과학(DNA 백신·플랫폼 기업), 수젠텍(분자진단·체외진단 기술), 엑세스바이오(진단키트 제조)는 모두 백신 개발 플랫폼 및 분자진단/진단키트 중심의 사업 모델을 가지고 있어 동일한 시장 재료(백신·진단 관련 뉴스·임상·수출 등)에 동반 반응할 가능성이 높음. seedThemes의 바이오/백신 군에서 임상·진단 관련 종목들을 통합해 범위를 구체화함. 급등주 8종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 8개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다."
+    },
+    {
+      "themeName": "전통 제약·완제품·헬스케어 유통·의약품",
+      "score": 426.54,
+      "matchedStocks": [
+        "신풍제약우",
+        "신풍제약",
+        "기가레인",
+        "조이웍스앤코",
+        "셀리드",
+        "링크드",
+        "진원생명과학",
+        "수젠텍"
+      ],
+      "matchedArticles": [],
+      "matchedTelegramMessages": [],
+      "keywords": [
+        "제약",
+        "우선주(동일사업군)",
+        "의약품 유통·판매",
+        "헬스케어 제품",
+        "신풍제약우",
+        "신풍제약"
+      ],
+      "reasoning": "신풍제약 및 신풍제약우는 동일 전통 제약 계열(우선주 포함)으로 묶고, 오상헬스케어·휴온스글로벌은 의약품·헬스케어 제품의 제조·유통·상업화 측면에서 전통 제약·상업화 중심 기업군에 해당. 임상·플랫폼 중심의 백신·진단 그룹과는 성격이 달라 별도 테마로 분리함. (아이진은 백신·연구 성격이 강해 본 테마에서 제외.) 급등주 8종목이 묶였고 평균 상승률은 29.2%입니다. 상한가 종목 6개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다."
     }
   ]
 }
