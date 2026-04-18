@@ -11,6 +11,8 @@ import json
 import os
 import re
 import requests
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from urllib.parse import parse_qs, quote, urlparse
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -43,6 +45,7 @@ DEFAULT_THEME_ANALYSIS_MAX_COMPLETION_TOKENS = 12000
 DEFAULT_THEME_ANALYSIS_MAX_TOKENS = 3000
 DEFAULT_THEME_ANALYSIS_TEMPERATURE = 0.3
 GOOGLE_NEWS_FALLBACK_LIMIT = 3
+HEADLINE_MAX_AGE_HOURS = 36
 GOOGLE_NEWS_SKIP_KEYWORDS = {
     "블로그",
     "blog",
@@ -125,6 +128,37 @@ def _build_google_news_search_url(query: str) -> str:
     return f"https://news.google.com/search?q={quote(normalized)}&hl=ko&gl=KR&ceid=KR:ko"
 
 
+def _is_within_time_limit(published_at: str, max_hours: int = HEADLINE_MAX_AGE_HOURS) -> bool:
+    """published_at 문자열이 max_hours 시간 이내인지 확인합니다. 파싱 실패 시 False 반환 (제외)."""
+    if not published_at or not published_at.strip():
+        return False
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=max_hours)
+
+    # RFC 2822 (Google News RSS: "Fri, 18 Apr 2026 09:30:00 GMT")
+    try:
+        dt = parsedate_to_datetime(published_at.strip())
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt >= cutoff
+    except Exception:
+        pass
+
+    # ISO / 일반 날짜 형식
+    for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M", "%Y.%m.%d %H:%M", "%Y-%m-%d", "%Y.%m.%d"):
+        try:
+            dt = datetime.strptime(published_at.strip(), fmt)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone(timedelta(hours=9)))  # KST 가정
+            return dt >= cutoff
+        except ValueError:
+            continue
+
+    return False  # 파싱 실패 → 제외
+
+
 def _build_google_news_queries(theme: dict) -> list[str]:
     theme_name = (theme.get("themeName") or "").strip()
     related_stocks = [stock.strip() for stock in theme.get("relatedStocks", []) if stock and stock.strip()]
@@ -154,7 +188,8 @@ def _search_google_news_links(query: str, limit: int = GOOGLE_NEWS_FALLBACK_LIMI
         return []
 
     try:
-        url = f"https://news.google.com/rss/search?q={quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
+        # when:2d로 최근 2일 이내 기사만 요청
+        url = f"https://news.google.com/rss/search?q={quote(query)}+when:2d&hl=ko&gl=KR&ceid=KR:ko"
         resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=5)
         if resp.status_code != 200:
             return []
@@ -175,6 +210,11 @@ def _search_google_news_links(query: str, limit: int = GOOGLE_NEWS_FALLBACK_LIMI
             published_at = pub_date_tag.text.strip() if pub_date_tag and pub_date_tag.text else ""
             if not raw_link:
                 continue
+
+            # 36시간 이내 기사만 허용 (날짜 파싱 실패 시 제외)
+            if not _is_within_time_limit(published_at, HEADLINE_MAX_AGE_HOURS):
+                continue
+
             text_blob = f"{title} {source_name}".lower()
             if any(keyword in text_blob for keyword in GOOGLE_NEWS_SKIP_KEYWORDS):
                 continue
@@ -197,6 +237,71 @@ def _search_google_news_links(query: str, limit: int = GOOGLE_NEWS_FALLBACK_LIMI
 
     except Exception as e:
         print(f"    [!] Google News 검색 실패 ({query}): {e}")
+        return []
+
+
+def _search_naver_news_links(query: str, limit: int = GOOGLE_NEWS_FALLBACK_LIMIT) -> list[dict]:
+    """네이버 뉴스 검색으로 최신 기사 링크를 가져옵니다 (최근 1일 이내, 최신순)."""
+    if not query:
+        return []
+
+    try:
+        search_url = "https://search.naver.com/search.naver"
+        params = {
+            "where": "news",
+            "query": query,
+            "sort": 1,   # 최신순
+            "pd": 4,     # 1일 이내
+            "nso": "so:dd,p:1d,a:all",
+        }
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            ),
+        }
+        resp = requests.get(search_url, params=params, headers=headers, timeout=5)
+        if resp.status_code != 200:
+            return []
+
+        from bs4 import BeautifulSoup as BS
+
+        soup = BS(resp.text, "html.parser")
+        results: list[dict] = []
+
+        for item in soup.select("div.news_area, li.bx"):
+            title_tag = item.select_one("a.news_tit") or item.select_one("a.title")
+            if not title_tag:
+                continue
+            title = title_tag.get_text(strip=True)
+            link = title_tag.get("href", "")
+            if not link:
+                continue
+
+            source_tag = item.select_one("a.info.press") or item.select_one("span.press")
+            source_name = source_tag.get_text(strip=True) if source_tag else ""
+
+            text_blob = f"{title} {source_name}".lower()
+            if any(keyword in text_blob for keyword in GOOGLE_NEWS_SKIP_KEYWORDS):
+                continue
+
+            results.append(
+                _build_headline_link(
+                    url=link,
+                    title=title,
+                    source_type="naver_news_search",
+                    confidence="fallback",
+                    query=query,
+                    source_name=source_name,
+                )
+            )
+            if len(results) >= limit:
+                break
+
+        return _dedupe_headline_links(results)
+
+    except Exception as e:
+        print(f"    [!] 네이버 뉴스 검색 실패 ({query}): {e}")
         return []
 
 
@@ -629,6 +734,7 @@ def _build_google_headline_links(theme: dict, used_urls: set[str] | None = None)
     queries = _build_google_news_queries(theme)
     results: list[dict] = []
 
+    # 1차: Google News RSS (36시간 필터 적용)
     for query in queries:
         for link in _search_google_news_links(query):
             if link.get("url") in used_urls:
@@ -639,6 +745,19 @@ def _build_google_headline_links(theme: dict, used_urls: set[str] | None = None)
                 break
         if len(results) >= GOOGLE_NEWS_FALLBACK_LIMIT:
             break
+
+    # 2차: Google News로 부족하면 네이버 뉴스 검색으로 보충
+    if len(results) < GOOGLE_NEWS_FALLBACK_LIMIT:
+        for query in queries:
+            for link in _search_naver_news_links(query):
+                if link.get("url") in used_urls:
+                    continue
+                results.append(link)
+                used_urls.add(link.get("url", ""))
+                if len(results) >= GOOGLE_NEWS_FALLBACK_LIMIT:
+                    break
+            if len(results) >= GOOGLE_NEWS_FALLBACK_LIMIT:
+                break
 
     if results:
         search_query = results[0].get("query", "")

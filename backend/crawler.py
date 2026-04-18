@@ -123,19 +123,22 @@ def _dedupe_articles(articles: list[dict]) -> list[dict]:
 def _filter_recent_articles(articles: list[dict], max_days: int = 2) -> list[dict]:
     """
     최근 max_days일 이내의 기사만 필터링합니다.
-    날짜를 파싱할 수 없는 기사는 보수적으로 포함합니다.
+    날짜가 없거나 파싱할 수 없는 기사는 제외합니다.
     """
     cutoff = datetime.now() - timedelta(days=max_days)
     recent = []
+    no_date_count = 0
+    parse_fail_count = 0
 
     for article in articles:
         date_str = (article.get("date") or "").strip()
         if not date_str:
-            recent.append(article)  # 날짜 없는 기사는 포함
-            continue
+            no_date_count += 1
+            continue  # 날짜 없는 기사는 제외
 
         parsed_date = None
-        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d", "%Y.%m.%d %H:%M", "%Y.%m.%d"):
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d",
+                     "%Y.%m.%d %H:%M", "%Y.%m.%d", "%Y-%m-%d %H:%M"):
             try:
                 parsed_date = datetime.strptime(date_str, fmt)
                 break
@@ -150,15 +153,15 @@ def _filter_recent_articles(articles: list[dict], max_days: int = 2) -> list[dic
                 pass
 
         if parsed_date is None:
-            recent.append(article)  # 파싱 실패 시 보수적으로 포함
-            continue
+            parse_fail_count += 1
+            continue  # 파싱 실패 시 제외
 
         if parsed_date >= cutoff:
             recent.append(article)
 
     filtered_count = len(articles) - len(recent)
     if filtered_count > 0:
-        print(f"  [필터] {filtered_count}개 기사가 {max_days}일 이전이라 제외되었습니다.")
+        print(f"  [필터] {filtered_count}개 기사 제외 ({max_days}일 이전: {filtered_count - no_date_count - parse_fail_count}개, 날짜없음: {no_date_count}개, 파싱실패: {parse_fail_count}개)")
 
     return recent
 
