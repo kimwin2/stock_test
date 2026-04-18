@@ -9,7 +9,7 @@ from openai import OpenAI
 from .models import PriceThemeCandidate
 
 
-LLM_MODEL = os.getenv("PRICE_SIGNAL_MODEL", "gpt-4o-mini")
+LLM_MODEL = os.getenv("PRICE_SIGNAL_MODEL", "gpt-5-mini")
 MAX_MOVER_INPUT = 36
 MAX_ARTICLE_SNIPPETS_PER_STOCK = 2
 MAX_TELEGRAM_SNIPPETS_PER_STOCK = 1

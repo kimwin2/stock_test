@@ -39,7 +39,7 @@ if sys.stdout.encoding != 'utf-8':
 
 load_dotenv()
 
-DEFAULT_THEME_ANALYSIS_MODEL = "gpt-4o-mini"
+DEFAULT_THEME_ANALYSIS_MODEL = "gpt-5-mini"
 DEFAULT_THEME_ANALYSIS_REASONING_EFFORT = "minimal"
 DEFAULT_THEME_ANALYSIS_MAX_COMPLETION_TOKENS = 12000
 DEFAULT_THEME_ANALYSIS_MAX_TOKENS = 3000
@@ -412,7 +412,7 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
    - 형식 참고 예시: "광통신", "반도체소부장", "2차전지", "방산", "건설", "AI반도체", "조선", "원전"
 
 5. **각 테마별 정보**:
-   - themeName: 테마명 (간결하게, 예: "광통신", "반도체소부장", "중동전쟁", "방산")
+   - themeName: 테마명 (**2~4글자로 간결하게**, 예: "광통신", "방산", "조선", "원전", "2차전지", "진단키트", "바이오". "중동전쟁 및 방산" 같이 길게 쓰지 마세요)
    - headline: 테마 관련 핵심 뉴스 한줄 요약 (기사 제목 스타일, 50자 이내)
    - representativeArticleIndex: 이 테마를 가장 잘 대표하는 기사 번호 (1부터 시작하는 정수). 기사 목록에 직접 대응하는 기사가 없으면 0
    - relatedStocks: 해당 테마의 대장주 후보 종목명 6개 (한국 상장종목만, 정확한 종목명, 전체 테마에서 중복 없이)
@@ -1122,6 +1122,9 @@ def _find_replaceable_theme_index(themes: list[dict], price_candidates: list[dic
     replaceable = {_normalize_theme_name(name) for name in POSTPROCESS_REPLACEABLE_THEMES}
 
     for idx, theme in enumerate(themes):
+        # 개미승리 테마는 교체 불가
+        if theme.get("_from_antwinner"):
+            continue
         normalized = _normalize_theme_name(theme.get("themeName", ""))
         if normalized in replaceable:
             return idx
@@ -1130,6 +1133,9 @@ def _find_replaceable_theme_index(themes: list[dict], price_candidates: list[dic
     fallback_score = float("inf")
     for idx, theme in enumerate(themes):
         normalized = _normalize_theme_name(theme.get("themeName", ""))
+        # 개미승리 테마, price_signal 후보와 동명 테마는 교체 불가
+        if theme.get("_from_antwinner"):
+            continue
         if normalized in candidate_names:
             continue
         stock_count = len(theme.get("relatedStocks", []))
@@ -1571,10 +1577,10 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         result["telegramSignals"] = telegram_signals
         result["priceSignalPayload"] = price_signal_payload
         result["priceSignalCandidates"] = price_signal_payload.get("candidates", [])
-        result = apply_price_signal_postprocess(result, sorted_articles)
-
-        # ── 개미승리 상위 2개 테마 강제 포함 후처리 ──
+        # ── 개미승리 상위 2개 테마 강제 포함 후처리 (price_signals보다 먼저!) ──
         result = _apply_antwinner_top2_postprocess(result, antwinner_signals)
+
+        result = apply_price_signal_postprocess(result, sorted_articles)
 
         # 검증: themes 키 존재 및 5개인지
         if "themes" not in result:
