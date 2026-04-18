@@ -124,6 +124,8 @@ def _select_movers_for_labeling(movers: list[dict], limit: int = MAX_MOVER_INPUT
     selected = sorted(
         movers,
         key=lambda item: (
+            # 저가 상한가 종목 최우선 (5000원 이하 + 상한가)
+            bool(item.get("upperLimit")) and int(item.get("price", 99999) or 99999) <= 5000,
             bool(item.get("upperLimit")),
             float(item.get("changeRate", 0.0) or 0.0),
             int(item.get("volumeAmount", 0) or 0),
@@ -159,6 +161,7 @@ def _build_mover_payload(movers: list[dict], articles: list[dict], telegram_sign
             {
                 "name": name,
                 "market": mover.get("market", ""),
+                "price": mover.get("price", 0),
                 "changeRate": mover.get("changeRate", 0.0),
                 "upperLimit": bool(mover.get("upperLimit")),
                 "volumeAmount": mover.get("volumeAmount", 0),
@@ -204,6 +207,7 @@ def _label_theme_candidates_with_llm(movers: list[dict], articles: list[dict], t
 - 서로 종목이 크게 겹치는 후보를 여러 개 만들지 말고, 더 구체적인 이름 하나만 선택하세요.
 - 한 테마는 2개 이상 종목을 포함해야 합니다.
 - 기사/텔레그램 문맥이 거의 없어도 종목명과 동시 급등 흐름이 명확하면 테마를 만들 수 있습니다.
+- **저가 상한가 종목 중시**: 주가 5,000원 이하이면서 상한가(upperLimit=true)를 기록한 종목은 테마 형성에 매우 강한 시그널입니다. 이런 종목이 2개 이상 같은 흐름이면 반드시 테마로 묶으세요.
 - 검증에 도움이 되도록 keywords를 3~6개 넣으세요.
 
 JSON만 출력하세요."""
@@ -433,7 +437,13 @@ def _select_theme_stocks(
             if keyword and keyword in context_text:
                 score += 1.0
         if mover.get("upperLimit"):
-            score += 0.5
+            score += 5.0
+            # 저가 상한가 추가 보너스 (5000원 이하)
+            price = int(mover.get("price", 99999) or 99999)
+            if price <= 5000:
+                score += 10.0
+            elif price <= 10000:
+                score += 5.0
 
         if score > 0.0:
             scored_members.append((score, name))
@@ -523,9 +533,16 @@ def _validate_labeled_themes(
             support_terms.extend(hits)
         keywords_out = _unique_preserve_order(keywords + support_terms + stock_names, limit=6)
 
+        # 저가 상한가 종목 가중치
+        low_price_upper_count = sum(
+            1 for item in matched_movers
+            if item.get("upperLimit") and int(item.get("price", 99999) or 99999) <= 5000
+        )
+
         score = round(
             mover_score
             + (upper_limit_count * 12.0)
+            + (low_price_upper_count * 20.0)  # 저가 상한가 추가 보너스
             + (len(scored_articles) * 2.5)
             + (len(scored_telegram) * 3.0)
             + (len(matched_movers) * 8.0)
@@ -540,6 +557,8 @@ def _validate_labeled_themes(
         reasoning_parts.append(f"급등주 {len(matched_movers)}종목이 묶였고 평균 상승률은 {avg_change:.1f}%입니다.")
         if upper_limit_count:
             reasoning_parts.append(f"상한가 종목 {upper_limit_count}개가 포함됐습니다.")
+        if low_price_upper_count:
+            reasoning_parts.append(f"저가 상한가(5000원 이하) 종목 {low_price_upper_count}개가 포함되어 테마 강도가 매우 높습니다.")
         if scored_articles:
             reasoning_parts.append(f"연관 기사 {len(scored_articles)}건이 감지됐습니다.")
         if scored_telegram:
