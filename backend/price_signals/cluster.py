@@ -161,6 +161,7 @@ def _build_mover_payload(movers: list[dict], articles: list[dict], telegram_sign
             {
                 "name": name,
                 "market": mover.get("market", ""),
+                "sector": mover.get("sector", ""),
                 "price": mover.get("price", 0),
                 "changeRate": mover.get("changeRate", 0.0),
                 "upperLimit": bool(mover.get("upperLimit")),
@@ -200,6 +201,7 @@ def _label_theme_candidates_with_llm(movers: list[dict], articles: list[dict], t
 오늘 급등한 종목들을 보고, 같은 재료로 움직인 종목군을 테마로 묶어야 합니다.
 
 핵심 규칙:
+- 각 종목에는 "sector" 필드가 포함되어 있습니다. 이것은 해당 종목의 **실제 업종**입니다. 반드시 이 정보를 기반으로 테마를 구성하세요. sector가 다른 종목을 같은 테마로 묶지 마세요.
 - 미리 정의된 섹터 목록에 맞추려 하지 말고, 오늘 실제 움직임에서 공통 재료를 추론하세요.
 - 종목 이름 자체가 강한 단서를 주면 적극 활용하세요. 예: 전선, 조선, 원전, 양자암호, 보안.
 - generic한 이름(개별주, 특징주, 잡주, 기타, 기술주, 중소형주, 저가주)은 금지합니다.
