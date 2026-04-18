@@ -441,9 +441,9 @@ def _select_theme_stocks(
             # 저가 상한가 추가 보너스 (5000원 이하)
             price = int(mover.get("price", 99999) or 99999)
             if price <= 5000:
-                score += 10.0
+                score += 4.0
             elif price <= 10000:
-                score += 5.0
+                score += 2.0
 
         if score > 0.0:
             scored_members.append((score, name))
@@ -542,7 +542,7 @@ def _validate_labeled_themes(
         score = round(
             mover_score
             + (upper_limit_count * 12.0)
-            + (low_price_upper_count * 20.0)  # 저가 상한가 추가 보너스
+            + (low_price_upper_count * 8.0)  # 저가 상한가 추가 보너스
             + (len(scored_articles) * 2.5)
             + (len(scored_telegram) * 3.0)
             + (len(matched_movers) * 8.0)

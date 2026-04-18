@@ -404,7 +404,8 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
    - 단순 정부 정책 발표나 사회적 갈등 이슈는 테마로 선정하지 마세요
    - 거시경제 지표(금리, 환율, CPI 등)만 다루고 수혜 종목이 특정되지 않는 모호한 이슈는 배제하세요
    - 실제로 주가가 움직이는 구체적 섹터/업종 테마만 선정하세요
-   - 나쁜 테마 예시 (이런 것은 절대 선정하지 마세요): "K-아이웨어", "고유가 피해지원금", "물가안정", "남북관계"
+   - **한국 상장종목 필수**: 모든 테마는 반드시 한국 거래소(KOSPI/KOSDAQ)에 상장된 종목이 최소 2개 이상 있어야 합니다. 해외 종목(NVIDIA, AMD, 스트래티지 등)이나 암호화폐(비트코인, 이더리움, 리플 등)만으로 구성된 테마는 절대 선정하지 마세요. 예: "비트코인 및 가상자산" 테마는 한국 상장종목이 없으므로 금지
+   - 나쁜 테마 예시 (이런 것은 절대 선정하지 마세요): "K-아이웨어", "고유가 피해지원금", "물가안정", "남북관계", "비트코인", "가상자산"
    - 아래 예시는 단지 형식 참고용일 뿐이며, 오늘 데이터가 가리키는 테마가 더 중요합니다
    - 예시에 없는 새로운 테마라도 기사 반복도, 시세 반응, 종목 응집도가 충분하면 적극적으로 선정하세요
    - 반대로 예시에 있는 테마라도 오늘 데이터 근거가 약하면 과감히 제외하세요
@@ -1234,12 +1235,25 @@ def apply_price_signal_postprocess(result: dict, articles: list[dict]) -> dict:
         return result
 
     existing_names = {_normalize_theme_name(theme.get("themeName", "")) for theme in themes}
+
+    # 가짜/generic 테마명 필터: 실제 업종/섹터가 아닌 억지 테마 차단
+    FAKE_THEME_KEYWORDS = {"저가", "급등주", "모음", "잡주", "기타", "개별주", "특징주", "소형주"}
+
+    def _is_fake_theme(name: str) -> bool:
+        normalized = (name or "").strip().lower()
+        return any(kw in normalized for kw in FAKE_THEME_KEYWORDS)
+
     rescued_candidates = [
         candidate for candidate in price_candidates
         if float(candidate.get("score", 0.0) or 0.0) >= PRICE_SIGNAL_RESCUE_SCORE
         and len(candidate.get("matchedStocks", [])) >= 4
         and _normalize_theme_name(candidate.get("themeName", "")) not in existing_names
+        and not _is_fake_theme(candidate.get("themeName", ""))
     ]
+
+    if any(_is_fake_theme(c.get("themeName", "")) for c in price_candidates):
+        blocked = [c.get("themeName") for c in price_candidates if _is_fake_theme(c.get("themeName", ""))]
+        print(f"  [차단] 가짜 테마명 감지, 주입 차단: {blocked}")
 
     for candidate in rescued_candidates:
         replace_idx = _find_replaceable_theme_index(themes, price_candidates)
@@ -1572,6 +1586,14 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
         # 전체 섹터 통틀어서 같은 종목은 1번만 노출
         _deduplicate_stocks_across_themes(themes, max_occurrences=1)
+
+        # 종목 0개인 테마 제거 (해외종목/암호화폐만으로 구성된 테마 등)
+        before_count = len(themes)
+        themes = [t for t in themes if len(t.get("relatedStocks", [])) >= 1]
+        removed_count = before_count - len(themes)
+        if removed_count:
+            print(f"  [제거] 관련 종목이 0개인 테마 {removed_count}개를 제거했습니다.")
+        result["themes"] = themes
 
          # 각 테마 검증 및 대표 기사 URL 매핑
         used_article_indices: set[int] = set()
