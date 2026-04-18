@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-17T21:07:54.261807",
+  "updatedAt": "2026-04-18T23:10:30.395647+09:00",
   "antwinnerSignals": [
     {
       "thema": "니파바이러스",
@@ -54,10 +54,10 @@
     },
     {
       "thema": "진단키트",
-      "average_rate": 16.21,
-      "all_avg_rate": 10.07,
-      "rising_ratio": "76.47%",
-      "stock_count": 17,
+      "average_rate": 16.62,
+      "all_avg_rate": 10.14,
+      "rising_ratio": "77.78%",
+      "stock_count": 18,
       "companies": [
         {
           "current_price": "6,760",
@@ -164,551 +164,153 @@
       ]
     },
     {
-      "thema": "폐렴",
-      "average_rate": 8.82,
-      "all_avg_rate": 6.13,
-      "rising_ratio": "90.00%",
-      "stock_count": 10,
+      "thema": "조선기자재",
+      "average_rate": 9.19,
+      "all_avg_rate": 5.47,
+      "rising_ratio": "88.89%",
+      "stock_count": 18,
       "companies": [
         {
-          "current_price": "3,785",
-          "fluctuation": "13.83%",
-          "stock_code": "950130",
-          "stockname": "엑세스바이오",
-          "volume": "117억"
+          "current_price": "44,000",
+          "fluctuation": "29.99%",
+          "stock_code": "077970",
+          "stockname": "STX엔진",
+          "volume": "1517억"
         },
         {
-          "current_price": "27,350",
-          "fluctuation": "9.84%",
-          "stock_code": "096530",
-          "stockname": "씨젠",
-          "volume": "696억"
+          "current_price": "56,100",
+          "fluctuation": "16.39%",
+          "stock_code": "082740",
+          "stockname": "한화엔진",
+          "volume": "2873억"
         },
         {
-          "current_price": "3,235",
-          "fluctuation": "8.19%",
-          "stock_code": "058110",
-          "stockname": "멕아이씨에스",
-          "volume": "149억"
+          "current_price": "13,480",
+          "fluctuation": "14.92%",
+          "stock_code": "010820",
+          "stockname": "퍼스텍",
+          "volume": "3562억"
         },
         {
-          "current_price": "1,723",
-          "fluctuation": "8.16%",
-          "stock_code": "065950",
-          "stockname": "웰크론",
-          "volume": "13억"
+          "current_price": "4,105",
+          "fluctuation": "10.20%",
+          "stock_code": "073010",
+          "stockname": "케이에스피",
+          "volume": "98억"
         },
         {
-          "current_price": "2,400",
-          "fluctuation": "7.14%",
-          "stock_code": "109820",
-          "stockname": "진매트릭스",
-          "volume": "108억"
+          "current_price": "12,850",
+          "fluctuation": "9.92%",
+          "stock_code": "054540",
+          "stockname": "삼영엠텍",
+          "volume": "497억"
         },
         {
-          "current_price": "9,310",
-          "fluctuation": "6.77%",
-          "stock_code": "137310",
-          "stockname": "에스디바이오센서",
-          "volume": "89억"
+          "current_price": "12,100",
+          "fluctuation": "8.72%",
+          "stock_code": "064820",
+          "stockname": "케이프",
+          "volume": "51억"
         }
       ]
     }
   ],
-  "youtubeSignals": [],
-  "telegramSignals": [
+  "infostockSignals": [
     {
-      "messageId": 115588,
-      "postedAt": "2026-04-15T12:26:12+09:00",
-      "text": "✅ [속보] 트럼프 “전쟁 곧 끝나”…‘이슬라마바드 2차 회동’ 급물살 https://v.daum.net/v/20260415122003120",
-      "views": 21489,
-      "forwards": 31,
-      "url": "https://t.me/faststocknews/115588",
-      "matchedStocks": [],
-      "keywords": [
-        "속보",
-        "트럼프",
-        "전쟁",
-        "끝나",
-        "이슬라마바드",
-        "2차"
+      "rank": 1,
+      "themeName": "스페이스X",
+      "rawThemeName": "스페이스X(SpaceX)",
+      "title": "오후장★테마동향",
+      "sendDate": "20260417",
+      "createTime": "20260417143919",
+      "newsType": "MARKET_FLASH_THEME_PM",
+      "detailId": "177640435911149",
+      "sourceUrl": "https://infostock.co.kr/Company/MiddleFeatures",
+      "referenceStocks": [
+        "와이제이링크",
+        "미래에셋벤처투자",
+        "나노팀",
+        "에이치브이엠",
+        "아주IB투자",
+        "세아베스틸지주",
+        "이녹스첨단소재",
+        "켄코아에어로스페이스",
+        "LG에너지솔루션"
       ],
-      "score": 0.47
-    },
-    {
-      "messageId": 115590,
-      "postedAt": "2026-04-15T13:00:16+09:00",
-      "text": ">>CCL 가격 인상 본격화…대만 3대 업체 급등 (대만공상시보) •동박적층판(CCL) 업종이 2분기 들어 가격 인상 사이클에 진입하면서 대만 공급망 주가가 강하게 상승했음. TUC (台燿科技)는 장중 상한가를 기록했고, EMC (台光電子)·ITEQ (聯茂電子)도 동반 상승했음. 특히 TUC는 최근 보름간 +66% 급등하며 가장 강한 탄력을 보였음 •가격 상승 배경은 동박, 유리섬유, 에폭시수지, 난연제(TBBA), 에너지 비용 등 원재료 상승과 공급 축소 영향임. 중국 Kingboard Holdings의 가격 인상 이후 대만 업체들도 고객사와 재협상에 돌입했으며, AI 서버·고속 스위치용 고사양 CCL 중심으로 가격 전가가 빠르게 진행 중임. 구체적으로 TUC는 4월 25일부터 일부 제품 가격을 최대 20~40% 인상할 계획이며, EMC는 약 10% 수준, ITEQ도 인상에 동참할 예정임. 업계에서는 공급이 여전히 타이트해 이번 가격 상승이 단기 이벤트가 아닌 중기 트렌드로 이어질 가능성 •실적 측면에서도 3사는 1분기 모두 호조를 기록했으며, AI 서버·800G 스위치·저궤도 위성 수요 확대에 힘입어 고사양 CCL 수급은 계속 빡빡할 전망임. 이에 따라 2분기에는 가격과 수익성 동반 개선, 밸류에이션 상향 여지가 있다는 평가 >銅箔基板漲價潮！CCL三雄股價紅通通 「這檔」半個月飆漲66％ https://www.ctee.com.tw/news/20260415700867-430201",
-      "views": 12590,
-      "forwards": 32,
-      "url": "https://t.me/faststocknews/115590",
-      "matchedStocks": [],
-      "keywords": [
-        "상한가",
-        "급등",
-        "CCL",
-        "가격",
-        "인상",
-        "본격화"
+      "dailyThemeName": "스페이스X(SpaceX)",
+      "dailyThemeTitle": "데일리 테마(스페이스X(SpaceX)/ 우주항공산업(누리호/인공위성 등),코로나19 관련주,조선/ 조선기자재,2차전지/ 리튬 등,방위산업/전쟁 및 테러,반도체 장비/ 반도체 재료/부품/ 시스템반도체,화장품)",
+      "matchedStocks": [
+        "나노팀",
+        "미래에셋벤처투자"
       ],
-      "score": 0.52
-    },
-    {
-      "messageId": 115591,
-      "postedAt": "2026-04-15T13:15:57+09:00",
-      "text": "✅ [특징주] 미투온, CBDC 스테이블 코인 공존 정책에 ↑…USDC 연동 기술 경쟁력 부각 (상승 이유) https://www.cstimes.com/news/articleView.html?idxno=702051",
-      "views": 13983,
-      "forwards": 23,
-      "url": "https://t.me/faststocknews/115591",
-      "matchedStocks": [],
-      "keywords": [
-        "특징주",
-        "정책",
-        "미투온",
-        "CBDC",
-        "스테이블",
-        "코인"
-      ],
-      "score": 0.51
-    },
-    {
-      "messageId": 115594,
-      "postedAt": "2026-04-15T13:35:03+09:00",
-      "text": "✅ [특징주] 한텍, 美 KBR·벡텔·韓 삼성E&A·DL E&C 고객사 확보…이란 재건 기대감에 강세 https://www.market-ink.co.kr/news/articleView.html?idxno=5485",
-      "views": 14638,
-      "forwards": 33,
-      "url": "https://t.me/faststocknews/115594",
-      "matchedStocks": [],
-      "keywords": [
-        "특징주",
-        "강세",
-        "한텍",
-        "KBR",
-        "벡텔",
-        "삼성E"
-      ],
-      "score": 0.52
-    },
-    {
-      "messageId": 115595,
-      "postedAt": "2026-04-15T13:36:50+09:00",
-      "text": "260415_SK하이닉스 영업이익 추정치 변화[vs. YTD] (1) 1Q26(F): 17.33조 → 32.98조[YTD +90.3%] (2) 2Q26(F) 20.49조 → 46.15조[YTD +125.2%]",
-      "views": 15102,
-      "forwards": 41,
-      "url": "https://t.me/faststocknews/115595",
-      "matchedStocks": [],
-      "keywords": [
-        "SK하이닉스",
-        "영업이익",
-        "추정치",
-        "변화",
-        "vs",
-        "YTD"
-      ],
-      "score": 0.4
-    },
-    {
-      "messageId": 115597,
-      "postedAt": "2026-04-15T13:57:00+09:00",
-      "text": "✅ 에스에너지, 日 태양광 리파워링 시장 공략 속도…대규모 본계약 잇따라 https://www.etoday.co.kr/news/view/2575970",
-      "views": 15610,
-      "forwards": 12,
-      "url": "https://t.me/faststocknews/115597",
-      "matchedStocks": [],
-      "keywords": [
-        "계약",
-        "에스에너지",
-        "태양광",
-        "리파워링",
-        "공략",
-        "속도"
-      ],
-      "score": 0.44
-    },
-    {
-      "messageId": 115598,
-      "postedAt": "2026-04-15T14:04:10+09:00",
-      "text": "✅ 前 FDA 심사관 “정책적 예외 없는 한 삼천당 S-PASS 제네릭 트랙 쉽지 않아” https://www.edaily.co.kr/News/Read?newsId=03896646645416448&mediaCodeNo=257&OutLnkChk=Y",
-      "views": 18682,
-      "forwards": 32,
-      "url": "https://t.me/faststocknews/115598",
-      "matchedStocks": [],
-      "keywords": [
-        "정책",
-        "FDA",
-        "심사관",
-        "정책적",
-        "예외",
-        "없는"
-      ],
-      "score": 0.49
-    },
-    {
-      "messageId": 115599,
-      "postedAt": "2026-04-15T14:11:58+09:00",
-      "text": "✅ [속보]강훈식 \"원유·나프타 호르무즈 무관 대체공급선서 확보…국내 수급 안정 기여\" https://www.newsis.com/view/NISX20260415_0003592350",
-      "views": 13286,
-      "forwards": 11,
-      "url": "https://t.me/faststocknews/115599",
-      "matchedStocks": [],
-      "keywords": [
-        "속보",
-        "강훈식",
-        "원유",
-        "나프타",
-        "호르무즈",
-        "무관"
-      ],
-      "score": 0.49
-    },
-    {
-      "messageId": 115600,
-      "postedAt": "2026-04-15T14:12:16+09:00",
-      "text": "✅ [속보] 강훈식 \"중동 4개국서 원유 2억7천만 배럴 도입…나프타 210만톤 추가 확보\" https://n.news.naver.com/mnews/article/422/0000855316?sid=100",
-      "views": 13168,
-      "forwards": 21,
-      "url": "https://t.me/faststocknews/115600",
-      "matchedStocks": [],
-      "keywords": [
-        "속보",
-        "강훈식",
-        "중동",
-        "4개국서",
-        "원유",
-        "2억7천만"
-      ],
-      "score": 0.51
-    },
-    {
-      "messageId": 115601,
-      "postedAt": "2026-04-15T14:18:11+09:00",
-      "text": ">>글로벌 알루미늄 재고 ‘9일치’…공급 쇼크 경고 •JPMorgan은 중동 분쟁 영향으로 2026년 글로벌 알루미늄 시장에 약 190만 톤 공급 부족이 발생할 것으로 전망했으며, 이는 2000년 이후 최대 규모임. 현재 가시 재고도 약 190만 톤으로 전 세계 수요 기준 약 9일치에 불과한 수준. •이에 따라 알루미늄 가격은 향후 몇 달 내 톤당 4000달러 돌파 가능성이 제기되며, 2분기 평균 가격은 약 3800달러 수준으로 예상 >铝的全球库存只有：9天！ https://wallstreetcn.com/articles/3769995#from=ios",
-      "views": 12726,
-      "forwards": 22,
-      "url": "https://t.me/faststocknews/115601",
-      "matchedStocks": [],
-      "keywords": [
-        "from",
-        "돌파",
-        "글로벌",
-        "알루미늄",
-        "재고",
-        "9일치"
-      ],
-      "score": 0.54
-    },
-    {
-      "messageId": 115602,
-      "postedAt": "2026-04-15T14:19:25+09:00",
-      "text": "✅ [속보] 강훈식 \"중동 산유국과 호르무즈 외부 석유저장시설 구축 논의\" https://n.news.naver.com/mnews/article/001/0016023109?rc=N&ntype=RANKING&sid=001",
-      "views": 13145,
-      "forwards": 11,
-      "url": "https://t.me/faststocknews/115602",
-      "matchedStocks": [],
-      "keywords": [
-        "속보",
-        "강훈식",
-        "중동",
-        "산유국과",
-        "호르무즈",
-        "외부"
-      ],
-      "score": 0.52
-    },
-    {
-      "messageId": 115603,
-      "postedAt": "2026-04-15T14:22:23+09:00",
-      "text": "✅ 음주운전 전력 비판하자 \"대통령도 전과\"…천영미 안산시장 예비후보 발언 파장 더불어민주당 안산시장 예비후보인 천영미 후보가 자신의 음주운전 전력을 언급하며 이재명 대통령의 전과를 비교한 발언으로 논란에 휩싸였다. 이후 해당 발언이 온라인을 통해 퍼지며 비판 여론이 높아지자 천 후보는 공식 사과문을 발표했다. https://n.news.naver.com/mnews/article/277/0005749910?rc=N&ntype=RANKING&sid=100",
-      "views": 12597,
-      "forwards": 13,
-      "url": "https://t.me/faststocknews/115603",
-      "matchedStocks": [],
-      "keywords": [
-        "음주운전",
-        "전력",
-        "비판하자",
-        "대통령도",
-        "전과",
-        "천영미"
-      ],
-      "score": 0.48
-    },
-    {
-      "messageId": 115604,
-      "postedAt": "2026-04-15T14:24:52+09:00",
-      "text": "✅ SK하이닉스 등도 '미토스 쇼크'로 긴급 소집…\"설계도 털릴라\" https://n.news.naver.com/mnews/article/421/0008891407?sid=105",
-      "views": 13935,
-      "forwards": 34,
-      "url": "https://t.me/faststocknews/115604",
-      "matchedStocks": [],
-      "keywords": [
-        "SK하이닉스",
-        "등도",
-        "미토스",
-        "쇼크",
-        "긴급",
-        "소집"
-      ],
-      "score": 0.52
-    },
-    {
-      "messageId": 115605,
-      "postedAt": "2026-04-15T14:27:16+09:00",
-      "text": "✅ LNG 저장탱크 핵심 소재 ‘고망간강’, 국제표준 제정 (아침뉴스 9시 46분) https://www.energy-news.co.kr/news/articleView.html?idxno=224609",
-      "views": 13607,
-      "forwards": 11,
-      "url": "https://t.me/faststocknews/115605",
-      "matchedStocks": [],
-      "keywords": [
-        "LNG",
-        "저장탱크",
-        "핵심",
-        "소재",
-        "고망간강",
-        "국제표준"
-      ],
-      "score": 0.5
-    },
-    {
-      "messageId": 115606,
-      "postedAt": "2026-04-15T14:27:40+09:00",
-      "text": "✅ 하이스틸 상승 이유로 보입니다 (과거뉴스 25년 3월) https://www.financialpost.co.kr/news/articleView.html?idxno=221698",
-      "views": 14405,
-      "forwards": 23,
-      "url": "https://t.me/faststocknews/115606",
-      "matchedStocks": [],
-      "keywords": [
-        "하이스틸",
-        "상승",
-        "이유로",
-        "보입니다",
-        "과거뉴스",
-        "25년"
-      ],
-      "score": 0.52
-    },
-    {
-      "messageId": 115607,
-      "postedAt": "2026-04-15T14:29:54+09:00",
-      "text": "✅ CBDC·스테이블코인 '외국인 대상' 선제적 검증··국내 금융·결제 인프라 구축 속도 https://www.joongangenews.com/news/articleView.html?idxno=511890",
-      "views": 14394,
-      "forwards": 12,
-      "url": "https://t.me/faststocknews/115607",
-      "matchedStocks": [],
-      "keywords": [
-        "CBDC",
-        "스테이블코인",
-        "외국인",
-        "대상",
-        "선제적",
-        "검증"
-      ],
-      "score": 0.52
-    },
-    {
-      "messageId": 115608,
-      "postedAt": "2026-04-15T14:32:26+09:00",
-      "text": "✅ 삼성바이오, 자가면역치료제 미 판매 중단 위기 넘겼다 https://www.kpinews.kr/newsView/1065580256354266",
-      "views": 18162,
-      "forwards": 23,
-      "url": "https://t.me/faststocknews/115608",
-      "matchedStocks": [],
-      "keywords": [
-        "삼성바이오",
-        "자가면역치료제",
-        "판매",
-        "중단",
-        "위기",
-        "넘겼다"
-      ],
-      "score": 0.55
-    },
-    {
-      "messageId": 115609,
-      "postedAt": "2026-04-15T14:40:52+09:00",
-      "text": "✅ 파수, 보안→AI 전문기업 도약 선언…\"앤트로픽 미토스 쇼크', 우리에겐 기회\" https://n.news.naver.com/mnews/article/003/0013889156?sid=105",
-      "views": 15546,
-      "forwards": 23,
-      "url": "https://t.me/faststocknews/115609",
-      "matchedStocks": [],
-      "keywords": [
-        "파수",
-        "보안",
-        "AI",
-        "전문기업",
-        "도약",
-        "선언"
-      ],
-      "score": 0.59
-    },
-    {
-      "messageId": 115610,
-      "postedAt": "2026-04-15T14:42:32+09:00",
-      "text": "파수AI는 이러한 위협 대응을 위해 자회사 '스패로우'를 중심으로 애플리케이션 보안 역량을 강화하고 있다. 스패로우는 정적·동적 분석(SAST·DAST)과 소프트웨어 구성요소 분석(SCA) 등을 통해 AI 기반 취약점 탐지와 대응 기술을 고도화하고 AI를 활용한 코드 생성, 보안 점검 기술도 함께 개발하고 있다. 조 대표는 \"미토스와 같은 기술은 취약점을 더 빠르고 효율적으로 찾을 수 있는 새로운 방식\"이라며 \"AI로 인해 공격 수단뿐 아니라 대응 방식에도 변화가 필요하다\"고 말했다.",
-      "views": 15474,
-      "forwards": 12,
-      "url": "https://t.me/faststocknews/115610",
-      "matchedStocks": [],
-      "keywords": [
-        "파수AI는",
-        "이러한",
-        "위협",
-        "대응을",
-        "위해",
-        "자회사"
-      ],
-      "score": 0.58
-    },
-    {
-      "messageId": 115611,
-      "postedAt": "2026-04-15T14:56:41+09:00",
-      "text": "✅ 삼성SDI, 로봇·UAM 배터리 정조준…나트륨 배터리도 출격 준비 https://www.newspim.com/news/view/20260415000878",
-      "views": 15791,
-      "forwards": 26,
-      "url": "https://t.me/faststocknews/115611",
-      "matchedStocks": [],
-      "keywords": [
-        "삼성SDI",
-        "로봇",
-        "UAM",
-        "배터리",
-        "정조준",
-        "나트륨"
-      ],
-      "score": 0.66
+      "matchReasoning": "나노팀은 항공·우주용 고기능 소재·부품(정밀가공·소재기술) 연관 가능성이 있어 우주 발사체 부품 수요와 직접적 연관성이 상대적으로 높음; 미래에셋벤처투자는 스페이스X 관련 스타트업이나 우주산업 벤처에 대한 투자·지분 보유 가능성(벤처투자업 특성)으로 교집합 후보여서 제한적으로 연관성이 인정되며, 와이제이링크는 바이오 중심으로 테마 불일치해 제외함."
     }
   ],
+  "youtubeSignals": [],
+  "telegramSignals": [],
   "priceSignalCandidates": [
     {
-      "themeName": "전선 및 전력 관련",
-      "score": 131.95,
+      "themeName": "백신·바이오(백신·유전자치료·진단 연관)",
+      "score": 459.03,
       "matchedStocks": [
-        "대한전선",
-        "가온전선",
-        "대원전선",
-        "대원전선우"
+        "셀리드",
+        "진원생명과학",
+        "기가레인",
+        "조이웍스앤코",
+        "링크드",
+        "수젠텍",
+        "빛과전자",
+        "와이제이링크"
       ],
-      "matchedArticles": [],
+      "matchedArticles": [
+        "코로나 변이 ‘재확산’ 우려…진단키트·백신株 줄줄이 상한가 [이런국장 저런주식]"
+      ],
       "matchedTelegramMessages": [],
       "keywords": [
-        "전선",
-        "전력",
-        "건설",
-        "대한전선",
-        "가온전선",
-        "대원전선"
+        "백신",
+        "유전자·바이오의약",
+        "진단키트",
+        "임상/허가 기대",
+        "바이오CDMO/검사",
+        "셀리드"
       ],
-      "reasoning": "전선 관련 종목들이 급등하며 전력 및 건설 관련 테마로 묶였습니다. 급등주 4종목이 묶였고 평균 상승률은 20.5%입니다."
-    },
-    {
-      "themeName": "사이버 보안 및 보안 솔루션",
-      "score": 116.9,
-      "matchedStocks": [
-        "드림시큐리티",
-        "라온시큐어"
-      ],
-      "matchedArticles": [],
-      "matchedTelegramMessages": [],
-      "keywords": [
-        "사이버 보안",
-        "보안 솔루션",
-        "정보 보호",
-        "드림시큐리티",
-        "라온시큐어"
-      ],
-      "reasoning": "사이버 보안 관련 종목들이 동시에 급등하여 보안 솔루션 테마로 묶였습니다. 급등주 2종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 2개가 포함됐습니다."
+      "reasoning": "셀리드·진원생명과학·수젠텍은 백신·바이오의약(개발·위탁생산) 관련 기업이며, 랩지노믹스·엑세스바이오는 분자진단·진단키트 업체다. 오늘 시장에서는 감염병·임상·허가·검사 수요 같은 공통 재료로 바이오(백신/치료제)와 진단주가 동반 급등한 것으로 보임. (모두 바이오·진단·의약 관련 업종으로 분류 가능) 급등주 8종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 8개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다. 연관 기사 1건이 감지됐습니다."
     }
   ],
   "themes": [
     {
-      "themeName": "니파바이러스",
-      "totalVolume": "224억",
-      "headline": "니파바이러스 관련주 급등, 셀리드 30% 상승",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611227",
-      "stocks": [
-        {
-          "name": "셀리드",
-          "price": 3815,
-          "time": "16:10",
-          "changeRate": 29.98,
-          "volume": "38억",
-          "isTop": true,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "진원생명과학",
-          "price": 1017,
-          "time": "16:10",
-          "changeRate": 29.89,
-          "volume": "10억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "신풍제약",
-          "price": 14090,
-          "time": "16:10",
-          "changeRate": 26.48,
-          "volume": "141억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "그린생명과학",
-          "price": 3470,
-          "time": "16:10",
-          "changeRate": 10.51,
-          "volume": "35억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        }
-      ]
-    },
-    {
       "themeName": "진단키트",
-      "totalVolume": "154억",
-      "headline": "진단키트 관련주, 수젠텍 30% 상승",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611227",
+      "totalVolume": "233억",
+      "headline": "코로나 변이 ‘재확산’ 우려…진단키트·백신株 줄줄이 상한가 [이런국장 저런주식]",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611991",
+      "headlineLink": {
+        "url": "https://n.news.naver.com/mnews/article/011/0004611991",
+        "title": "코로나 변이 ‘재확산’ 우려…진단키트·백신株 줄줄이 상한가 [이런국장 저런주식]",
+        "sourceType": "crawler_article",
+        "confidence": "verified",
+        "query": "",
+        "articleIndex": 1,
+        "sourceName": "서울경제",
+        "publishedAt": "2026-04-18 06:29:10",
+        "matchScore": 13.0
+      },
+      "headlineLinks": [
+        {
+          "url": "https://n.news.naver.com/mnews/article/011/0004611991",
+          "title": "코로나 변이 ‘재확산’ 우려…진단키트·백신株 줄줄이 상한가 [이런국장 저런주식]",
+          "sourceType": "crawler_article",
+          "confidence": "verified",
+          "query": "",
+          "articleIndex": 1,
+          "sourceName": "서울경제",
+          "publishedAt": "2026-04-18 06:29:10",
+          "matchScore": 13.0
+        }
+      ],
+      "headlineLinkSource": "crawler_article",
+      "headlineLinkConfidence": "verified",
+      "representativeArticleIndex": 1,
+      "reasoning": "개미승리 상위 테마(진단키트)와 가격기반 급등군이 겹쳐 거래대금·등락률이 크게 형성되어 우선 반영.",
       "stocks": [
         {
           "name": "수젠텍",
@@ -749,11 +351,11 @@
           }
         },
         {
-          "name": "진원생명과학",
-          "price": 1017,
+          "name": "오상헬스케어",
+          "price": 10910,
           "time": "16:10",
-          "changeRate": 29.89,
-          "volume": "10억",
+          "changeRate": 25.98,
+          "volume": "109억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -768,11 +370,11 @@
           }
         },
         {
-          "name": "엑세스바이오",
-          "price": 3785,
+          "name": "랩지노믹스",
+          "price": 1803,
           "time": "16:10",
-          "changeRate": 13.83,
-          "volume": "38억",
+          "changeRate": 18.38,
+          "volume": "18억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -789,17 +391,45 @@
       ]
     },
     {
-      "themeName": "코로나",
-      "totalVolume": "190억",
-      "headline": "코로나 관련주, 그린생명과학 10% 상승",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/014/0005508892",
+      "themeName": "니파",
+      "totalVolume": "209억",
+      "headline": "니파바이러스 공포 재부각에 관련 바이오주 대량 급등",
+      "headlineUrl": "https://news.google.com/search?q=%EB%8B%88%ED%8C%8C%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+      "headlineLink": {
+        "url": "https://news.google.com/search?q=%EB%8B%88%ED%8C%8C%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+        "title": "니파 관련주 Google 뉴스 검색",
+        "sourceType": "google_news_search",
+        "confidence": "fallback",
+        "query": "니파 관련주",
+        "articleIndex": 0,
+        "sourceName": "",
+        "publishedAt": "",
+        "matchScore": 0.0
+      },
+      "headlineLinks": [
+        {
+          "url": "https://news.google.com/search?q=%EB%8B%88%ED%8C%8C%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+          "title": "니파 관련주 Google 뉴스 검색",
+          "sourceType": "google_news_search",
+          "confidence": "fallback",
+          "query": "니파 관련주",
+          "articleIndex": 0,
+          "sourceName": "",
+          "publishedAt": "",
+          "matchScore": 0.0
+        }
+      ],
+      "headlineLinkSource": "google_news_search",
+      "headlineLinkConfidence": "fallback",
+      "representativeArticleIndex": 0,
+      "reasoning": "개미승리에서 니파바이러스가 상위에 있고 관련 백신·치료 기대감으로 특정 바이오주들이 급등해 별도 테마로 반영.",
       "stocks": [
         {
-          "name": "셀리드",
-          "price": 3815,
+          "name": "신풍제약",
+          "price": 14090,
           "time": "16:10",
-          "changeRate": 29.98,
-          "volume": "38억",
+          "changeRate": 26.48,
+          "volume": "141억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -850,13 +480,68 @@
             ],
             "baseline": 0
           }
+        }
+      ]
+    },
+    {
+      "themeName": "스페이스X",
+      "totalVolume": "584억",
+      "headline": "스페이스X 품을 우주 ETF 떴다…‘패시브’로 담을까? ‘액티브’로 담을까?[ETF언박싱]",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/018/0006260137",
+      "headlineLink": {
+        "url": "https://n.news.naver.com/mnews/article/018/0006260137",
+        "title": "스페이스X 품을 우주 ETF 떴다…‘패시브’로 담을까? ‘액티브’로 담을까?[ETF언박싱]",
+        "sourceType": "crawler_article",
+        "confidence": "verified",
+        "query": "",
+        "articleIndex": 3,
+        "sourceName": "이데일리",
+        "publishedAt": "2026-04-18 08:02:15",
+        "matchScore": 10.0
+      },
+      "headlineLinks": [
+        {
+          "url": "https://n.news.naver.com/mnews/article/018/0006260137",
+          "title": "스페이스X 품을 우주 ETF 떴다…‘패시브’로 담을까? ‘액티브’로 담을까?[ETF언박싱]",
+          "sourceType": "crawler_article",
+          "confidence": "verified",
+          "query": "",
+          "articleIndex": 3,
+          "sourceName": "이데일리",
+          "publishedAt": "2026-04-18 08:02:15",
+          "matchScore": 10.0
+        }
+      ],
+      "headlineLinkSource": "crawler_article",
+      "headlineLinkConfidence": "verified",
+      "representativeArticleIndex": 3,
+      "reasoning": "인포스탁 장중 강세 1위 테마 (스페이스X(SpaceX))",
+      "stocks": [
+        {
+          "name": "미래에셋벤처투자",
+          "price": 46300,
+          "time": "16:10",
+          "changeRate": 19.64,
+          "volume": "464억",
+          "isTop": true,
+          "barData": {
+            "minMaxRange": [
+              0,
+              100
+            ],
+            "currentRange": [
+              22,
+              89
+            ],
+            "baseline": 0
+          }
         },
         {
-          "name": "인바이오젠",
-          "price": 8340,
+          "name": "나노팀",
+          "price": 12030,
           "time": "16:10",
-          "changeRate": 3.47,
-          "volume": "83억",
+          "changeRate": 14.9,
+          "volume": "120억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -873,17 +558,78 @@
       ]
     },
     {
-      "themeName": "폐배터리",
-      "totalVolume": "1,303억",
-      "headline": "폐배터리 관련주, 성일하이텍 15% 상승",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/018/0006258733",
+      "themeName": "백신·바이오(백신·유전자치료·진단 연관)",
+      "totalVolume": "41억",
+      "headline": "코로나 변이 확산에 신풍제약 주가 한때 26% 급등 - 메디칼업저버",
+      "headlineUrl": "https://news.google.com/rss/articles/CBMia0FVX3lxTE5Rd0p4aS1xeWxMbFlLMTAxQkdXcC1MRWxMd1FRQjRSbW1vWG92V2VneUZKa212SkZhR1llbkw5TDFyT1pYNzZHMFBwN0pFaVhyLUZLempxS3ZuZUtobDFEYzdCZnpva2syc1Q0?oc=5",
+      "headlineLink": {
+        "url": "https://news.google.com/rss/articles/CBMia0FVX3lxTE5Rd0p4aS1xeWxMbFlLMTAxQkdXcC1MRWxMd1FRQjRSbW1vWG92V2VneUZKa212SkZhR1llbkw5TDFyT1pYNzZHMFBwN0pFaVhyLUZLempxS3ZuZUtobDFEYzdCZnpva2syc1Q0?oc=5",
+        "title": "코로나 변이 확산에 신풍제약 주가 한때 26% 급등 - 메디칼업저버",
+        "sourceType": "google_news_result",
+        "confidence": "fallback",
+        "query": "백신·바이오(백신·유전자치료·진단 연관) 관련주",
+        "articleIndex": 0,
+        "sourceName": "메디칼업저버",
+        "publishedAt": "Fri, 17 Apr 2026 03:01:28 GMT",
+        "matchScore": 0.0
+      },
+      "headlineLinks": [
+        {
+          "url": "https://news.google.com/rss/articles/CBMia0FVX3lxTE5Rd0p4aS1xeWxMbFlLMTAxQkdXcC1MRWxMd1FRQjRSbW1vWG92V2VneUZKa212SkZhR1llbkw5TDFyT1pYNzZHMFBwN0pFaVhyLUZLempxS3ZuZUtobDFEYzdCZnpva2syc1Q0?oc=5",
+          "title": "코로나 변이 확산에 신풍제약 주가 한때 26% 급등 - 메디칼업저버",
+          "sourceType": "google_news_result",
+          "confidence": "fallback",
+          "query": "백신·바이오(백신·유전자치료·진단 연관) 관련주",
+          "articleIndex": 0,
+          "sourceName": "메디칼업저버",
+          "publishedAt": "Fri, 17 Apr 2026 03:01:28 GMT",
+          "matchScore": 0.0
+        },
+        {
+          "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxOemViaFRNMVJieTZ0alE2U0IzVzJ4ajBKVjZsbkJpSkdFMmhaY1VyZVk4dms3VXZqS1Bxd29LRTVpYTA1c3liZWg0U0UyNmF0RGNQQkdIYmhqcHNDY09CNTctYnFVM09GMzVLREpHamplWVdEYkk4TXZuN195ajk2RUxmcWVkQQ?oc=5",
+          "title": "코스피, 0.55% 하락한 6191.92 마감...삼성전자·SK하이닉스 약세 - 글로벌이코노믹",
+          "sourceType": "google_news_result",
+          "confidence": "fallback",
+          "query": "백신·바이오(백신·유전자치료·진단 연관) 관련주",
+          "articleIndex": 0,
+          "sourceName": "글로벌이코노믹",
+          "publishedAt": "Fri, 17 Apr 2026 06:56:29 GMT",
+          "matchScore": 0.0
+        },
+        {
+          "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBHWUhEX0dfUl8wVmJFc283dXp2S0RyZjU3YnpCaVV2d2Nkb1Vfa1N5dXBjdnQ4akY0dTFyZUZSbmFXZ21DTmpnRW5EMThsdVdjUWo0YUYybTVscC02bTRzaTNXVjh2aVFRTGt2TlV30gFuQVVfeXFMUEdZSERfR19SXzBWYkVzbzd1enZLRHJmNTdiekJpVXZ3Y2RvVV9rU3l1cGN2dDhqRjR1MXJlRlJuYVdnbUNOamdFbkQxOGx1V2NRajRhRjJtNWxwLTZtNHNpM1dWOHZpUVFMa3ZOVXc?oc=5",
+          "title": "코로나 변이 백신·진단키트 테마에 제약 관련株 '들썩' - 머니투데이 - mt.co.kr",
+          "sourceType": "google_news_result",
+          "confidence": "fallback",
+          "query": "백신·바이오(백신·유전자치료·진단 연관) 코로나 변이",
+          "articleIndex": 0,
+          "sourceName": "mt.co.kr",
+          "publishedAt": "Fri, 17 Apr 2026 07:45:09 GMT",
+          "matchScore": 0.0
+        },
+        {
+          "url": "https://news.google.com/search?q=%EB%B0%B1%EC%8B%A0%C2%B7%EB%B0%94%EC%9D%B4%EC%98%A4%28%EB%B0%B1%EC%8B%A0%C2%B7%EC%9C%A0%EC%A0%84%EC%9E%90%EC%B9%98%EB%A3%8C%C2%B7%EC%A7%84%EB%8B%A8%20%EC%97%B0%EA%B4%80%29%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+          "title": "백신·바이오(백신·유전자치료·진단 연관) 관련주 Google 뉴스 검색",
+          "sourceType": "google_news_search",
+          "confidence": "fallback",
+          "query": "백신·바이오(백신·유전자치료·진단 연관) 관련주",
+          "articleIndex": 0,
+          "sourceName": "",
+          "publishedAt": "",
+          "matchScore": 0.0
+        }
+      ],
+      "headlineLinkSource": "google_news_result",
+      "headlineLinkConfidence": "fallback",
+      "representativeArticleIndex": 0,
+      "reasoning": "셀리드·진원생명과학·수젠텍은 백신·바이오의약(개발·위탁생산) 관련 기업이며, 랩지노믹스·엑세스바이오는 분자진단·진단키트 업체다. 오늘 시장에서는 감염병·임상·허가·검사 수요 같은 공통 재료로 바이오(백신/치료제)와 진단주가 동반 급등한 것으로 보임. (모두 바이오·진단·의약 관련 업종으로 분류 가능) 급등주 8종목이 묶였고 평균 상승률은 29.9%입니다. 상한가 종목 8개가 포함됐습니다. 저가 상한가(5000원 이하) 종목 5개가 포함되어 테마 강도가 매우 높습니다. 연관 기사 1건이 감지됐습니다.",
       "stocks": [
         {
-          "name": "성일하이텍",
-          "price": 79500,
+          "name": "기가레인",
+          "price": 2600,
           "time": "16:10",
-          "changeRate": 15.05,
-          "volume": "795억",
+          "changeRate": 30.0,
+          "volume": "26억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -898,49 +644,11 @@
           }
         },
         {
-          "name": "엑세스바이오",
-          "price": 3785,
+          "name": "조이웍스앤코",
+          "price": 1504,
           "time": "16:10",
-          "changeRate": 13.83,
-          "volume": "38억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "새빗켐",
-          "price": 30150,
-          "time": "16:10",
-          "changeRate": 3.97,
-          "volume": "303억",
-          "isTop": false,
-          "barData": {
-            "minMaxRange": [
-              0,
-              100
-            ],
-            "currentRange": [
-              22,
-              89
-            ],
-            "baseline": 0
-          }
-        },
-        {
-          "name": "코스모화학",
-          "price": 16650,
-          "time": "16:10",
-          "changeRate": 2.65,
-          "volume": "167억",
+          "changeRate": 29.99,
+          "volume": "15억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -957,17 +665,45 @@
       ]
     },
     {
-      "themeName": "사이버 보안",
-      "totalVolume": "365억",
-      "headline": "사이버 보안 관련주, 드림시큐리티 30% 상한가",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/011/0004611323",
+      "themeName": "조선",
+      "totalVolume": "7,222억",
+      "headline": "한화그룹, 방산·조선이 벌고 있는데 현금 가뭄...왜? [fn마켓워치]",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/014/0005509576",
+      "headlineLink": {
+        "url": "https://n.news.naver.com/mnews/article/014/0005509576",
+        "title": "한화그룹, 방산·조선이 벌고 있는데 현금 가뭄...왜? [fn마켓워치]",
+        "sourceType": "crawler_article",
+        "confidence": "verified",
+        "query": "",
+        "articleIndex": 60,
+        "sourceName": "파이낸셜뉴스",
+        "publishedAt": "2026-04-18 06:01:22",
+        "matchScore": 10.0
+      },
+      "headlineLinks": [
+        {
+          "url": "https://n.news.naver.com/mnews/article/014/0005509576",
+          "title": "한화그룹, 방산·조선이 벌고 있는데 현금 가뭄...왜? [fn마켓워치]",
+          "sourceType": "crawler_article",
+          "confidence": "verified",
+          "query": "",
+          "articleIndex": 60,
+          "sourceName": "파이낸셜뉴스",
+          "publishedAt": "2026-04-18 06:01:22",
+          "matchScore": 10.0
+        }
+      ],
+      "headlineLinkSource": "crawler_article",
+      "headlineLinkConfidence": "verified",
+      "representativeArticleIndex": 60,
+      "reasoning": "개미승리 및 기사(개별)에서 조선기자재가 장중 강세를 보였고 거래대금 유입 가능성이 커 대표 테마로 선정.",
       "stocks": [
         {
-          "name": "파수",
-          "price": 5060,
+          "name": "STX엔진",
+          "price": 44000,
           "time": "16:10",
-          "changeRate": 0.6,
-          "volume": "51억",
+          "changeRate": 29.99,
+          "volume": "220억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -982,11 +718,11 @@
           }
         },
         {
-          "name": "엑스게이트",
-          "price": 14990,
+          "name": "한화엔진",
+          "price": 56100,
           "time": "16:10",
-          "changeRate": -11.14,
-          "volume": "150억",
+          "changeRate": 16.39,
+          "volume": "562억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -994,18 +730,18 @@
               100
             ],
             "currentRange": [
-              14,
-              71
+              22,
+              89
             ],
-            "baseline": 100
+            "baseline": 0
           }
         },
         {
-          "name": "라온시큐어",
-          "price": 13440,
+          "name": "HD현대중공업",
+          "price": 514000,
           "time": "16:10",
-          "changeRate": -12.78,
-          "volume": "134억",
+          "changeRate": 4.15,
+          "volume": "5,140억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1013,18 +749,18 @@
               100
             ],
             "currentRange": [
-              14,
-              71
+              22,
+              89
             ],
-            "baseline": 100
+            "baseline": 0
           }
         },
         {
-          "name": "드림시큐리티",
-          "price": 2985,
+          "name": "한화오션",
+          "price": 130000,
           "time": "16:10",
-          "changeRate": -15.8,
-          "volume": "30억",
+          "changeRate": -1.44,
+          "volume": "1,300억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1041,17 +777,45 @@
       ]
     },
     {
-      "themeName": "양자컴퓨터",
-      "totalVolume": "720억",
-      "headline": "양자컴퓨터 관련주, 엑스게이트 상한가 행렬",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/421/0008892950",
+      "themeName": "반도체",
+      "totalVolume": "24,185억",
+      "headline": "IT·반도체·이차전지 상승 랠리 주도…삼성전기, LG이노텍 신고가 돌파 [매경 자이앤트]",
+      "headlineUrl": "https://n.news.naver.com/mnews/article/009/0005667709",
+      "headlineLink": {
+        "url": "https://n.news.naver.com/mnews/article/009/0005667709",
+        "title": "IT·반도체·이차전지 상승 랠리 주도…삼성전기, LG이노텍 신고가 돌파 [매경 자이앤트]",
+        "sourceType": "crawler_article",
+        "confidence": "verified",
+        "query": "",
+        "articleIndex": 104,
+        "sourceName": "매일경제",
+        "publishedAt": "2026-04-17 17:51",
+        "matchScore": 22.0
+      },
+      "headlineLinks": [
+        {
+          "url": "https://n.news.naver.com/mnews/article/009/0005667709",
+          "title": "IT·반도체·이차전지 상승 랠리 주도…삼성전기, LG이노텍 신고가 돌파 [매경 자이앤트]",
+          "sourceType": "crawler_article",
+          "confidence": "verified",
+          "query": "",
+          "articleIndex": 104,
+          "sourceName": "매일경제",
+          "publishedAt": "2026-04-17 17:51",
+          "matchScore": 22.0
+        }
+      ],
+      "headlineLinkSource": "crawler_article",
+      "headlineLinkConfidence": "verified",
+      "representativeArticleIndex": 104,
+      "reasoning": "뉴스에서 AI·TSMC 실적 호조와 함께 국내 반도체·소부장 랠리가 반복적으로 언급되어 핵심 주도업종으로 선정.",
       "stocks": [
         {
-          "name": "아이씨티케이",
-          "price": 25800,
+          "name": "삼성전기",
+          "price": 679000,
           "time": "16:10",
-          "changeRate": 20.84,
-          "volume": "258억",
+          "changeRate": 6.26,
+          "volume": "6,790억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -1066,11 +830,11 @@
           }
         },
         {
-          "name": "케이씨에스",
-          "price": 17780,
+          "name": "LG이노텍",
+          "price": 394000,
           "time": "16:10",
-          "changeRate": 0.0,
-          "volume": "178억",
+          "changeRate": 3.96,
+          "volume": "3,940억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1078,18 +842,18 @@
               100
             ],
             "currentRange": [
-              40,
-              60
+              22,
+              89
             ],
-            "baseline": 50
+            "baseline": 0
           }
         },
         {
-          "name": "엑스게이트",
-          "price": 14990,
+          "name": "삼성전자",
+          "price": 216000,
           "time": "16:10",
-          "changeRate": -11.14,
-          "volume": "150억",
+          "changeRate": -0.69,
+          "volume": "2,165억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1104,11 +868,11 @@
           }
         },
         {
-          "name": "라온시큐어",
-          "price": 13440,
+          "name": "SK하이닉스",
+          "price": 1128000,
           "time": "16:10",
-          "changeRate": -12.78,
-          "volume": "134억",
+          "changeRate": -2.34,
+          "volume": "11,290억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1125,17 +889,78 @@
       ]
     },
     {
-      "themeName": "광통신",
-      "totalVolume": "583억",
-      "headline": "광통신 관련주, 주가 급등세 지속",
-      "headlineUrl": "https://n.news.naver.com/mnews/article/243/0000096427",
+      "themeName": "2차전지",
+      "totalVolume": "10,850억",
+      "headline": "엘앤에프·씨아이에스 등 2차전지 관련주 다시 반등 - gukjenews.com",
+      "headlineUrl": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBUTHVnaEkxdTVPSEI0YlV0Mnc2SjAzOEtWYUZsM1AwNjVyRUZhWEpZc1FGQ1BBTk5iaVM2YnZqZ0JYeXVubFhCeUt5NnluTFVJNW5iVnFqR0xKRC16cGk1VG5DNFIxUjF0R2h1VDdn?oc=5",
+      "headlineLink": {
+        "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBUTHVnaEkxdTVPSEI0YlV0Mnc2SjAzOEtWYUZsM1AwNjVyRUZhWEpZc1FGQ1BBTk5iaVM2YnZqZ0JYeXVubFhCeUt5NnluTFVJNW5iVnFqR0xKRC16cGk1VG5DNFIxUjF0R2h1VDdn?oc=5",
+        "title": "엘앤에프·씨아이에스 등 2차전지 관련주 다시 반등 - gukjenews.com",
+        "sourceType": "google_news_result",
+        "confidence": "fallback",
+        "query": "2차전지 관련주",
+        "articleIndex": 0,
+        "sourceName": "gukjenews.com",
+        "publishedAt": "Fri, 17 Apr 2026 02:41:39 GMT",
+        "matchScore": 0.0
+      },
+      "headlineLinks": [
+        {
+          "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTFBUTHVnaEkxdTVPSEI0YlV0Mnc2SjAzOEtWYUZsM1AwNjVyRUZhWEpZc1FGQ1BBTk5iaVM2YnZqZ0JYeXVubFhCeUt5NnluTFVJNW5iVnFqR0xKRC16cGk1VG5DNFIxUjF0R2h1VDdn?oc=5",
+          "title": "엘앤에프·씨아이에스 등 2차전지 관련주 다시 반등 - gukjenews.com",
+          "sourceType": "google_news_result",
+          "confidence": "fallback",
+          "query": "2차전지 관련주",
+          "articleIndex": 0,
+          "sourceName": "gukjenews.com",
+          "publishedAt": "Fri, 17 Apr 2026 02:41:39 GMT",
+          "matchScore": 0.0
+        },
+        {
+          "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE5jeG9sclBucVFwTlNJRHUwcEl1RHhSLThudWpRR1VXM0RhYkJ6YUd0NkQzanBjVzVCaFFvSERucTFTTlFFcHVqUDBHMkZNa0ozdlE?oc=5",
+          "title": "[생생한 주식쇼 생쇼] 실적 장세 돌입, 반도체·이차전지 주도주에 집중 - 매일경제 마켓",
+          "sourceType": "google_news_result",
+          "confidence": "fallback",
+          "query": "2차전지 관련주",
+          "articleIndex": 0,
+          "sourceName": "매일경제 마켓",
+          "publishedAt": "Fri, 17 Apr 2026 05:32:05 GMT",
+          "matchScore": 0.0
+        },
+        {
+          "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTFBoWFlwRWJ4VkZtX25hQVJRVTU0azJ5NzQ4blkwNEIxUVp6c0R6YlVrUVRnVkY3NTYzdV9kSDFSTGNzUm1IYVdOX0hQUVNhR1pSR05jdHM5NjFTMWkxNU4xQ21aYndiRjBhaXZaZmNwSzJlc3Qtc3c?oc=5",
+          "title": "[테마시황] 공급 불안 속 리튬 가격 급등, 2차전지 및 리튬 테마株 동반 강세 - 인포스탁데일리",
+          "sourceType": "google_news_result",
+          "confidence": "fallback",
+          "query": "2차전지 관련주",
+          "articleIndex": 0,
+          "sourceName": "인포스탁데일리",
+          "publishedAt": "Fri, 17 Apr 2026 02:36:45 GMT",
+          "matchScore": 0.0
+        },
+        {
+          "url": "https://news.google.com/search?q=2%EC%B0%A8%EC%A0%84%EC%A7%80%20%EA%B4%80%EB%A0%A8%EC%A3%BC&hl=ko&gl=KR&ceid=KR:ko",
+          "title": "2차전지 관련주 Google 뉴스 검색",
+          "sourceType": "google_news_search",
+          "confidence": "fallback",
+          "query": "2차전지 관련주",
+          "articleIndex": 0,
+          "sourceName": "",
+          "publishedAt": "",
+          "matchScore": 0.0
+        }
+      ],
+      "headlineLinkSource": "google_news_result",
+      "headlineLinkConfidence": "fallback",
+      "representativeArticleIndex": 0,
+      "reasoning": "기사(10번)에서 삼성SDI 협력 소식으로 배터리 관련주가 급등했고 개미승리 가격군(폐배터리 등)과 연계되어 수급 유입 예상.",
       "stocks": [
         {
-          "name": "LIG아큐버",
-          "price": 47850,
+          "name": "엘앤에프",
+          "price": 185600,
           "time": "16:10",
-          "changeRate": 5.05,
-          "volume": "479억",
+          "changeRate": 9.5,
+          "volume": "1,856억",
           "isTop": true,
           "barData": {
             "minMaxRange": [
@@ -1150,11 +975,11 @@
           }
         },
         {
-          "name": "인포뱅크",
-          "price": 5180,
+          "name": "삼성SDI",
+          "price": 513000,
           "time": "16:10",
-          "changeRate": 0.39,
-          "volume": "52억",
+          "changeRate": 7.21,
+          "volume": "5,130억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1169,11 +994,11 @@
           }
         },
         {
-          "name": "코렌",
-          "price": 0,
-          "time": "",
-          "changeRate": 0.0,
-          "volume": "0억",
+          "name": "포스코퓨처엠",
+          "price": 234500,
+          "time": "16:10",
+          "changeRate": 4.92,
+          "volume": "2,345억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1181,18 +1006,18 @@
               100
             ],
             "currentRange": [
-              40,
-              60
+              22,
+              89
             ],
-            "baseline": 50
+            "baseline": 0
           }
         },
         {
-          "name": "에스넷",
-          "price": 5230,
+          "name": "에코프로",
+          "price": 151900,
           "time": "16:10",
-          "changeRate": -6.77,
-          "volume": "52억",
+          "changeRate": 1.81,
+          "volume": "1,519억",
           "isTop": false,
           "barData": {
             "minMaxRange": [
@@ -1200,10 +1025,10 @@
               100
             ],
             "currentRange": [
-              14,
-              71
+              22,
+              89
             ],
-            "baseline": 100
+            "baseline": 0
           }
         }
       ]

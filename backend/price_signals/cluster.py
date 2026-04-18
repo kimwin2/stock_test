@@ -178,16 +178,22 @@ def _request_llm_json(system_prompt: str, user_prompt: str) -> dict:
         print("  [!] OPENAI_API_KEY가 없어 price_signals LLM 라벨링을 건너뜁니다.")
         return {}
 
-    response = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=[
+    request = {
+        "model": LLM_MODEL,
+        "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=0.2,
-        max_tokens=2500,
-        response_format={"type": "json_object"},
-    )
+        "response_format": {"type": "json_object"},
+    }
+    if LLM_MODEL.startswith("gpt-5"):
+        request["max_completion_tokens"] = 2500
+        request["reasoning_effort"] = "minimal"
+    else:
+        request["temperature"] = 0.2
+        request["max_tokens"] = 2500
+
+    response = client.chat.completions.create(**request)
     return json.loads(response.choices[0].message.content)
 
 

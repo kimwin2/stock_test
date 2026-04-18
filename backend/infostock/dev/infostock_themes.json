@@ -1,0 +1,90 @@
+{
+  "collectedAt": "2026-04-18T23:09:51.183787",
+  "source": "infostock.co.kr",
+  "menuType": "MENU_MIDDLE_FEATURED",
+  "topN": 3,
+  "sourceMeta": {
+    "title": "오후장★테마동향",
+    "sendDate": "20260417",
+    "createTime": "20260417143919",
+    "newsType": "MARKET_FLASH_THEME_PM",
+    "detailId": "177640435911149",
+    "sourceUrl": "https://infostock.co.kr/Company/MiddleFeatures"
+  },
+  "themes": [
+    {
+      "rank": 1,
+      "themeName": "스페이스X",
+      "rawThemeName": "스페이스X(SpaceX)",
+      "title": "오후장★테마동향",
+      "sendDate": "20260417",
+      "createTime": "20260417143919",
+      "newsType": "MARKET_FLASH_THEME_PM",
+      "detailId": "177640435911149",
+      "sourceUrl": "https://infostock.co.kr/Company/MiddleFeatures",
+      "referenceStocks": [
+        "와이제이링크",
+        "미래에셋벤처투자",
+        "나노팀",
+        "에이치브이엠",
+        "아주IB투자",
+        "세아베스틸지주",
+        "이녹스첨단소재",
+        "켄코아에어로스페이스",
+        "LG에너지솔루션"
+      ],
+      "dailyThemeName": "스페이스X(SpaceX)",
+      "dailyThemeTitle": "데일리 테마(스페이스X(SpaceX)/ 우주항공산업(누리호/인공위성 등),코로나19 관련주,조선/ 조선기자재,2차전지/ 리튬 등,방위산업/전쟁 및 테러,반도체 장비/ 반도체 재료/부품/ 시스템반도체,화장품)"
+    },
+    {
+      "rank": 2,
+      "themeName": "코로나19",
+      "rawThemeName": "코로나19(치료제/백신 개발 등)",
+      "title": "오후장★테마동향",
+      "sendDate": "20260417",
+      "createTime": "20260417143919",
+      "newsType": "MARKET_FLASH_THEME_PM",
+      "detailId": "177640435911149",
+      "sourceUrl": "https://infostock.co.kr/Company/MiddleFeatures",
+      "referenceStocks": [
+        "수젠텍",
+        "오상헬스케어",
+        "랩지노믹스",
+        "엑세스바이오",
+        "바이오니아",
+        "소마젠",
+        "씨젠",
+        "녹십자엠에스",
+        "진매트릭스",
+        "인트론바이오"
+      ],
+      "dailyThemeName": "코로나19(진단키트)",
+      "dailyThemeTitle": "데일리 테마(스페이스X(SpaceX)/ 우주항공산업(누리호/인공위성 등),코로나19 관련주,조선/ 조선기자재,2차전지/ 리튬 등,방위산업/전쟁 및 테러,반도체 장비/ 반도체 재료/부품/ 시스템반도체,화장품)"
+    },
+    {
+      "rank": 3,
+      "themeName": "백신/진단시약/방역",
+      "rawThemeName": "백신/진단시약/방역(신종플루, AI 등)",
+      "title": "오후장★테마동향",
+      "sendDate": "20260417",
+      "createTime": "20260417143919",
+      "newsType": "MARKET_FLASH_THEME_PM",
+      "detailId": "177640435911149",
+      "sourceUrl": "https://infostock.co.kr/Company/MiddleFeatures",
+      "referenceStocks": [
+        "수젠텍",
+        "진원생명과학",
+        "신풍제약",
+        "오상헬스케어",
+        "아이진",
+        "랩지노믹스",
+        "큐라티스",
+        "엑세스바이오",
+        "코미팜",
+        "바이오니아"
+      ],
+      "dailyThemeName": "백신/진단시약/방역(신종플루, AI 등)",
+      "dailyThemeTitle": "데일리 테마(스페이스X(SpaceX)/ 우주항공산업(누리호/인공위성 등),코로나19 관련주,조선/ 조선기자재,2차전지/ 리튬 등,방위산업/전쟁 및 테러,반도체 장비/ 반도체 재료/부품/ 시스템반도체,화장품)"
+    }
+  ]
+}
