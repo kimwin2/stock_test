@@ -4,7 +4,7 @@ Description: >
   Stock Dashboard Backend
   # S3 bucket: stock-dashboard-data
   - Lambda: 뉴스 크롤링 + ChatGPT 분석 + 종목 데이터
-  - EventBridge: 10분마다 실행되는 스케줄러
+  - EventBridge: 평일 08:00~16:00(KST) 10분마다 실행되는 스케줄러
   - S3: dashboard_data.json 저장
 
 # ─────────────────────────────────────────
@@ -114,12 +114,13 @@ Resources:
             BucketName: !Ref S3BucketName
       Events:
         ScheduleEvent:
-          Type: Schedule
+          Type: ScheduleV2
           Properties:
-            Schedule: rate(10 minutes)
+            ScheduleExpression: cron(0/10 8-16 ? * MON-FRI *)
+            ScheduleExpressionTimezone: Asia/Seoul
             Name: stock-pipeline-schedule
-            Description: 10분마다 파이프라인 실행
-            Enabled: true
+            Description: 평일 오전 8시부터 오후 4시까지 10분마다 파이프라인 실행
+            State: ENABLED
         # 수동 실행용 HTTP API 엔드포인트
         ManualTrigger:
           Type: Api

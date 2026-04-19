@@ -5,15 +5,15 @@
 ## 아키텍처
 
 ```
-[EventBridge 10분마다] → [Lambda Python] → [S3 JSON]
-                                            ↑
-                   [GitHub Pages 웹사이트] → fetch()
+[EventBridge 평일 08:00~16:00 / 10분마다(KST)] → [Lambda Python] → [S3 JSON]
+                                                          ↑
+                                 [GitHub Pages 웹사이트] → fetch()
 ```
 
 | 구성요소 | 서비스 | 역할 |
 |---------|--------|------|
 | 백엔드 | AWS Lambda | 뉴스 크롤링 + GPT 분석 + 종목 데이터 |
-| 스케줄러 | EventBridge | 10분마다 Lambda 트리거 |
+| 스케줄러 | EventBridge | 평일 08:00~16:00(KST) 10분마다 Lambda 트리거 |
 | 데이터 저장 | S3 | dashboard_data.json 저장 |
 | 프론트엔드 | GitHub Pages | 정적 웹사이트 호스팅 |
 | CI/CD | GitHub Actions | 자동 배포 |
@@ -93,7 +93,7 @@ sam deploy --parameter-overrides "OpenAIApiKey=sk-your-key"
 
 ## 📡 데이터 흐름
 
-1. **EventBridge** 10분마다 Lambda 트리거
+1. **EventBridge**가 평일 08:00~16:00(KST) 동안 10분마다 Lambda 트리거
 2. **Lambda**가 네이버 뉴스 크롤링 (200개)
 3. **ChatGPT API**로 주도 테마 7개 추출
 4. 각 테마별 **대장주 4개** 실시간 시세 조회
@@ -104,7 +104,7 @@ sam deploy --parameter-overrides "OpenAIApiKey=sk-your-key"
 
 | 서비스 | 프리티어 | 예상 비용 |
 |--------|---------|----------|
-| Lambda | 월 100만건 무료 | $0 (10분×6×24=~4,300건/월) |
+| Lambda | 월 100만건 무료 | $0 (평일 장중 10분 간격 기준 대략 월 1,200건 내외) |
 | S3 | 5GB 무료 | $0 |
 | EventBridge | 무료 | $0 |
 | GitHub Pages | 무료 | $0 |
