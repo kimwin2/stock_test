@@ -131,6 +131,7 @@ def lambda_handler(event, context):
             "antwinnerSignals": analysis.get("antwinnerSignals", []),
             "infostockSignals": analysis.get("infostockSignals", []),
             "youtubeSignals": analysis.get("youtubeSignals", []),
+            "wownetSignals": analysis.get("wownetSignals", []),
             "telegramSignals": analysis.get("telegramSignals", []),
             "priceSignalCandidates": analysis.get("priceSignalCandidates", []),
             "themes": completed_themes,

@@ -22,6 +22,7 @@ try:
     from price_signals.store import load_price_signal_payload
     from telegram.store import load_telegram_signals
     from youtube_signals import fetch_latest_youtube_theme_signals
+    from wownet_signals import fetch_latest_wownet_theme_signals
     from antwinner.collector import fetch_antwinner_top_themes, build_antwinner_payload
     from antwinner.store import load_antwinner_payload, save_antwinner_payload
     from infostock.collector import fetch_infostock_top_themes, build_infostock_payload
@@ -31,6 +32,7 @@ except ModuleNotFoundError:
     from .price_signals.store import load_price_signal_payload
     from .telegram.store import load_telegram_signals
     from .youtube_signals import fetch_latest_youtube_theme_signals
+    from .wownet_signals import fetch_latest_wownet_theme_signals
     from .antwinner.collector import fetch_antwinner_top_themes, build_antwinner_payload
     from .antwinner.store import load_antwinner_payload, save_antwinner_payload
     from .infostock.collector import fetch_infostock_top_themes, build_infostock_payload
@@ -382,16 +384,18 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
    - 거래대금이 몰릴 만한 핫한 테마를 우선 선정
    - ★ 표시가 된 기사는 실제 주가 움직임이 확인된 기사이므로 테마 선정 시 더 높은 가중치를 부여하세요
    - ◆ 표시가 된 기사는 유튜브 외부 시그널과 직접 겹치는 기사이므로 매우 높은 가중치를 부여하세요
+   - ◇ 표시가 된 기사는 와우넷 외부 시그널과 직접 겹치는 기사이므로 매우 높은 가중치를 부여하세요
    - ● 표시가 된 기사는 개미승리 실시간 상위 테마와 겹치는 기사이므로 매우 높은 가중치를 부여하세요
    - ▲ 표시가 된 인포스탁 장중 강세 테마는 장중 시세 흐름을 빠르게 반영하는 고신뢰 시그널이므로, 개미승리와 중복 제거 후 남은 테마는 매우 강하게 반영하세요
    - `개미승리 실시간 테마 시그널`은 실제 장중 등락률과 거래대금 기반의 고신뢰 시그널입니다. 상위 테마 중 뉴스에서 조금이라도 관련 기사가 있는 테마는 적극적으로 반영하세요. 다만 관련종목(relatedStocks)은 개미승리 종목만 나열하지 말고, 뉴스와 다른 시그널에서 언급된 종목을 섞어 다양하게 구성하세요
    - `인포스탁 장중 강세 테마`는 로그인 없이 확인 가능한 실시간 강세 테마 요약입니다. 개미승리와 겹치지 않는 상위 테마는 우선순위를 매우 높게 두고, 관련종목은 제공된 급등주 후보 중 실제 연관성이 높은 종목만 최대 4개까지 반영하세요
    - `심플 관심종목 TV`의 최신 `내일 관심테마!` 및 `당일 관심테마!` 영상은 고신뢰 선행 시그널입니다. 뉴스와 겹치면 최우선 반영하고, 일부만 겹쳐도 강하게 반영하세요
+   - `와우넷 오늘의 특징주`에서 제목 날짜가 당일 또는 전일인 게시글의 `4. 강세업종`과 `5. 특징주`는 고신뢰 장중 시그널입니다. 뉴스와 겹치면 최우선 반영하고, 일부만 겹쳐도 강하게 반영하세요
    - `실시간 텔레그램 시그널`은 장중 선행 시그널입니다. 뉴스가 약하더라도 초기 형성 테마 후보로 강하게 검토하세요
    - `가격 기반 테마 후보`는 급등률, 상한가, 종목 동조화로 포착한 장중 수급 시그널입니다. 기사 반복도가 약해도 실제 종목군이 강하게 움직이면 매우 강하게 반영하세요
    - **저가 상한가 종목 가중치**: 주가 5,000원 이하의 저가주가 상한가(+30%)를 기록한 경우, 해당 종목이 **실제로 같은 업종/재료/섹터**에 속할 때만 테마에 높은 가중치를 부여하세요. 단, 업종이 서로 다른 저가 상한가 종목들을 "저가주 급등"이라는 이유만으로 억지로 하나의 테마로 묶지 마세요. 예를 들어 광통신 기업, 가구 유통 기업, SMT 장비 기업이 동시에 상한가를 쳤더라도 공통 재료가 없으면 각각 해당 업종 테마에 배정하거나 제외하세요
    - **억지 테마 금지**: 실제 공통 섹터/재료/이슈가 없는 종목들을 하나의 테마로 묶지 마세요. "저가 바이오", "급등주 모음" 같은 임의의 테마명을 만들어내는 것은 절대 금지합니다. 종목의 실제 사업 분야(반도체, 광통신, 바이오, 조선 등)를 기준으로만 테마를 구성하세요
-   - **종합 판단**: 9개 테마 중 3~4개는 개미승리·유튜브 등 외부 시그널이 뒷받침하는 테마를, 나머지는 뉴스 기사 분석에서 독자적으로 도출한 테마를 선정하세요. 관련종목은 여러 소스를 종합하여 다양하게 구성하세요
+   - **종합 판단**: 9개 테마 중 3~4개는 개미승리·유튜브·와우넷 등 외부 시그널이 뒷받침하는 테마를, 나머지는 뉴스 기사 분석에서 독자적으로 도출한 테마를 선정하세요. 관련종목은 여러 소스를 종합하여 다양하게 구성하세요
 
 2. **유사 테마 병합 (반드시 준수)**:
    - 추출한 테마 중 내용이 유사하거나 관련 종목이 크게 겹치는 테마가 있으면 반드시 하나로 병합하세요
@@ -444,6 +448,9 @@ USER_PROMPT_TEMPLATE = """아래는 오늘({date}) 수집된 증권 뉴스 기�
 
 === 외부 고신뢰 시그널: 심플 관심종목 TV ===
 {youtube_text}
+
+=== 외부 고신뢰 시그널: 와우넷 오늘의 특징주 ===
+{wownet_text}
 
 === 실시간 텔레그램 시그널 ===
 {telegram_text}
@@ -1236,6 +1243,14 @@ def _get_youtube_signals() -> list[dict]:
         return []
 
 
+def _get_wownet_signals() -> list[dict]:
+    try:
+        return fetch_latest_wownet_theme_signals(list(STOCK_CODE_MAP.keys()))
+    except Exception as e:
+        print(f"  [!] 와우넷 시그널 수집 실패: {e}")
+        return []
+
+
 def _get_telegram_signals() -> list[dict]:
     try:
         return load_telegram_signals(channel=os.getenv("TG_CHANNEL_USERNAME", "@faststocknews"))
@@ -1361,6 +1376,25 @@ def _get_youtube_keywords(youtube_signals: list[dict]) -> set[str]:
     return {keyword for keyword in keywords if keyword}
 
 
+def _get_wownet_keywords(wownet_signals: list[dict]) -> set[str]:
+    keywords = set()
+    for signal in wownet_signals:
+        for sector in signal.get("strongSectors", []):
+            if sector.get("name"):
+                keywords.add(sector["name"])
+            stock_text = sector.get("stock_text", "") or sector.get("stockText", "")
+            for token in re.split(r"[,，·/]", stock_text):
+                token = re.sub(r"\s+", "", token or "").strip(",")
+                token = re.sub(r"등$", "", token)
+                if token and len(token) >= 2 and not token.endswith("주"):
+                    keywords.add(token)
+            keywords.update(sector.get("stocks", []))
+        for item in signal.get("featuredStocks", []):
+            keywords.update(item.get("stocks", []))
+        keywords.update(signal.get("matchedStocks", []))
+    return {keyword for keyword in keywords if keyword}
+
+
 def _is_youtube_weighted_article(article: dict, youtube_keywords: set[str]) -> bool:
     haystack = " ".join([
         article.get("title", ""),
@@ -1368,6 +1402,15 @@ def _is_youtube_weighted_article(article: dict, youtube_keywords: set[str]) -> b
         article.get("source", ""),
     ])
     return any(keyword in haystack for keyword in youtube_keywords)
+
+
+def _is_wownet_weighted_article(article: dict, wownet_keywords: set[str]) -> bool:
+    haystack = " ".join([
+        article.get("title", ""),
+        article.get("summary", ""),
+        article.get("source", ""),
+    ])
+    return any(keyword in haystack for keyword in wownet_keywords)
 
 
 def format_antwinner_signals_for_prompt(antwinner_signals: list[dict]) -> str:
@@ -1424,6 +1467,32 @@ def format_youtube_signals_for_prompt(youtube_signals: list[dict]) -> str:
             f" (업로드일 {signal.get('upload_date', '미상')}, URL: {signal.get('video_url', '')})"
             f" | 섹터: {sectors} | 종목: {stocks}"
         )
+    return "\n".join(lines)
+
+
+def format_wownet_signals_for_prompt(wownet_signals: list[dict]) -> str:
+    if not wownet_signals:
+        return "당일/전일 기준 게시글 없음 또는 수집 실패"
+
+    lines = []
+    for signal in wownet_signals:
+        lines.append(
+            f"- {signal.get('title', '')}"
+            f" (제목 날짜 {signal.get('title_date', '미상')}, 게시일 {signal.get('published_date', '미상')},"
+            f" URL: {signal.get('post_url', '')})"
+        )
+        for sector in signal.get("strongSectors", []):
+            stock_text = sector.get("stock_text", "") or sector.get("stockText", "")
+            stocks = ", ".join(sector.get("stocks", [])) or "매칭 종목 없음"
+            lines.append(
+                f"  강세업종: {sector.get('name', '')}"
+                f" | 근거: {sector.get('summary', '')}"
+                f" | 원문 종목: {stock_text or '원문 종목 없음'}"
+                f" | 매칭 종목: {stocks}"
+            )
+        for item in signal.get("featuredStocks", [])[:8]:
+            stocks = ", ".join(item.get("stocks", [])) or "매칭 종목 없음"
+            lines.append(f"  특징주: {item.get('summary', '')} | 종목: {stocks}")
     return "\n".join(lines)
 
 
@@ -1849,16 +1918,19 @@ def apply_price_signal_postprocess(result: dict, articles: list[dict]) -> dict:
 def sort_articles_for_prompt(
     articles: list[dict],
     youtube_signals: list[dict] | None = None,
+    wownet_signals: list[dict] | None = None,
     antwinner_signals: list[dict] | None = None,
     infostock_signals: list[dict] | None = None,
 ) -> list[dict]:
     youtube_keywords = _get_youtube_keywords(youtube_signals or [])
+    wownet_keywords = _get_wownet_keywords(wownet_signals or [])
     antwinner_keywords = _get_antwinner_keywords(antwinner_signals or [])
     infostock_keywords = _get_infostock_keywords(infostock_signals or [])
 
     antwinner_priority = []
     infostock_priority = []
     youtube_priority = []
+    wownet_priority = []
     priority = []
     normal = []
     for article in articles:
@@ -1869,17 +1941,20 @@ def sort_articles_for_prompt(
             infostock_priority.append(article)
         elif _is_youtube_weighted_article(article, youtube_keywords):
             youtube_priority.append(article)
+        elif _is_wownet_weighted_article(article, wownet_keywords):
+            wownet_priority.append(article)
         elif _is_priority_article(title):
             priority.append(article)
         else:
             normal.append(article)
 
-    return antwinner_priority + infostock_priority + youtube_priority + priority + normal
+    return antwinner_priority + infostock_priority + youtube_priority + wownet_priority + priority + normal
 
 
 def format_articles_for_prompt(
     articles: list[dict],
     youtube_signals: list[dict] | None = None,
+    wownet_signals: list[dict] | None = None,
     antwinner_signals: list[dict] | None = None,
     infostock_signals: list[dict] | None = None,
 ) -> str:
@@ -1890,11 +1965,13 @@ def format_articles_for_prompt(
     개미승리 관련 기사는 ● 마커로 최고 가중치를 부여합니다.
     """
     youtube_keywords = _get_youtube_keywords(youtube_signals or [])
+    wownet_keywords = _get_wownet_keywords(wownet_signals or [])
     antwinner_keywords = _get_antwinner_keywords(antwinner_signals or [])
     infostock_keywords = _get_infostock_keywords(infostock_signals or [])
     sorted_articles = sort_articles_for_prompt(
         articles,
         youtube_signals,
+        wownet_signals,
         antwinner_signals,
         infostock_signals,
     )
@@ -1910,11 +1987,19 @@ def format_articles_for_prompt(
         and not _is_infostock_weighted_article(article, infostock_keywords)
         and _is_youtube_weighted_article(article, youtube_keywords)
     )
+    wownet_priority_count = sum(
+        1 for article in sorted_articles
+        if not _is_antwinner_weighted_article(article, antwinner_keywords)
+        and not _is_infostock_weighted_article(article, infostock_keywords)
+        and not _is_youtube_weighted_article(article, youtube_keywords)
+        and _is_wownet_weighted_article(article, wownet_keywords)
+    )
     priority_count = sum(
         1 for article in sorted_articles
         if not _is_antwinner_weighted_article(article, antwinner_keywords)
         and not _is_infostock_weighted_article(article, infostock_keywords)
         and not _is_youtube_weighted_article(article, youtube_keywords)
+        and not _is_wownet_weighted_article(article, wownet_keywords)
         and _is_priority_article(article.get("title", "").strip())
     )
 
@@ -1925,12 +2010,15 @@ def format_articles_for_prompt(
         is_antwinner_weighted = _is_antwinner_weighted_article(article, antwinner_keywords)
         is_infostock_weighted = _is_infostock_weighted_article(article, infostock_keywords)
         is_youtube_weighted = _is_youtube_weighted_article(article, youtube_keywords)
+        is_wownet_weighted = _is_wownet_weighted_article(article, wownet_keywords)
         if is_antwinner_weighted:
             marker = "●"
         elif is_infostock_weighted:
             marker = "▲"
         elif is_youtube_weighted:
             marker = "◆"
+        elif is_wownet_weighted:
+            marker = "◇"
         elif _is_priority_article(title):
             marker = "★"
         else:
@@ -1946,6 +2034,8 @@ def format_articles_for_prompt(
         print(f"  [▲] 인포스탁 테마 연관 기사 {infostock_priority_count}개를 상단 우선 배치했습니다.")
     if youtube_priority_count:
         print(f"  [◆] 유튜브 시그널 연관 기사 {youtube_priority_count}개를 최상단에 배치했습니다.")
+    if wownet_priority_count:
+        print(f"  [◇] 와우넷 시그널 연관 기사 {wownet_priority_count}개를 최상단에 배치했습니다.")
     if priority_count:
         print(f"  [★] 우선순위 기사 {priority_count}개를 최상단에 배치했습니다.")
 
@@ -2121,6 +2211,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
     infostock_signals = _get_infostock_signals()
     infostock_signals = _prune_infostock_signals_against_antwinner(infostock_signals, antwinner_signals)
     youtube_signals = _get_youtube_signals()
+    wownet_signals = _get_wownet_signals()
     telegram_signals = _get_telegram_signals()
     price_signal_payload = _get_price_signal_payload()
     infostock_signals = _match_infostock_signals_with_movers(
@@ -2131,18 +2222,21 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
     sorted_articles = sort_articles_for_prompt(
         articles,
         youtube_signals,
+        wownet_signals,
         antwinner_signals,
         infostock_signals,
     )
     antwinner_text = format_antwinner_signals_for_prompt(antwinner_signals)
     infostock_text = format_infostock_signals_for_prompt(infostock_signals)
     youtube_text = format_youtube_signals_for_prompt(youtube_signals)
+    wownet_text = format_wownet_signals_for_prompt(wownet_signals)
     telegram_text = format_telegram_signals_for_prompt(telegram_signals)
     price_signal_text = format_price_signal_candidates_for_prompt(price_signal_payload)
     candidate_text = format_theme_candidates_for_prompt(articles, telegram_signals)
     articles_text = format_articles_for_prompt(
         articles,
         youtube_signals,
+        wownet_signals,
         antwinner_signals,
         infostock_signals,
     )
@@ -2152,6 +2246,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         antwinner_text=antwinner_text,
         infostock_text=infostock_text,
         youtube_text=youtube_text,
+        wownet_text=wownet_text,
         telegram_text=telegram_text,
         price_signal_text=price_signal_text,
         candidate_text=candidate_text,
@@ -2175,6 +2270,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         result["antwinnerSignals"] = antwinner_signals
         result["infostockSignals"] = infostock_signals
         result["youtubeSignals"] = youtube_signals
+        result["wownetSignals"] = wownet_signals
         result["telegramSignals"] = telegram_signals
         result["priceSignalPayload"] = price_signal_payload
         result["priceSignalCandidates"] = price_signal_payload.get("candidates", [])
