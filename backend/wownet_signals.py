@@ -162,12 +162,26 @@ def _extract_stock_list(text: str, known_stocks: list[str]) -> list[str]:
     return _merge_unique(parsed + known_matches + _extract_heuristic_stocks(text))
 
 
+def _get_previous_market_day(reference_date: date) -> date:
+    previous = reference_date - timedelta(days=1)
+    while previous.weekday() >= 5:
+        previous -= timedelta(days=1)
+    return previous
+
+
+def _get_allowed_title_dates(reference_date: date) -> set[date]:
+    if reference_date.weekday() >= 5:
+        return {_get_previous_market_day(reference_date)}
+    return {reference_date, _get_previous_market_day(reference_date)}
+
+
 def _extract_recent_post_entries(reference_date: date, scan_limit: int = 12) -> list[dict]:
     response = requests.get(WOWLOG_LIST_URL, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
 
     soup = BeautifulSoup(response.text, "lxml")
     entries: list[dict] = []
+    allowed_title_dates = _get_allowed_title_dates(reference_date)
 
     for anchor in soup.select("#todayHotStocksList article a")[:scan_limit]:
         href = (anchor.get("href") or "").strip()
@@ -182,8 +196,7 @@ def _extract_recent_post_entries(reference_date: date, scan_limit: int = 12) -> 
         if not href or not title or not title_date:
             continue
 
-        age_days = (reference_date - title_date).days
-        if age_days < 0 or age_days > 1:
+        if title_date not in allowed_title_dates:
             continue
 
         entries.append(
