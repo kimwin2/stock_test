@@ -125,6 +125,7 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
         "antwinnerSignals": analysis.get("antwinnerSignals", []),
         "infostockSignals": analysis.get("infostockSignals", []),
         "youtubeSignals": analysis.get("youtubeSignals", []),
+        "wownetSignals": analysis.get("wownetSignals", []),
         "telegramSignals": analysis.get("telegramSignals", []),
         "priceSignalCandidates": analysis.get("priceSignalCandidates", []),
         "themes": completed_themes,

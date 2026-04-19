@@ -21,6 +21,7 @@
 | `backend/analyzer.py` | 기사 목록을 `gpt-4o-mini`에 보내 테마 7개를 추출합니다. 대표 기사 URL을 붙이고 분석 캐시는 `theme_analysis.json`에 저장합니다. |
 | `backend/stock_data.py` | 종목명을 종목코드로 찾고, 네이버 모바일/데스크톱 소스에서 시세를 조회해 테마별 종목 리스트를 완성합니다. |
 | `backend/youtube_signals.py` | `심플 관심종목 TV` 채널에서 `내일 관심테마!`, `당일 관심테마!` 영상을 읽어 분석 보조 시그널로 제공합니다. |
+| `backend/wownet_signals.py` | `와우넷 오늘의 특징주`에서 제목 날짜가 당일·전일인 게시글만 골라 `4. 강세업종`, `5. 특징주`를 추출해 분석 보조 시그널로 제공합니다. |
 | `backend/daum_crawler.py` | 다음 금융 뉴스 검색 보조 유틸입니다. 현재 기본 파이프라인의 핵심 경로는 아니지만 크롤링 보완용으로 남아 있습니다. |
 | `backend/crawled_articles.json` | 최근 크롤링 결과 캐시입니다. `--skip-crawl` 실행 시 재사용합니다. |
 | `backend/theme_analysis.json` | 최근 분석 결과 캐시입니다. `--skip-analysis` 실행 시 재사용합니다. |
@@ -80,6 +81,7 @@ Naver Finance News
 {
   "updatedAt": "2026-04-14T09:00:00",
   "youtubeSignals": [],
+  "wownetSignals": [],
   "themes": []
 }
 ```
