@@ -28,3 +28,9 @@ node_modules/
 # backend/crawled_articles.json
 # backend/theme_analysis.json
 backend/telegram/dev/*.json
+
+# Personal / 3rd-party source materials (not for redistribution)
+etc_source/
+
+# Local browser screenshots
+*.png.tmp

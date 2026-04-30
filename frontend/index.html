@@ -40,15 +40,31 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
     </div>
+    <nav class="tabs" id="tab-nav">
+      <button class="tab-btn active" data-tab="themes">급등·테마</button>
+      <button class="tab-btn" data-tab="flow">수급·주도</button>
+    </nav>
   </header>
 
   <!-- ===== Main Content ===== -->
-  <main id="theme-grid">
-    <!-- Theme cards will be rendered here by JS -->
-    <div class="loading-state" id="loading-state">
-      <div class="spinner"></div>
-      <p>테마 데이터를 불러오는 중...</p>
-    </div>
+  <main>
+    <section id="tab-themes" class="tab-panel active">
+      <div id="theme-grid">
+        <div class="loading-state" id="loading-state">
+          <div class="spinner"></div>
+          <p>테마 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-flow" class="tab-panel" hidden>
+      <div id="flow-content">
+        <div class="loading-state" id="flow-loading">
+          <div class="spinner"></div>
+          <p>수급/주도 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- ===== Bottom Ticker ===== -->
@@ -62,5 +78,6 @@
   </footer>
 
   <script src="app.js"></script>
+  <script src="flow.js"></script>
 </body>
 </html>

@@ -7,6 +7,12 @@ import os
 import sys
 
 try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
+except ImportError:
+    pass
+
+try:
     from telethon import TelegramClient
     from telethon.errors import SessionPasswordNeededError
     from telethon.errors.rpcerrorlist import PhoneCodeExpiredError, PhoneCodeInvalidError, SendCodeUnavailableError
@@ -66,7 +72,16 @@ async def bootstrap_session() -> None:
     code_from_env = os.getenv("TG_LOGIN_CODE", "").strip()
     password_from_env = os.getenv("TG_2FA_PASSWORD", "")
 
-    client = TelegramClient(StringSession(), int(api_id), api_hash)
+    # 두 단계 실행을 한 세션 위에서 잇기 위해 이전 단계의 StringSession 을 복원합니다.
+    # phone_code_hash 는 발급 당시의 auth_key 와 묶여 있어서, 새 세션으로는 sign_in 이 불가능합니다.
+    saved_session_str = ""
+    if code_from_env and os.path.exists(BOOTSTRAP_STATE_PATH):
+        try:
+            saved_session_str = _load_bootstrap_state().get("session_string", "") or ""
+        except Exception:
+            saved_session_str = ""
+
+    client = TelegramClient(StringSession(saved_session_str), int(api_id), api_hash)
     await client.connect()
     try:
         if not code_from_env:
@@ -85,6 +100,7 @@ async def bootstrap_session() -> None:
                             "phone": phone,
                             "phone_code_hash": sent.phone_code_hash,
                             "api_id": str(api_id),
+                            "session_string": client.session.save(),
                         }
                     )
                     raise RuntimeError(
@@ -116,6 +132,7 @@ async def bootstrap_session() -> None:
                     "phone": phone,
                     "phone_code_hash": sent.phone_code_hash,
                     "api_id": str(api_id),
+                    "session_string": client.session.save(),
                 }
             )
             print("Telegram login code sent.")

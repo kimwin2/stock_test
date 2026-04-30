@@ -32,12 +32,14 @@ try:
     from price_signals.collector import collect_price_theme_signals
     from price_signals.store import save_price_signal_payload
     from stock_data import get_stock_details_for_themes
+    from flow_signals.pipeline import build_flow_dashboard
 except ModuleNotFoundError:
     from .crawler import crawl_naver_finance_news_with_fallback
     from .analyzer import analyze_themes
     from .price_signals.collector import collect_price_theme_signals
     from .price_signals.store import save_price_signal_payload
     from .stock_data import get_stock_details_for_themes
+    from .flow_signals.pipeline import build_flow_dashboard
 
 
 def upload_to_s3(data: dict, bucket: str, key: str) -> str:
@@ -69,10 +71,39 @@ def upload_to_s3(data: dict, bucket: str, key: str) -> str:
     return url
 
 
+def _run_flow_pipeline(bucket: str) -> dict:
+    """수급/주도 파이프라인. EventBridge에서 mode=flow 로 호출."""
+    flow_key = os.environ.get("FLOW_S3_KEY", "flow_dashboard.json")
+    top_kospi = int(os.environ.get("FLOW_TOP_KOSPI", "300"))
+    top_kosdaq = int(os.environ.get("FLOW_TOP_KOSDAQ", "150"))
+
+    payload = build_flow_dashboard(top_n_kospi=top_kospi, top_n_kosdaq=top_kosdaq)
+    flow_url = upload_to_s3(payload, bucket, flow_key)
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps(
+            {
+                "message": "flow pipeline 성공",
+                "leadingSectors": payload.get("leadingSectorLabels"),
+                "vacancyAnalyzed": payload.get("vacancyAnalyzed"),
+                "elapsedSeconds": payload.get("elapsedSeconds"),
+                "s3_url": flow_url,
+                "updatedAt": payload["updatedAt"],
+            },
+            ensure_ascii=False,
+        ),
+    }
+
+
 def lambda_handler(event, context):
     """
     AWS Lambda 메인 핸들러.
     EventBridge 또는 수동 호출로 실행됩니다.
+
+    event.mode:
+        - "themes" (기본): 뉴스/테마 파이프라인 → dashboard_data.json
+        - "flow": 수급/주도 파이프라인 → flow_dashboard.json
     """
     print("=" * 60)
     print(">>> Stock Lambda Pipeline Start")
@@ -82,6 +113,15 @@ def lambda_handler(event, context):
 
     bucket = os.environ.get("S3_BUCKET_NAME", "stock-dashboard-data")
     s3_key = os.environ.get("S3_KEY", "dashboard_data.json")
+    mode = (event or {}).get("mode") or "themes"
+
+    if mode == "flow":
+        try:
+            return _run_flow_pipeline(bucket)
+        except Exception as e:
+            error_msg = traceback.format_exc()
+            print(f"[FATAL] flow pipeline 실패:\n{error_msg}")
+            return {"statusCode": 500, "body": json.dumps({"error": str(e), "traceback": error_msg})}
 
     try:
         # ── Step 1: 뉴스 크롤링 ──
