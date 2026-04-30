@@ -6,3 +6,6 @@ lxml>=4.9.0
 boto3>=1.34.0
 yt-dlp>=2025.10.14
 telethon>=1.36.0
+pandas>=2.0.0
+numpy>=1.24.0
+finance-datareader>=0.9.50

@@ -98,12 +98,15 @@ Resources:
       FunctionName: stock-pipeline
       CodeUri: backend/
       Handler: handler.lambda_handler
-      Description: Stock pipeline (v4-slot-collision-fix)
+      Description: Stock pipeline (v5-flow-tab)
       Environment:
         Variables:
           OPENAI_API_KEY: !Ref OpenAIApiKey
           S3_BUCKET_NAME: !Ref S3BucketName
           S3_KEY: dashboard_data.json
+          FLOW_S3_KEY: flow_dashboard.json
+          FLOW_TOP_KOSPI: '300'
+          FLOW_TOP_KOSDAQ: '150'
           THEME_ANALYSIS_MODEL: gpt-4o-mini
           ANTWINNER_SIGNAL_S3_KEY: signals/antwinner_themes_latest.json
           PRICE_SIGNAL_S3_KEY: signals/price_theme_signals_latest.json
@@ -129,6 +132,16 @@ Resources:
             Name: stock-pipeline-schedule-close
             Description: 평일 오후 4시에 파이프라인 실행
             State: ENABLED
+        # 수급/주도 파이프라인: 평일 8시~20시까지 매시 정각 (mode=flow)
+        FlowHourlyScheduleEvent:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: cron(0 8-20 ? * MON-FRI *)
+            ScheduleExpressionTimezone: Asia/Seoul
+            Name: stock-pipeline-flow-hourly
+            Description: 평일 8시부터 20시까지 매시 정각 수급/주도 분석
+            State: ENABLED
+            Input: '{"mode":"flow","source":"eventbridge-flow"}'
         # 수동 실행용 HTTP API 엔드포인트
         ManualTrigger:
           Type: Api
