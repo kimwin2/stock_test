@@ -174,7 +174,8 @@ body {
   flex: 1;
   background: none;
   border: none;
-  padding: 8px 4px;
+  padding: 12px 4px;
+  min-height: 44px;
   font-size: 0.92rem;
   font-weight: 600;
   color: var(--text-secondary);
@@ -564,34 +565,135 @@ body {
   padding: var(--card-gap);
 }
 
-@media (min-width: 900px) {
-  .flow-grid {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-  .flow-card-cash { grid-column: 1 / 2; }
-  .flow-card-sentiment { grid-column: 2 / 4; }
-  .flow-card-candidates { grid-column: 1 / -1; }
-  .flow-card-ti { grid-column: 1 / 3; }
-  .flow-card-sectorflow { grid-column: 3 / 4; }
-  .flow-card-exit { grid-column: 1 / 3; }
-  .flow-card-leading { grid-column: 3 / 4; }
+/* === Layout v2 — STEP 1/2/3 main + collapsed === */
+.flow-grid-v2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--card-gap);
+  padding: var(--card-gap);
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
-@media (min-width: 1400px) {
-  .flow-grid {
-    grid-template-columns: repeat(4, 1fr);
-    max-width: 1600px;
-    margin: 0 auto;
+@media (min-width: 900px) {
+  .flow-grid-v2 {
+    grid-template-columns: 1.4fr 1fr;
   }
-  .flow-card-cash { grid-column: 1 / 2; }
-  .flow-card-sentiment { grid-column: 2 / 4; }
-  .flow-card-crowding { grid-column: 4 / 5; }
+  .flow-card-step1 { grid-column: 1 / 2; }
+  .flow-card-step2 { grid-column: 2 / 3; }
   .flow-card-candidates { grid-column: 1 / -1; }
-  .flow-card-ti { grid-column: 1 / 3; }
-  .flow-card-sectorflow { grid-column: 3 / 5; }
-  .flow-card-exit { grid-column: 1 / 3; }
-  .flow-card-leading { grid-column: 3 / 5; }
 }
+
+.flow-grid-collapsed {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--card-gap);
+  padding: var(--card-gap);
+}
+@media (min-width: 900px) {
+  .flow-grid-collapsed { grid-template-columns: 1fr 1fr; }
+}
+
+.flow-collapsible {
+  max-width: 1100px;
+  margin: 4px auto;
+}
+.flow-collapsible > summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  background: rgba(0,137,123,0.08);
+  border: 1px solid rgba(0,137,123,0.25);
+  border-radius: var(--card-radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--teal-dark);
+  list-style: none;
+}
+.flow-collapsible > summary::marker { content: ''; }
+.flow-collapsible[open] > summary { background: rgba(0,137,123,0.14); }
+.flow-collapsible > summary:hover { background: rgba(0,137,123,0.18); }
+
+/* === STEP card chrome === */
+.step-header {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px !important;
+}
+.step-num {
+  background: rgba(255,255,255,0.22);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.cash-pill, .crowd-pill {
+  margin-left: auto;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+.step1-body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+.step1-cash-line {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: 2px 4px 4px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.step1-row { background: #fafafa; border-radius: 4px; padding: 6px 8px; }
+.step1-row-head {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 3px;
+}
+.step1-row-head strong { font-size: 0.92rem; color: var(--text-primary); }
+
+.step2-body { padding: 8px 12px 12px; }
+.step2-label { font-size: 0.76rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+.step2-rs-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 36px 80px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 0.82rem;
+}
+.step2-rs-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.step2-rs-num { font-weight: 700; text-align: right; color: var(--text-secondary); }
+.step2-rs-mom { font-weight: 700; text-align: right; }
+.step2-rs-mom small { font-weight: 500; color: var(--text-muted); }
+.step2-flow {
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0;
+  font-size: 0.82rem; color: var(--text-secondary);
+}
+.step2-flow strong { color: var(--text-primary); }
+
+/* === STEP 3 candidate row tweaks === */
+.flow-step3 .cand-row {
+  display: block;
+  padding: 10px 0;
+}
+.flow-step3 .cand-top {
+  display: grid; grid-template-columns: 1fr 195px; gap: 10px; align-items: center;
+}
+
+/* === Supply gauge === */
+.supply-gauge-row {
+  margin-top: 6px;
+  padding: 4px 4px 2px;
+  display: grid;
+  grid-template-columns: 175px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.supply-gauge { width: 175px; height: 14px; }
+.supply-label { font-size: 0.74rem; line-height: 1.3; }
+.supply-zone { font-weight: 800; font-size: 0.82rem; margin-right: 4px; }
+.supply-meta { color: var(--text-secondary); }
 
 .flow-card {
   background: var(--bg-card);

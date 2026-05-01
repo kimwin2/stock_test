@@ -238,18 +238,32 @@ def build_flow_dashboard(
     code_to_meta: dict[str, dict] = {}
 
     if not vacancy_df.empty:
+        # 1) 빈집 필터 (외인+기관 5d 순매도)
+        filtered = vacancy_df[vacancy_df["institutionNet5d"] < 0]
+        # 2) 주도 섹터 매칭
         if leading_sectors:
-            cand_df = vacancy_df[vacancy_df["sector"].isin(leading_sectors)].head(new_high_candidates_only)
-        else:
-            cand_df = vacancy_df.head(new_high_candidates_only)
+            filtered = filtered[filtered["sector"].isin(leading_sectors)]
+        # 3) 가장 빈집 (vacancyScore 가장 작은 음수) 순 정렬 + head
+        cand_df = filtered.sort_values("vacancyScore", ascending=True).head(new_high_candidates_only)
         candidate_codes = cand_df["code"].tolist()
         for _, r in cand_df.iterrows():
             code_to_meta[r["code"]] = {"name": r["name"], "sector": r["sector"]}
 
         candidate_dicts = cand_df.to_dict("records")
-        print(f"\n[Step 7] 매수후보 enrichment (차트+매수타점) {len(candidate_dicts)}개")
+        # vacancyScore percentile 계산용 전 유니버스 점수 (NaN/None 제외)
+        import math
+        all_scores = [
+            float(s) for s in vacancy_df["vacancyScore"].tolist()
+            if s is not None and not (isinstance(s, float) and math.isnan(s))
+        ]
+        print(f"\n[Step 7] 매수후보 enrichment (차트+매수타점+수급percentile) {len(candidate_dicts)}개")
         try:
-            enriched_candidates = enrich_with_chart_and_buyzone(candidate_dicts, sleep_sec=0.0, progress_every=20)
+            enriched_candidates = enrich_with_chart_and_buyzone(
+                candidate_dicts,
+                all_vacancy_scores=all_scores,
+                sleep_sec=0.0,
+                progress_every=20,
+            )
         except Exception as e:
             print(f"  [!] enrichment 실패: {e}")
             enriched_candidates = candidate_dicts
