@@ -25,21 +25,30 @@ if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-# 모듈 임포트
+# 모듈 임포트 — flow_signals 는 mode=flow 호출 시점에만 lazy import.
+# 이유: pandas/FinanceDataReader 등 무거운 의존성이 theme 모드 cold start 까지
+# 끌고 들어와 import 실패 시 theme 파이프라인까지 죽이는 것을 방지.
 try:
     from crawler import crawl_naver_finance_news_with_fallback
     from analyzer import analyze_themes
     from price_signals.collector import collect_price_theme_signals
     from price_signals.store import save_price_signal_payload
     from stock_data import get_stock_details_for_themes
-    from flow_signals.pipeline import build_flow_dashboard
 except ModuleNotFoundError:
     from .crawler import crawl_naver_finance_news_with_fallback
     from .analyzer import analyze_themes
     from .price_signals.collector import collect_price_theme_signals
     from .price_signals.store import save_price_signal_payload
     from .stock_data import get_stock_details_for_themes
-    from .flow_signals.pipeline import build_flow_dashboard
+
+
+def _import_flow_pipeline():
+    """flow_signals.pipeline.build_flow_dashboard 지연 임포트."""
+    try:
+        from flow_signals.pipeline import build_flow_dashboard
+    except ModuleNotFoundError:
+        from .flow_signals.pipeline import build_flow_dashboard
+    return build_flow_dashboard
 
 
 def upload_to_s3(data: dict, bucket: str, key: str) -> str:
@@ -77,6 +86,7 @@ def _run_flow_pipeline(bucket: str) -> dict:
     top_kospi = int(os.environ.get("FLOW_TOP_KOSPI", "300"))
     top_kosdaq = int(os.environ.get("FLOW_TOP_KOSDAQ", "150"))
 
+    build_flow_dashboard = _import_flow_pipeline()
     payload = build_flow_dashboard(top_n_kospi=top_kospi, top_n_kosdaq=top_kosdaq)
     flow_url = upload_to_s3(payload, bucket, flow_key)
 
