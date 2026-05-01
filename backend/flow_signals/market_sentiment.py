@@ -1,6 +1,6 @@
 """시장 심리 지표 — Pier&Grid 단순화 버전.
 
-원본 태린이아빠 코드는 RSI(10) + 변동성지수 + Put/Call ATM + 국채선물 차이 + 모멘텀
+원본 Colab 코드는 RSI(10) + 변동성지수 + Put/Call ATM + 국채선물 차이 + 모멘텀
 의 5개 feature를 MinMax 정규화 후 가중평균.
 
 옵션 ATM/국채선물 데이터는 무료 소스가 없어 단순화:

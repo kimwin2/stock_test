@@ -257,6 +257,42 @@ function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
+// Supply Gauge — percentile + zone          │
+//   percentile: 0-100 (0=가장 빈집)         │
+//   zone: "빈집" | "정상" | "찼음"          │
+// ─────────────────────────────────────────┘
+function renderSupplyGauge(percentile, zone, amount) {
+  if (percentile == null) return '';
+  const w = 175, h = 14;
+  const cx = Math.max(4, Math.min(w - 4, (percentile / 100) * w));
+
+  const dotColor = percentile < 25 ? '#1E88E5'
+                 : percentile > 75 ? '#E53935'
+                 : '#555';
+  const zoneTextColor = percentile < 25 ? '#1E88E5'
+                      : percentile > 75 ? '#E53935'
+                      : '#666';
+
+  // 3 zone bands: blue / gray / red
+  return `
+    <div class="supply-gauge-row">
+      <svg viewBox="0 0 ${w} ${h}" class="supply-gauge" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <rect x="0" y="4" width="${w * 0.25}" height="6" fill="rgba(30,136,229,0.40)"/>
+        <rect x="${w * 0.25}" y="4" width="${w * 0.5}" height="6" fill="rgba(158,158,158,0.22)"/>
+        <rect x="${w * 0.75}" y="4" width="${w * 0.25}" height="6" fill="rgba(229,57,53,0.40)"/>
+        <line x1="${w * 0.25}" y1="2" x2="${w * 0.25}" y2="12" stroke="#bbb" stroke-width="0.5"/>
+        <line x1="${w * 0.75}" y1="2" x2="${w * 0.75}" y2="12" stroke="#bbb" stroke-width="0.5"/>
+        <circle cx="${cx.toFixed(1)}" cy="7" r="4.5" fill="${dotColor}" stroke="#fff" stroke-width="1"/>
+      </svg>
+      <div class="supply-label">
+        <span class="supply-zone" style="color:${zoneTextColor}">${fEscape(zone || '-')}</span>
+        <span class="supply-meta">하위 ${percentile.toFixed(0)}% · 외인+기관 5d ${fmtBillion(amount)}</span>
+      </div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────┐
 // Sparkline                                 │
 // ─────────────────────────────────────────┘
 function renderSparkline(values, opts = {}) {
@@ -283,54 +319,39 @@ function renderSparkline(values, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
-// CARD: Cash recommendation                 │
+// CARD: STEP 1 — 시장 심리 + 현금 비중 통합 │
 // ─────────────────────────────────────────┘
-function buildCashCard(cash) {
-  if (!cash || !cash.available) return '';
-  const pct = cash.cashPct || 0;
-  const colorFor = pct >= 30 ? '#E53935' : pct >= 15 ? '#FB8C00' : pct >= 5 ? '#FDD835' : '#43A047';
-  return `
-    <div class="flow-card flow-card-cash">
-      <div class="card-header"><span class="card-theme-name">⚖️ 권장 현금 비중</span></div>
-      <div class="cash-body">
-        <div class="cash-value" style="color:${colorFor}">${pct}%</div>
-        <div class="cash-level">${fEscape(cash.level || '')}</div>
-        <div class="cash-meta">
-          F&G ${cash.fearGreed?.toFixed(1) ?? '-'} · 쏠림: ${fEscape(cash.crowdingSignal || '-')}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-// ─────────────────────────────────────────┐
-// CARD: Sentiment dual-axis                 │
-// ─────────────────────────────────────────┘
-function buildSentimentCard(sentiment) {
+function buildStep1Card(sentiment, cash) {
   const k = sentiment?.kospi || {};
   const q = sentiment?.kosdaq || {};
+  const cashPct = cash?.cashPct ?? null;
+  const cashLevel = cash?.level || '';
+  const cashColor = cashPct == null ? '#999'
+                  : cashPct >= 30 ? '#E53935'
+                  : cashPct >= 15 ? '#FB8C00'
+                  : cashPct >= 5 ? '#FDD835'
+                  : '#43A047';
+
   return `
-    <div class="flow-card flow-card-sentiment">
-      <div class="card-header"><span class="card-theme-name">📊 시장 심리 — 가격 vs 공포탐욕</span></div>
-      <div class="sentiment-body-v2">
-        <div class="sentiment-row">
-          <div class="sentiment-row-head">
+    <div class="flow-card flow-card-step1 flow-step1">
+      <div class="card-header step-header">
+        <span class="step-num">STEP 1</span>
+        <span class="card-theme-name">📊 오늘 매수해도 되나?</span>
+        ${cashPct != null ? `<span class="cash-pill" style="background:${cashColor}">현금 ${cashPct}%</span>` : ''}
+      </div>
+      <div class="step1-body">
+        ${cashLevel ? `<div class="step1-cash-line">${fEscape(cashLevel)}</div>` : ''}
+        <div class="step1-row">
+          <div class="step1-row-head">
             <strong>${fEscape(k.label || 'KOSPI')}</strong>
             <span class="sentiment-zone">${fEscape(k.zone || '-')}</span>
             <span class="sentiment-fg">F&G ${k.fearGreed?.toFixed(1) ?? '-'} · Osc ${k.oscillator?.toFixed(2) ?? '-'}</span>
             <span class="sentiment-close">종가 ${fmtNumber(k.close)}</span>
           </div>
           ${renderDualAxisChart(k.history)}
-          <div class="dual-legend">
-            <span class="legend-price">━ 지수</span>
-            <span class="legend-fg">━ Pier&Grid Oscillator (MACD)</span>
-            <span class="legend-ref">┄ 0선</span>
-            <span class="legend-pos">▒ 그리드(+)</span>
-            <span class="legend-neg">▒ 피어(−)</span>
-          </div>
         </div>
-        <div class="sentiment-row">
-          <div class="sentiment-row-head">
+        <div class="step1-row">
+          <div class="step1-row-head">
             <strong>${fEscape(q.label || 'KOSDAQ')}</strong>
             <span class="sentiment-zone">${fEscape(q.zone || '-')}</span>
             <span class="sentiment-fg">F&G ${q.fearGreed?.toFixed(1) ?? '-'} · Osc ${q.oscillator?.toFixed(2) ?? '-'}</span>
@@ -338,23 +359,74 @@ function buildSentimentCard(sentiment) {
           </div>
           ${renderDualAxisChart(q.history)}
         </div>
+        <div class="dual-legend">
+          <span class="legend-price">━ 지수</span>
+          <span class="legend-fg">━ Pier&Grid Oscillator (MACD)</span>
+          <span class="legend-ref">┄ 0선</span>
+          <span class="legend-pos">▒ 그리드(+)</span>
+          <span class="legend-neg">▒ 피어(−)</span>
+        </div>
       </div>
     </div>
   `;
 }
 
+
 // ─────────────────────────────────────────┐
-// CARD: Buy candidates (THE BIG ONE)        │
+// CARD: STEP 2 — 섹터 강도 + 쏠림 통합     │
+// ─────────────────────────────────────────┘
+function buildStep2Card(leading, crowding, leadingLabels) {
+  const top = leading?.top || [];
+  const rsLeaders = top.filter(e => e.rsNorm >= 70).slice(0, 6);
+  const rsBackup = rsLeaders.length === 0 ? top.slice(0, 6) : rsLeaders;
+
+  const crowdLatest = crowding?.latest;
+  const crowdSignal = crowding?.signal || '-';
+  const sigColor = crowdSignal === '극심쏠림' ? '#E53935'
+                : crowdSignal === '쏠림' ? '#FB8C00'
+                : crowdSignal === '주의' ? '#FDD835'
+                : '#43A047';
+
+  const flowSectors = leadingLabels?.length ? leadingLabels.slice(0, 6).join(' · ') : '';
+
+  return `
+    <div class="flow-card flow-card-step2 flow-step2">
+      <div class="card-header step-header">
+        <span class="step-num">STEP 2</span>
+        <span class="card-theme-name">🔥 어떤 섹터가 강한가?</span>
+        ${crowdLatest != null ? `<span class="crowd-pill" style="background:${sigColor}">쏠림 ${crowdLatest.toFixed(0)} ${fEscape(crowdSignal)}</span>` : ''}
+      </div>
+      <div class="step2-body">
+        <div class="step2-rs">
+          <div class="step2-label">RS 70+ ETF (시장 대비 강도)</div>
+          ${rsBackup.map(e => `
+            <div class="step2-rs-row">
+              <span class="step2-rs-name">${fEscape(e.name)}</span>
+              <div class="rs-bar"><div class="rs-bar-fill" style="width:${Math.min(100, e.rsNorm)}%; background:${e.rsNorm >= 70 ? '#E53935' : e.rsNorm >= 50 ? '#FB8C00' : '#1E88E5'}"></div></div>
+              <span class="step2-rs-num">${e.rsNorm}</span>
+              <span class="step2-rs-mom ${changeClass(e.ret3m)}">${e.ret3m != null ? (e.ret3m > 0 ? '+' : '') + e.ret3m + '%' : '-'} <small>3M</small></span>
+            </div>
+          `).join('')}
+        </div>
+        ${flowSectors ? `<div class="step2-flow">📈 자금 유입 섹터: <strong>${fEscape(flowSectors)}</strong></div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+
+// ─────────────────────────────────────────┐
+// CARD: Buy candidates (STEP 3 — main hero) │
 // ─────────────────────────────────────────┘
 function buildBuyCandidatesCard(candidates, leadingLabels) {
   if (!candidates || candidates.length === 0) {
-    return `<div class="flow-card flow-card-candidates"><div class="card-header"><span class="card-theme-name">🎯 매수 후보</span></div><div class="empty-msg">현재 후보 없음</div></div>`;
+    return `<div class="flow-card flow-card-candidates flow-step3"><div class="card-header step-header"><span class="step-num">STEP 3</span><span class="card-theme-name">🎯 어떤 종목? — 매수 후보</span></div><div class="empty-msg">현재 후보 없음</div></div>`;
   }
-  const title = `🎯 매수 후보 — 주도섹터 ∩ 수급빈집${leadingLabels?.length ? ` (${leadingLabels.join(', ')})` : ''}`;
+  const sectorTag = leadingLabels?.length ? leadingLabels.slice(0, 5).join(', ') : '';
 
-  const rows = candidates.slice(0, 12).map(c => {
+  const rows = candidates.slice(0, 5).map(c => {
     const bz = c.buyZone || {};
-    const sectorTag = c.sector || '-';
+    const sectorLabel = c.sector || '-';
     const newHighBadge = c.newHigh250d ? '<span class="badge badge-red">250d 신고가</span>'
                        : c.newHigh50d ? '<span class="badge badge-orange">50d 신고가</span>'
                        : '';
@@ -368,40 +440,43 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
 
     return `
       <div class="cand-row">
-        <div class="cand-info">
-          <div class="cand-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorTag)}</small></div>
-          <div class="cand-badges">${trendBadge}${newHighBadge}${buyZoneBadge}</div>
-          <div class="cand-prices">
-            <span class="cand-close">${fmtNumber(c.close)}</span>
-            <span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>
+        <div class="cand-top">
+          <div class="cand-info">
+            <div class="cand-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small></div>
+            <div class="cand-badges">${trendBadge}${newHighBadge}${buyZoneBadge}</div>
+            <div class="cand-prices">
+              <span class="cand-close">${fmtNumber(c.close)}</span>
+              <span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>
+            </div>
+            <div class="cand-bz">
+              오늘 고가 대비 <strong class="${todayPullback < 0 ? 'down' : 'flat'}">${todayPullback.toFixed(2)}%</strong>
+              · 매수권 -${Math.abs(buyZonePullback).toFixed(2)}%
+              ${bz.buyZonePrice ? `· 매수가 ${fmtNumber(bz.buyZonePrice)}` : ''}
+            </div>
           </div>
-          <div class="cand-bz">
-            오늘 고가 대비 <strong class="${todayPullback < 0 ? 'down' : 'flat'}">${todayPullback.toFixed(2)}%</strong>
-            · 매수권 -${Math.abs(buyZonePullback).toFixed(2)}%
-            ${bz.buyZonePrice ? `· 매수가 ${fmtNumber(bz.buyZonePrice)}` : ''}
-          </div>
-          <div class="cand-flow">
-            외인+기관 5d: <strong class="down">${fmtBillion(c.institutionNet5d)}</strong>
-            · 거래대금비 ${c.tradingValueRatio != null ? c.tradingValueRatio.toFixed(2) + 'x' : '-'}
+          <div class="cand-chart">
+            ${renderMiniPriceChart(c.priceHistory60d, c.ma10, c.ma20, c.dailyFlow10d)}
           </div>
         </div>
-        <div class="cand-chart">
-          ${renderMiniPriceChart(c.priceHistory60d, c.ma10, c.ma20, c.dailyFlow10d)}
-        </div>
+        ${renderSupplyGauge(c.vacancyPercentile, c.vacancyZone, c.institutionNet5d)}
       </div>
     `;
   }).join('');
 
   return `
-    <div class="flow-card flow-card-candidates">
-      <div class="card-header"><span class="card-theme-name">${fEscape(title)}</span><span class="card-volume">${candidates.length}개</span></div>
+    <div class="flow-card flow-card-candidates flow-step3">
+      <div class="card-header step-header">
+        <span class="step-num">STEP 3</span>
+        <span class="card-theme-name">🎯 어떤 종목? ${sectorTag ? `<small>(${fEscape(sectorTag)})</small>` : ''}</span>
+        <span class="card-volume">${Math.min(5, candidates.length)} / ${candidates.length}</span>
+      </div>
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">
         <span><span class="legend-dot orange"></span>10MA</span>
         <span><span class="legend-dot gray"></span>20MA</span>
         <span><span class="legend-bar red"></span>외인+기관 매수일</span>
         <span><span class="legend-bar blue"></span>매도일</span>
-        <span class="legend-tip">차트 우측 막대 = 최근 10일 외인+기관 일별 순매수액</span>
+        <span class="legend-tip">수급바: 우측 = 최근 10일. 게이지: 오늘 분석 종목 중 percentile</span>
       </div>
     </div>
   `;
@@ -476,37 +551,6 @@ function buildSectorFlowCard(flows) {
 }
 
 // ─────────────────────────────────────────┐
-// CARD: Crowding                            │
-// ─────────────────────────────────────────┘
-function buildCrowdingCard(crowding) {
-  if (!crowding || !crowding.available) return '';
-  const sigColor = crowding.signal === '극심쏠림' ? '#E53935' : crowding.signal === '쏠림' ? '#FB8C00' : crowding.signal === '주의' ? '#FDD835' : '#43A047';
-  const sparkVals = (crowding.history || []).map(h => h.crowding);
-  return `
-    <div class="flow-card flow-card-crowding">
-      <div class="card-header"><span class="card-theme-name">🌀 업종 쏠림 지수</span></div>
-      <div class="crowding-body">
-        <div class="crowding-headline">
-          <span class="crowding-value" style="color:${sigColor}">${(crowding.latest ?? 0).toFixed(1)}</span>
-          <span class="crowding-signal" style="background:${sigColor}">${fEscape(crowding.signal)}</span>
-        </div>
-        <div class="sparkline-wrap">${renderSparkline(sparkVals, { stroke: '#FB8C00', refLine: 35 })}</div>
-        <div class="crowding-side">
-          <div class="crowd-col">
-            <div class="crowd-col-title">📈 주도</div>
-            ${(crowding.leaders || []).slice(0, 5).map(l => `<div class="crowd-row"><span>${fEscape(l.name)}</span><span class="up">+${l.ret6m}%</span></div>`).join('')}
-          </div>
-          <div class="crowd-col">
-            <div class="crowd-col-title">📉 소외</div>
-            ${(crowding.laggards || []).slice(0, 5).map(l => `<div class="crowd-row"><span>${fEscape(l.name)}</span><span class="${l.ret6m < 0 ? 'down' : 'up'}">${l.ret6m > 0 ? '+' : ''}${l.ret6m}%</span></div>`).join('')}
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-// ─────────────────────────────────────────┐
 // CARD: Leading ETF                         │
 // ─────────────────────────────────────────┘
 function buildLeadingCard(leading) {
@@ -567,16 +611,20 @@ async function loadFlow() {
         <span>업데이트: ${new Date(data.updatedAt).toLocaleString('ko-KR')}</span>
         <span>분석 ${data.vacancyAnalyzed || 0}/${data.universeSize || 0} · ${data.elapsedSeconds}s</span>
       </div>
-      <div class="flow-grid">
-        ${buildCashCard(data.cashRecommendation)}
-        ${buildSentimentCard(data.marketSentiment)}
-        ${buildCrowdingCard(data.crowding)}
+      <div class="flow-grid flow-grid-v2">
+        ${buildStep1Card(data.marketSentiment, data.cashRecommendation)}
+        ${buildStep2Card(data.leadingSectors, data.crowding, data.leadingSectorLabels)}
         ${buildBuyCandidatesCard(data.buyCandidates, data.leadingSectorLabels)}
-        ${buildTICard(data.tradingIntensity)}
-        ${buildSectorFlowCard(data.sectorFlows)}
-        ${buildExitCard(data.exitSignals)}
-        ${buildLeadingCard(data.leadingSectors)}
       </div>
+      <details class="flow-collapsible">
+        <summary>▼ 정밀 분석 펼치기 (주트레이더용)</summary>
+        <div class="flow-grid flow-grid-collapsed">
+          ${buildSectorFlowCard(data.sectorFlows)}
+          ${buildTICard(data.tradingIntensity)}
+          ${buildExitCard(data.exitSignals)}
+          ${buildLeadingCard(data.leadingSectors)}
+        </div>
+      </details>
     `;
     flowLoaded = true;
   } catch (err) {

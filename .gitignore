@@ -34,3 +34,11 @@ etc_source/
 
 # Local browser screenshots
 *.png.tmp
+
+# gstack — installed locally as a reference clone (or symlinked into .claude/skills)
+gstack/
+.claude/skills/gstack
+.claude/skills/gstack/
+
+# gstack 세션 메타데이터 (혹시 ~/.gstack 외부에 떨어지면)
+.gstack/

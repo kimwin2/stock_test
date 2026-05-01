@@ -1,4 +1,4 @@
-"""거래대금 강도 (Trading Intensity, TI) — 태린이아빠 핵심 매수 시그널.
+"""거래대금 강도 (Trading Intensity, TI) — 핵심 매수 시그널.
 
 원본 코드 (거래대금 강도 코랩) 변형:
   TI_raw = 0.5*z(VolSpike) + 0.3*z(Turnover) + 0.2*z(GapTrend)

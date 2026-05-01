@@ -1,6 +1,6 @@
 """ETF 기반 주도 업종/테마 추출.
 
-태린이아빠 로직:
+퀀트 분석 로직:
 1. Mansfield RS (60/120/250일) 평균 → 0~100 정규화 → 70 이상 = 주도
 2. 변동성 조정 모멘텀 (3/6/12개월 수익률 / 표준편차의 평균)
 3. Sortino (다운사이드 변동성 대비 수익률)
@@ -19,7 +19,7 @@ import pandas as pd
 from .data_sources import fetch_etf_listing, fetch_stock_ohlcv, fetch_index_ohlcv
 
 
-# 태린이아빠가 즐겨 쓰는 테마/업종 ETF 핸드픽 (티커 → 라벨)
+# 주요 테마/업종 ETF 핸드픽 (티커 → 라벨)
 THEME_ETFS = {
     "069500": "KODEX 200",
     "229200": "KODEX 코스닥150",
@@ -59,7 +59,7 @@ THEME_ETFS = {
     "433330": "KODEX 미국빅테크TOP7Plus",
     "381190": "TIGER 미국필라델피아반도체",
     "411060": "ACE 글로벌반도체TOP4Plus",
-    # 추가: 전력기기/원전/방산 (태린이아빠가 자주 언급)
+    # 추가: 전력기기/원전/방산 (주도 섹터 자주 언급)
     "139250": "TIGER 200 중공업",
     "117710": "TIGER 200 IT",
     "139290": "TIGER 200 산업재",

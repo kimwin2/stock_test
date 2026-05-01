@@ -1,11 +1,11 @@
-"""수급 빈집 (Supply Vacancy) — 태린이아빠 핵심 지표.
+"""수급 빈집 (Supply Vacancy) — 핵심 지표.
 
 원리:
 - "외국인 + 기관 누적 매수금액"이 최근에 줄어들었지만 (수급이 식음)
 - 동시에 그 종목이 주도 섹터에 속해 있다면
 - 다시 채워질 가능성이 높은 매수 후보다.
 
-태린이아빠 엑셀의 핵심 두 컬럼:
+핵심 두 컬럼 (참고 엑셀 모델):
 1. "거래대금: 최근일 - 5일평균"  ← 거래대금이 최근 줄었나
 2. "연금/사모/투신 매수대금: 최근일 - 5일평균"  ← 큰손 자금이 줄었나
 
@@ -145,21 +145,38 @@ def collect_universe_vacancy(
     return pd.DataFrame(rows)
 
 
+def _compute_percentile(score: float, all_scores: list[float]) -> float:
+    """vacancyScore 의 universe percentile (0=가장 빈집, 100=가장 찼음)."""
+    if not all_scores:
+        return 50.0
+    less_than = sum(1 for s in all_scores if s < score)
+    return round(less_than / len(all_scores) * 100, 1)
+
+
+def _vacancy_zone(percentile: float) -> str:
+    """percentile → zone 라벨."""
+    if percentile < 25:
+        return "빈집"
+    if percentile > 75:
+        return "찼음"
+    return "정상"
+
+
 def enrich_with_chart_and_buyzone(
     candidates: list[dict],
+    all_vacancy_scores: list[float] | None = None,
     sleep_sec: float = 0.0,
     progress_every: int = 30,
 ) -> list[dict]:
-    """후보 종목들에 60일 가격 차트 + 매수 타점 통계 추가.
+    """후보 종목들에 60일 가격 차트 + 매수 타점 통계 + 수급 percentile 추가.
 
     각 후보 dict 에 다음 키들이 추가됨:
-      priceHistory60d: list[float]
-      dateHistory60d: list[str]
-      ma10, ma20: float
-      newHigh50d, newHigh250d: bool
-      buyZone: dict  (compute_buy_zone 결과)
-      ret5d: float
+      priceHistory60d, dateHistory60d, ma10, ma20
+      newHigh50d, newHigh250d, ret5d, max250d, buyZone
+      aboveMA10, aboveMA20
+      vacancyPercentile (0~100), vacancyZone ("빈집"/"정상"/"찼음")
     """
+    scores = list(all_vacancy_scores) if all_vacancy_scores is not None else []
     out: list[dict] = []
     for i, item in enumerate(candidates):
         code = item.get("code")
@@ -197,6 +214,15 @@ def enrich_with_chart_and_buyzone(
 
         buy_zone = compute_buy_zone(df)
 
+        # 수급 percentile (전 유니버스 vacancyScore 기준)
+        vac_score = item.get("vacancyScore")
+        if vac_score is not None and scores:
+            percentile = _compute_percentile(float(vac_score), scores)
+            zone = _vacancy_zone(percentile)
+        else:
+            percentile = None
+            zone = None
+
         enriched = {
             **item,
             "priceHistory60d": price_hist,
@@ -210,6 +236,8 @@ def enrich_with_chart_and_buyzone(
             "buyZone": buy_zone,
             "aboveMA10": bool(ma10 is not None and last_close >= ma10),
             "aboveMA20": bool(ma20 is not None and last_close >= ma20),
+            "vacancyPercentile": percentile,
+            "vacancyZone": zone,
         }
         out.append(enriched)
 
