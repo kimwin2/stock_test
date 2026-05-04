@@ -224,19 +224,21 @@ function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
   const lastPt = pts.split(' ').slice(-1)[0];
 
   // ── 수급 양극 영역 차트 — 가격 차트 위에 겹쳐 그림
+  // 수급 데이터는 최근 10일만 있지만, 가시성을 위해 전체 차트 폭에 펴서 표시.
+  // (가격선의 x축과는 시간 매핑이 다름 — 수급 영역은 "최근 10일 흐름" 의 모양만 전달)
   let supplyOverlay = '';
   if (dailyFlow10d && dailyFlow10d.length > 0) {
-    const flowCount = Math.min(dailyFlow10d.length, prices.length);
-    const flowAmounts = dailyFlow10d.slice(-flowCount).map(d => d.instAmount);
+    const flowAmounts = dailyFlow10d.map(d => d.instAmount);
+    const flowCount = flowAmounts.length;
     const maxAbs = Math.max(...flowAmounts.map(v => Math.abs(v))) || 1;
-    const startIdx = prices.length - flowCount;
 
-    // 수급 0선은 차트 세로 중앙. 진폭은 차트 높이의 ±35% 까지 사용.
+    // 수급 0선은 차트 세로 중앙. 진폭은 차트 높이의 ±42% 까지 사용 — 시각적 무게 우선.
     const supplyMid = h / 2;
-    const supplyHalf = h * 0.35;
+    const supplyHalf = h * 0.42;
+    const supplyStepX = w / Math.max(1, flowCount - 1);
 
     const supplyPts = flowAmounts.map((amt, i) => {
-      const x = (startIdx + i) * stepX;
+      const x = i * supplyStepX;
       const y = supplyMid - (amt / maxAbs) * supplyHalf;
       return { x, y, amt };
     });
@@ -260,16 +262,15 @@ function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
       const xs = s.points.map(p => p.x);
       const startX = xs[0], endX = xs[xs.length - 1];
       const linePts = s.points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L');
-      const fill = s.sign === 'pos' ? 'rgba(229,57,53,0.32)' : 'rgba(30,136,229,0.32)';
+      const fill = s.sign === 'pos' ? 'rgba(229,57,53,0.38)' : 'rgba(30,136,229,0.38)';
       return `<path d="M${startX.toFixed(1)},${supplyMid.toFixed(1)} L${linePts} L${endX.toFixed(1)},${supplyMid.toFixed(1)} Z" fill="${fill}"/>`;
     }).join('');
 
     const supplyLinePts = supplyPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-    const supplyLine = `<polyline points="${supplyLinePts}" fill="none" stroke="#555" stroke-width="0.9" opacity="0.65"/>`;
-    const supplyZeroLine = `<line x1="${(startIdx * stepX).toFixed(1)}" y1="${supplyMid.toFixed(1)}" x2="${w}" y2="${supplyMid.toFixed(1)}" stroke="#666" stroke-dasharray="2,2" stroke-width="0.6" opacity="0.5"/>`;
-    const supplyDivider = `<line x1="${(startIdx * stepX).toFixed(1)}" y1="${priceTop}" x2="${(startIdx * stepX).toFixed(1)}" y2="${priceBottom.toFixed(1)}" stroke="#bbb" stroke-dasharray="1,2" stroke-width="0.6" opacity="0.5"/>`;
+    const supplyLine = `<polyline points="${supplyLinePts}" fill="none" stroke="#444" stroke-width="1" opacity="0.7"/>`;
+    const supplyZeroLine = `<line x1="0" y1="${supplyMid.toFixed(1)}" x2="${w}" y2="${supplyMid.toFixed(1)}" stroke="#888" stroke-dasharray="2,2" stroke-width="0.7" opacity="0.55"/>`;
 
-    supplyOverlay = supplyZeroLine + supplyDivider + fillSegs + supplyLine;
+    supplyOverlay = supplyZeroLine + fillSegs + supplyLine;
   }
 
   return `
@@ -502,7 +503,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
         <span><span class="legend-dot gray"></span>20MA</span>
         <span><span class="legend-bar red"></span>외인+기관 매수일</span>
         <span><span class="legend-bar blue"></span>매도일</span>
-        <span class="legend-tip">수급 영역: 차트 중앙 0선 기준, 우측 10일 매수↑/매도↓. 게이지: percentile</span>
+        <span class="legend-tip">수급 영역: 차트 중앙 0선 기준 최근 10일 매수↑/매도↓ (전체 폭). 게이지: percentile</span>
       </div>
     </div>
   `;
