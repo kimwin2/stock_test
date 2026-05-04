@@ -76,15 +76,16 @@ def _fetch_existing_dashboard(bucket: str, key: str) -> dict | None:
         return None
 
 
-def _is_llm_quota_error(exc: BaseException) -> bool:
-    """LLM provider quota/rate 한도 에러 여부 (Gemini OpenAI-호환 endpoint 포함)."""
+def _is_llm_unavailable_error(exc: BaseException) -> bool:
+    """LLM provider 가 일시적으로 호출 불가능한 상태(quota/auth/rate) 인지 판정.
+    이 경우 fatal fail 대신 기존 dashboard 를 보존하며 graceful 하게 우회한다."""
     try:
-        from openai import APIStatusError, RateLimitError
+        from openai import APIStatusError, AuthenticationError, RateLimitError
     except Exception:
         return False
-    if isinstance(exc, RateLimitError):
+    if isinstance(exc, (RateLimitError, AuthenticationError)):
         return True
-    if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) in (429, 402):
+    if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) in (401, 402, 403, 429):
         return True
     msg = str(exc).lower()
     return any(kw in msg for kw in (
@@ -93,6 +94,9 @@ def _is_llm_quota_error(exc: BaseException) -> bool:
         "resource_exhausted",
         "rate limit",
         "quota exceeded",
+        "invalid api key",
+        "api key not valid",
+        "permission denied",
     ))
 
 
@@ -212,18 +216,18 @@ def lambda_handler(event, context):
         try:
             analysis = analyze_themes(articles, date_str)
         except Exception as e:
-            if _is_llm_quota_error(e):
-                print(f"  [!] LLM 한도 초과 — 기존 dashboard 보존하고 updatedAt 만 갱신: {e}")
+            if _is_llm_unavailable_error(e):
+                print(f"  [!] LLM 호출 불가 (quota/auth/rate) — 기존 dashboard 보존하고 updatedAt 만 갱신: {e}")
                 existing = _fetch_existing_dashboard(bucket, s3_key) or {}
                 degraded = dict(existing)
                 degraded["updatedAt"] = datetime.now(KST).isoformat()
-                degraded["themesError"] = "LLM quota exceeded — themes not refreshed (Gemini billing 확인 필요)"
+                degraded["themesError"] = "LLM 호출 불가 — themes 갱신 실패 (Gemini API 키/한도 확인 필요)"
                 degraded["themesErrorDetail"] = str(e)[:500]
                 upload_to_s3(degraded, bucket, s3_key)
                 return {
                     "statusCode": 200,
                     "body": json.dumps({
-                        "message": "themes 갱신 스킵 (LLM 한도) — 기존 데이터 보존",
+                        "message": "themes 갱신 스킵 (LLM 호출 불가) — 기존 데이터 보존",
                         "themesError": degraded["themesError"],
                         "updatedAt": degraded["updatedAt"],
                     }, ensure_ascii=False),
