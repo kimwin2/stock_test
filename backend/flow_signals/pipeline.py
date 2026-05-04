@@ -269,6 +269,7 @@ def build_flow_dashboard(
             enriched_candidates = candidate_dicts
 
     # 매수 후보 우선순위: 추세살아있음(MA10위) + 신고가 가까움 + 빈집정도
+    # 태린이아빠 강조점: "지금" 비어있는 상태 (currentVacancyDays / currentlyVacant)
     def _candidate_score(c: dict) -> float:
         score = 0.0
         if c.get("aboveMA10"):
@@ -285,9 +286,14 @@ def build_flow_dashboard(
             score += min(20, max(0, (ratio - 0.85) / 0.15 * 20))
         if c.get("buyZone", {}).get("inBuyZone"):
             score += 15
-        # vacancy 정도 (음수일수록 빈집 큼)
+        # 누적 vacancy 정도 (음수일수록 빈집 큼)
         v = c.get("vacancyScore") or 0
         score += max(0, min(20, -v / 1e10))
+        # 현재성: 매도 연속 일수 (태린이아빠: "지금 비어있는지" 가 핵심)
+        streak = c.get("currentVacancyDays") or 0
+        score += min(15, streak * 5)  # 1일 5점, 2일 10점, 3일+ 15점 캡
+        if c.get("currentlyVacant"):
+            score += 5
         return score
 
     enriched_candidates.sort(key=_candidate_score, reverse=True)

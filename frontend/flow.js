@@ -96,7 +96,11 @@ function renderGauge(value, label) {
 }
 
 // ─────────────────────────────────────────┐
-// Dual-axis chart: price + Pier&Grid Oscillator (MACD)
+// Dual-axis chart: price + Pier&Grid Oscillator
+//
+// 태린이아빠 그래프와 시각적으로 비슷하도록 oscillator 를 fearGreed - 50
+// (즉 50 기준 ±50 진동) 으로 정의. 0선 위 = "그리드(과열)", 0선 아래 = "피어(과매도)".
+// MACD oscillator (fg_oscillator) 는 진폭이 작아 시각적 인지가 떨어졌음.
 // ─────────────────────────────────────────┘
 function renderDualAxisChart(history, opts = {}) {
   const w = opts.width || 360;
@@ -106,15 +110,19 @@ function renderDualAxisChart(history, opts = {}) {
   if (!history || history.length < 5) return '<div class="sparkline-empty">데이터 부족</div>';
 
   const closes = history.map(p => p.close).filter(v => v != null);
-  const oscs = history.map(p => p.oscillator).filter(v => v != null);
+  // Pier&Grid 신호값: fearGreed (0~100) → -50 ~ +50 으로 재해석.
+  // 데이터 호환을 위해 fearGreed 가 없으면 기존 oscillator 로 폴백.
+  const oscValueOf = (p) => {
+    if (p.fearGreed != null) return p.fearGreed - 50;
+    return p.oscillator;
+  };
+  const oscs = history.map(oscValueOf).filter(v => v != null);
   if (closes.length < 2 || oscs.length < 2) return '<div class="sparkline-empty">데이터 부족</div>';
 
   const cMin = Math.min(...closes), cMax = Math.max(...closes);
 
-  // Oscillator centered around 0; symmetric scaling so 0 is at chart center
-  const oMaxAbs = Math.max(...oscs.map(v => Math.abs(v))) || 1;
-  // Add a touch of headroom
-  const oRange = oMaxAbs * 1.1;
+  // 0선이 차트 중앙. fearGreed-50 의 풀 스케일 ±50 고정으로 시각 일관성 확보.
+  const oRange = 50;
 
   const stepX = (w - padL - padR) / (history.length - 1);
 
@@ -125,28 +133,27 @@ function renderDualAxisChart(history, opts = {}) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  // Map oscillator: 0 at chart vertical center, ±oRange at top/bottom
   const yMid = padT + 0.5 * (h - padT - padB);
   const oscPts = history.map((p, i) => {
-    if (p.oscillator == null) return null;
+    const v = oscValueOf(p);
+    if (v == null) return null;
     const x = padL + i * stepX;
-    // y up = positive oscillator (above 0 line)
-    const y = yMid - (p.oscillator / oRange) * (h - padT - padB) * 0.45;
+    const y = yMid - (v / oRange) * (h - padT - padB) * 0.42;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  // Build positive/negative shaded regions for oscillator
-  // Find segments above 0 (red) and below 0 (blue)
+  // 위/아래 영역 분리 fill (그리드=빨강, 피어=파랑)
   const segs = [];
   let cur = null;
   history.forEach((p, i) => {
-    if (p.oscillator == null) {
+    const v = oscValueOf(p);
+    if (v == null) {
       if (cur) { segs.push(cur); cur = null; }
       return;
     }
-    const sign = p.oscillator >= 0 ? 'pos' : 'neg';
+    const sign = v >= 0 ? 'pos' : 'neg';
     const x = padL + i * stepX;
-    const y = yMid - (p.oscillator / oRange) * (h - padT - padB) * 0.45;
+    const y = yMid - (v / oRange) * (h - padT - padB) * 0.42;
     if (!cur || cur.sign !== sign) {
       if (cur) segs.push(cur);
       cur = { sign, points: [{ x, y }] };
@@ -160,15 +167,24 @@ function renderDualAxisChart(history, opts = {}) {
     if (s.points.length < 2) return '';
     const pts = s.points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
     const firstX = s.points[0].x, lastX = s.points[s.points.length - 1].x;
-    const fill = s.sign === 'pos' ? 'rgba(229,57,53,0.15)' : 'rgba(30,136,229,0.15)';
+    const fill = s.sign === 'pos' ? 'rgba(229,57,53,0.22)' : 'rgba(30,136,229,0.22)';
     return `<path d="M${firstX.toFixed(1)},${yMid.toFixed(1)} L${pts} L${lastX.toFixed(1)},${yMid.toFixed(1)} Z" fill="${fill}"/>`;
   }).join('');
 
+  // 과열/과매도 가이드 라인 (±25 = fearGreed 75/25)
+  const yOver = yMid - (25 / oRange) * (h - padT - padB) * 0.42;
+  const yUnder = yMid + (25 / oRange) * (h - padT - padB) * 0.42;
+  const guideLines = `
+    <line x1="${padL}" y1="${yOver.toFixed(1)}" x2="${w - padR}" y2="${yOver.toFixed(1)}" stroke="#E53935" stroke-dasharray="1,3" stroke-width="0.6" opacity="0.4"/>
+    <line x1="${padL}" y1="${yUnder.toFixed(1)}" x2="${w - padR}" y2="${yUnder.toFixed(1)}" stroke="#1E88E5" stroke-dasharray="1,3" stroke-width="0.6" opacity="0.4"/>
+  `;
+
   return `
     <svg viewBox="0 0 ${w} ${h}" class="dual-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      <line x1="${padL}" y1="${yMid.toFixed(1)}" x2="${w - padR}" y2="${yMid.toFixed(1)}" stroke="#bbb" stroke-dasharray="3,3" stroke-width="1"/>
+      ${guideLines}
+      <line x1="${padL}" y1="${yMid.toFixed(1)}" x2="${w - padR}" y2="${yMid.toFixed(1)}" stroke="#888" stroke-dasharray="3,3" stroke-width="1"/>
       ${fillSegs}
-      <polyline points="${oscPts}" fill="none" stroke="#6A5ACD" stroke-width="1.6"/>
+      <polyline points="${oscPts}" fill="none" stroke="#6A5ACD" stroke-width="1.7"/>
       <polyline points="${closePts}" fill="none" stroke="#1A1A1A" stroke-width="1.8"/>
     </svg>
   `;
@@ -388,10 +404,10 @@ function buildStep1Card(sentiment, cash) {
         </div>
         <div class="dual-legend">
           <span class="legend-price">━ 지수</span>
-          <span class="legend-fg">━ Pier&Grid Oscillator (MACD)</span>
-          <span class="legend-ref">┄ 0선</span>
-          <span class="legend-pos">▒ 그리드(+)</span>
-          <span class="legend-neg">▒ 피어(−)</span>
+          <span class="legend-fg">━ Pier&Grid (F&amp;G−50)</span>
+          <span class="legend-ref">┄ 0선 / ┈ ±25 가이드</span>
+          <span class="legend-pos">▒ 그리드(과열)</span>
+          <span class="legend-neg">▒ 피어(과매도)</span>
         </div>
       </div>
     </div>
@@ -450,10 +466,15 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
     return `<div class="flow-card flow-card-candidates flow-step3"><div class="card-header step-header"><span class="step-num">STEP 3</span><span class="card-theme-name">🎯 어떤 종목? — 매수 후보</span></div><div class="empty-msg">현재 후보 없음</div></div>`;
   }
   const sectorTag = leadingLabels?.length ? leadingLabels.slice(0, 5).join(', ') : '';
+  // 태린이아빠: 한 종목 4-5% × 20개. 5개보다 적으면 의미 없음.
+  const SHOW_N = 20;
+  // 강한 섹터 1·2위 (STEP 2 의 leadingSectorLabels 첫 두 개)
+  const TOP_SECTORS = (leadingLabels || []).slice(0, 2);
 
-  const rows = candidates.slice(0, 5).map(c => {
+  const rows = candidates.slice(0, SHOW_N).map(c => {
     const bz = c.buyZone || {};
     const sectorLabel = c.sector || '-';
+    const isTopSector = TOP_SECTORS.includes(c.sector);
     const newHighBadge = c.newHigh250d ? '<span class="badge badge-red">250d 신고가</span>'
                        : c.newHigh50d ? '<span class="badge badge-orange">50d 신고가</span>'
                        : '';
@@ -461,19 +482,35 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
                      : c.aboveMA20 ? '<span class="badge badge-yellow">↑20MA</span>'
                      : '<span class="badge badge-gray">추세약함</span>';
     const buyZoneBadge = bz.inBuyZone ? '<span class="badge badge-blue">매수권</span>' : '';
+    const topSectorBadge = isTopSector
+      ? `<span class="badge badge-gold">★ 강한섹터 ${TOP_SECTORS.indexOf(c.sector) + 1}위</span>`
+      : '';
 
     const todayPullback = bz.todayPullbackPct ?? 0;
     const buyZonePullback = bz.avgHighToClosePct ?? 0;
 
+    // 태린이아빠 관점: 지금 비어있는 상태인지 — 매도 연속 일수 강조
+    const sellStreak = c.currentVacancyDays ?? 0;
+    const sellLast3 = c.last3DaysSellCount ?? 0;
+    let vacancyNow = '';
+    if (sellStreak >= 2) {
+      vacancyNow = `<span class="vacancy-now red">🔥 ${sellStreak}일 연속 매도 중</span>`;
+    } else if (sellLast3 >= 2) {
+      vacancyNow = `<span class="vacancy-now orange">⚡ 최근 3일 중 ${sellLast3}일 매도</span>`;
+    } else if (c.currentlyVacant) {
+      vacancyNow = `<span class="vacancy-now orange">⚡ 매도 우위</span>`;
+    }
+
     return `
-      <div class="cand-row">
+      <div class="cand-row${isTopSector ? ' cand-row-top-sector' : ''}">
         <div class="cand-top">
           <div class="cand-info">
             <div class="cand-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small></div>
-            <div class="cand-badges">${trendBadge}${newHighBadge}${buyZoneBadge}</div>
+            <div class="cand-badges">${topSectorBadge}${trendBadge}${newHighBadge}${buyZoneBadge}</div>
             <div class="cand-prices">
               <span class="cand-close">${fmtNumber(c.close)}</span>
               <span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>
+              ${vacancyNow}
             </div>
             <div class="cand-bz">
               오늘 고가 대비 <strong class="${todayPullback < 0 ? 'down' : 'flat'}">${todayPullback.toFixed(2)}%</strong>
@@ -495,7 +532,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       <div class="card-header step-header">
         <span class="step-num">STEP 3</span>
         <span class="card-theme-name">🎯 어떤 종목? ${sectorTag ? `<small>(${fEscape(sectorTag)})</small>` : ''}</span>
-        <span class="card-volume">${Math.min(5, candidates.length)} / ${candidates.length}</span>
+        <span class="card-volume">${Math.min(SHOW_N, candidates.length)} / ${candidates.length}</span>
       </div>
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">
@@ -503,7 +540,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
         <span><span class="legend-dot gray"></span>20MA</span>
         <span><span class="legend-bar red"></span>외인+기관 매수일</span>
         <span><span class="legend-bar blue"></span>매도일</span>
-        <span class="legend-tip">수급 영역: 차트 중앙 0선 기준 최근 10일 매수↑/매도↓ (전체 폭). 게이지: percentile</span>
+        <span class="legend-tip">★ 표시 = 강한섹터 1·2위, 🔥 = 현재 매도 연속, 게이지: 빈집 percentile</span>
       </div>
     </div>
   `;

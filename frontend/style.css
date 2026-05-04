@@ -1031,6 +1031,16 @@ body {
 .badge-green { background: #E8F5E9; color: #43A047; }
 .badge-blue { background: #E3F2FD; color: #1E88E5; }
 .badge-gray { background: #F5F5F5; color: #757575; }
+.badge-gold { background: #FFF8E1; color: #C77800; border: 1px solid #FFD54F; font-weight: 800; }
+.cand-row-top-sector {
+  background: linear-gradient(90deg, rgba(255,213,79,0.12), rgba(255,213,79,0.02));
+  border-left: 3px solid #FFB300; padding-left: 6px;
+}
+.vacancy-now {
+  font-size: 0.74rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; margin-left: 6px;
+}
+.vacancy-now.red { background: #FFEBEE; color: #C62828; }
+.vacancy-now.orange { background: #FFF3E0; color: #E65100; }
 .cand-prices {
   display: flex; gap: 12px; align-items: baseline; font-size: 0.82rem;
   margin: 2px 0;

@@ -1,9 +1,15 @@
 """거래대금 강도 (Trading Intensity, TI) — 핵심 매수 시그널.
 
-원본 코드 (거래대금 강도 코랩) 변형:
-  TI_raw = 0.5*z(VolSpike) + 0.3*z(Turnover) + 0.2*z(GapTrend)
-  TI_acc7 = TI_raw 의 7일 rolling sum
-  TI_acc7_0_100 = MinMax 정규화
+태린이아빠 정의 (영상 transcript):
+  "최근 거래대금이 5일 평균 거래대금에 대비해 얼마나 스파이크를 치는가"
+  거래대금 = 종가 × 거래량.  볼륨만 보면 가격 변동이 무시돼 "거래대금 강도"
+  본래 의미와 어긋나므로 거래대금 기반으로 계산한다.
+
+  TI_raw = 0.5*z(ValueSpike) + 0.3*z(Turnover) + 0.2*z(GapTrend)
+    - ValueSpike = 거래대금 / 5일 거래대금 평균
+    - Turnover   = Volume / 발행주식수 (없으면 ValueSpike 와 동일)
+    - GapTrend   = (시가-전일종가)/전일종가 + (종가-시가)/시가
+  TI_acc7 = TI_raw 의 7일 rolling sum  →  MinMax 0~100
 
 시그널: TI 가 바닥(<20) 에서 올라오면서 신고가가 나면 매수.
         TI 가 과열(>80) 이면 신고가가 나도 식는다.
@@ -20,10 +26,10 @@ import pandas as pd
 from .data_sources import fetch_stock_ohlcv
 
 
-VOL_MA = 20
+VALUE_MA = 5  # 태린이아빠: 5일 평균 거래대금 대비 스파이크
 ZSCORE_WIN = 60
 ACC_WIN = 7
-W_VOL_SPIKE = 0.50
+W_VALUE_SPIKE = 0.50
 W_TURNOVER = 0.30
 W_GAP_TREND = 0.20
 
@@ -48,25 +54,30 @@ def compute_trading_intensity(df: pd.DataFrame, listed_shares: float | None = No
     """
     df = df.copy()
     df["PrevClose"] = df["Close"].shift(1)
-    df["VolMA"] = df["Volume"].rolling(VOL_MA, min_periods=max(5, VOL_MA // 2)).mean()
-    df["VolSpike"] = df["Volume"] / df["VolMA"]
+
+    # 거래대금 = 종가 × 거래량 (태린이아빠 정의)
+    df["TradingValue"] = df["Close"] * df["Volume"]
+    df["ValueMA"] = df["TradingValue"].rolling(
+        VALUE_MA, min_periods=max(2, VALUE_MA // 2)
+    ).mean()
+    df["ValueSpike"] = df["TradingValue"] / df["ValueMA"].replace(0, np.nan)
 
     if listed_shares and listed_shares > 0:
         df["Turnover"] = df["Volume"] / float(listed_shares)
     else:
-        # 발행주식수를 모르면 거래대금 / 시가총액 근사 대신 z(Volume) 만 두 배로
-        df["Turnover"] = df["VolSpike"]
+        # 발행주식수를 모르면 거래대금 스파이크로 대체
+        df["Turnover"] = df["ValueSpike"]
 
     df["Gap"] = df["Open"] / df["PrevClose"] - 1.0
     df["IntradayTrend"] = df["Close"] / df["Open"] - 1.0
     df["GapTrend"] = df["Gap"] + df["IntradayTrend"]
 
-    df["z_VolSpike"] = _rolling_zscore(df["VolSpike"])
+    df["z_ValueSpike"] = _rolling_zscore(df["ValueSpike"])
     df["z_Turnover"] = _rolling_zscore(df["Turnover"])
     df["z_GapTrend"] = _rolling_zscore(df["GapTrend"])
 
     df["TI_raw"] = (
-        W_VOL_SPIKE * df["z_VolSpike"].fillna(0)
+        W_VALUE_SPIKE * df["z_ValueSpike"].fillna(0)
         + W_TURNOVER * df["z_Turnover"].fillna(0)
         + W_GAP_TREND * df["z_GapTrend"].fillna(0)
     )

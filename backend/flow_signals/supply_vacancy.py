@@ -83,6 +83,22 @@ def compute_vacancy_score(trend: pd.DataFrame) -> dict | None:
         for _, r in last10.iterrows()
     ]
 
+    # ── 태린이아빠 관점: "지금" 비어있는지 강조하기 위한 현재성 지표
+    # currentVacancyDays  : 가장 최근부터 외인+기관 일별 net 이 음수인 연속 일수
+    #                      (오늘부터 며칠째 매도 중)
+    # last3DaysSellCount  : 최근 3거래일 중 매도(음수) 일수 (0~3)
+    # currentlyVacant     : True if 어제·오늘 둘 다 net 음수 (현재 매도 우위 상태)
+    daily_amounts = [d["instAmount"] for d in daily_flow]
+    streak = 0
+    for amt in reversed(daily_amounts):
+        if amt < 0:
+            streak += 1
+        else:
+            break
+    last3 = daily_amounts[-3:] if len(daily_amounts) >= 3 else daily_amounts
+    sell_count_3 = sum(1 for a in last3 if a < 0)
+    currently_vacant = bool(len(daily_amounts) >= 2 and daily_amounts[-1] < 0 and daily_amounts[-2] < 0)
+
     return {
         "vacancyScore": round(vacancy, 0),
         "foreignerNet5d": round(foreigner5, 0),
@@ -95,6 +111,9 @@ def compute_vacancy_score(trend: pd.DataFrame) -> dict | None:
         "foreignerHoldRatio": foreigner_hold,
         "lastDate": df["date"].iloc[-1].strftime("%Y-%m-%d"),
         "dailyFlow10d": daily_flow,
+        "currentVacancyDays": int(streak),
+        "last3DaysSellCount": int(sell_count_3),
+        "currentlyVacant": currently_vacant,
     }
 
 
