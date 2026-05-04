@@ -7,7 +7,7 @@
 한국 주식 단타 트레이더용 대시보드. 두 개의 탭:
 
 1. **급등·테마** — 네이버 금융 뉴스 + 다중 시그널 → Gemini 테마 분석 → 종목 시세
-2. **수급·주도** — Pier&Grid 오실레이터, 주도 ETF Mansfield RS, 수급 빈집, 거래대금 강도 (TI), 외인/기관 섹터별 매수, 매수 후보 차트
+2. **수급·주도** — Fear & Greed 오실레이터, 주도 ETF Mansfield RS, 수급 빈집, 거래대금 강도 (TI), 외인/기관 섹터별 매수, 매수 후보 차트
 
 **스택**: Python(AWS Lambda) + vanilla JS(GitHub Pages) · 데이터: Naver mobile API, FinanceDataReader, Telegram(Telethon), Gemini (OpenAI SDK + Gemini OpenAI-호환 endpoint, model `gemini-2.5-flash-lite`)
 
