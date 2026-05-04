@@ -143,10 +143,17 @@ function renderDualAxisChart(history, opts = {}) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  // y축 ticks (좌: oscillator, 우: 지수)
-  const oTickStep = oAbsMax >= 0.02 ? 0.01 : 0.005;
+  // y축 ticks — oscillator 는 5개 단계 (위 2 / 0 / 아래 2)
+  const niceStep = (() => {
+    const candidates = [0.005, 0.01, 0.02, 0.05];
+    for (const s of candidates) {
+      if (oRange / s <= 3) return s;
+    }
+    return 0.05;
+  })();
   const oTicks = [];
-  for (let v = -Math.ceil(oRange / oTickStep) * oTickStep; v <= oRange; v += oTickStep) {
+  for (let i = -2; i <= 2; i++) {
+    const v = i * niceStep;
     if (Math.abs(v) > oRange) continue;
     const y = yMid - (v / oRange) * (innerH * 0.5);
     oTicks.push({ v, y });
@@ -161,19 +168,19 @@ function renderDualAxisChart(history, opts = {}) {
   }
 
   const oAxis = oTicks.map(t => `
-    <line x1="${padL}" y1="${t.y.toFixed(1)}" x2="${w - padR}" y2="${t.y.toFixed(1)}" stroke="#eee" stroke-width="0.6"/>
-    <text x="${(padL - 3).toFixed(1)}" y="${(t.y + 3).toFixed(1)}" text-anchor="end" font-size="8" fill="#6A5ACD">${t.v.toFixed(t.v === 0 ? 2 : 3)}</text>
+    <line x1="${padL}" y1="${t.y.toFixed(1)}" x2="${w - padR}" y2="${t.y.toFixed(1)}" stroke="#eee" stroke-width="0.5"/>
+    <text x="${(padL - 3).toFixed(1)}" y="${(t.y + 2.5).toFixed(1)}" text-anchor="end" font-size="7" fill="#6A5ACD">${t.v >= 0 ? ' ' : ''}${t.v.toFixed(2)}</text>
   `).join('');
 
   const cAxis = cTicks.map(t => `
-    <text x="${(w - padR + 3).toFixed(1)}" y="${(t.y + 3).toFixed(1)}" text-anchor="start" font-size="8" fill="#444">${t.v.toFixed(0)}</text>
+    <text x="${(w - padR + 3).toFixed(1)}" y="${(t.y + 2.5).toFixed(1)}" text-anchor="start" font-size="7" fill="#444">${t.v.toFixed(0)}</text>
   `).join('');
 
   // 0선 강조
   const zeroLine = `<line x1="${padL}" y1="${yMid.toFixed(1)}" x2="${w - padR}" y2="${yMid.toFixed(1)}" stroke="#999" stroke-width="0.8"/>`;
 
   return `
-    <svg viewBox="0 0 ${w} ${h}" class="dual-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+    <svg viewBox="0 0 ${w} ${h}" class="dual-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
       ${oAxis}
       ${zeroLine}
       ${cAxis}
