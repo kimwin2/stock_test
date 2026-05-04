@@ -1,15 +1,17 @@
-"""시장 심리 지표 — Pier&Grid 단순화 버전.
+"""시장 심리 지표 — Fear & Greed Oscillator (태린이아빠 스타일).
 
 원본 Colab 코드는 RSI(10) + 변동성지수 + Put/Call ATM + 국채선물 차이 + 모멘텀
-의 5개 feature를 MinMax 정규화 후 가중평균.
-
-옵션 ATM/국채선물 데이터는 무료 소스가 없어 단순화:
+의 5개 feature 를 MinMax 정규화 (0~1) 후 가중평균.  옵션 ATM/국채선물 데이터는
+무료 소스가 없어 4개로 단순화:
 - RSI(10)
-- 125일 이동평균 대비 모멘텀 (정규화)
+- 125일 이동평균 대비 모멘텀
 - 변동성 (20일 표준편차의 역수)
 - 거래량 모멘텀
 
-5개에서 4개로 줄였지만 기본 시그널은 비슷하게 잡힌다.
+Oscillator 정의 (태린이아빠 그래프와 시각적으로 일치):
+- fear_greed 를 0~1 로 정규화한 뒤 EMA12 − EMA26 (MACD line)
+- 최종 진동 폭은 약 ±0.03 — 태린이아빠 차트와 동일 스케일
+- 0 위 = Greed (과열), 0 아래 = Fear (과매도)
 """
 
 from __future__ import annotations
@@ -68,12 +70,12 @@ def fear_greed_oscillator(df: pd.DataFrame) -> pd.DataFrame:
 
     df["fear_greed"] = df[[f"{f}_n" for f in feats]].mean(axis=1)
 
-    # MACD oscillator on Fear&Greed
-    ema12 = df["fear_greed"].ewm(span=12, adjust=False).mean()
-    ema26 = df["fear_greed"].ewm(span=26, adjust=False).mean()
-    macd = ema12 - ema26
-    signal = macd.ewm(span=9, adjust=False).mean()
-    df["fg_oscillator"] = macd - signal
+    # Oscillator: fear_greed 를 0~1 로 정규화한 후 MACD line (EMA12 − EMA26).
+    # 태린이아빠 그래프와 동일한 ±0.03 스케일을 갖도록 설계.
+    fg_normalized = df["fear_greed"] / 100.0
+    ema12 = fg_normalized.ewm(span=12, adjust=False).mean()
+    ema26 = fg_normalized.ewm(span=26, adjust=False).mean()
+    df["fg_oscillator"] = ema12 - ema26
 
     return df
 

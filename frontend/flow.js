@@ -96,96 +96,89 @@ function renderGauge(value, label) {
 }
 
 // ─────────────────────────────────────────┐
-// Dual-axis chart: price + Pier&Grid Oscillator
+// Dual-axis chart: 지수 + Fear & Greed Oscillator
 //
-// 태린이아빠 그래프와 시각적으로 비슷하도록 oscillator 를 fearGreed - 50
-// (즉 50 기준 ±50 진동) 으로 정의. 0선 위 = "그리드(과열)", 0선 아래 = "피어(과매도)".
-// MACD oscillator (fg_oscillator) 는 진폭이 작아 시각적 인지가 떨어졌음.
+// 태린이아빠 그래프와 동일한 시각:
+//   - 좌측 y축: Fear & Greed Oscillator (보라색, ±0.03 스케일)
+//   - 우측 y축: 지수 (검정, 실제 가격 스케일)
+//   - 0선만 표시, fill 없음, 가이드 없음
+//   - matplotlib 스타일의 옅은 그리드
 // ─────────────────────────────────────────┘
 function renderDualAxisChart(history, opts = {}) {
   const w = opts.width || 360;
   const h = opts.height || 130;
-  const padL = 4, padR = 4, padT = 6, padB = 6;
+  const padL = 30, padR = 32, padT = 6, padB = 14;
 
   if (!history || history.length < 5) return '<div class="sparkline-empty">데이터 부족</div>';
 
   const closes = history.map(p => p.close).filter(v => v != null);
-  // Pier&Grid 신호값: fearGreed (0~100) → -50 ~ +50 으로 재해석.
-  // 데이터 호환을 위해 fearGreed 가 없으면 기존 oscillator 로 폴백.
-  const oscValueOf = (p) => {
-    if (p.fearGreed != null) return p.fearGreed - 50;
-    return p.oscillator;
-  };
-  const oscs = history.map(oscValueOf).filter(v => v != null);
-  if (closes.length < 2 || oscs.length < 2) return '<div class="sparkline-empty">데이터 부족</div>';
+  // Oscillator: backend 가 fearGreed/100 의 MACD line 을 보냄 (±0.03 스케일).
+  // 폴백: 구 데이터에 oscillator 가 큰 스케일이면 자동 정규화.
+  const oscRaw = history.map(p => p.oscillator).filter(v => v != null);
+  if (closes.length < 2 || oscRaw.length < 2) return '<div class="sparkline-empty">데이터 부족</div>';
 
   const cMin = Math.min(...closes), cMax = Math.max(...closes);
+  const cSpan = cMax - cMin || 1;
 
-  // 0선이 차트 중앙. fearGreed-50 의 풀 스케일 ±50 고정으로 시각 일관성 확보.
-  const oRange = 50;
+  // Oscillator y축 — 0선 중심 대칭 스케일, 데이터에서 자동 추출
+  const oAbsMax = Math.max(...oscRaw.map(v => Math.abs(v))) || 0.01;
+  const oRange = oAbsMax * 1.15;  // 위·아래 약간의 여백
 
-  const stepX = (w - padL - padR) / (history.length - 1);
+  const innerW = w - padL - padR;
+  const innerH = h - padT - padB;
+  const stepX = innerW / (history.length - 1);
+  const yMid = padT + innerH * 0.5;
 
   const closePts = history.map((p, i) => {
     if (p.close == null) return null;
     const x = padL + i * stepX;
-    const y = padT + (1 - (p.close - cMin) / (cMax - cMin || 1)) * (h - padT - padB);
+    const y = padT + (1 - (p.close - cMin) / cSpan) * innerH;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  const yMid = padT + 0.5 * (h - padT - padB);
   const oscPts = history.map((p, i) => {
-    const v = oscValueOf(p);
-    if (v == null) return null;
+    if (p.oscillator == null) return null;
     const x = padL + i * stepX;
-    const y = yMid - (v / oRange) * (h - padT - padB) * 0.42;
+    const y = yMid - (p.oscillator / oRange) * (innerH * 0.5);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  // 위/아래 영역 분리 fill (그리드=빨강, 피어=파랑)
-  const segs = [];
-  let cur = null;
-  history.forEach((p, i) => {
-    const v = oscValueOf(p);
-    if (v == null) {
-      if (cur) { segs.push(cur); cur = null; }
-      return;
-    }
-    const sign = v >= 0 ? 'pos' : 'neg';
-    const x = padL + i * stepX;
-    const y = yMid - (v / oRange) * (h - padT - padB) * 0.42;
-    if (!cur || cur.sign !== sign) {
-      if (cur) segs.push(cur);
-      cur = { sign, points: [{ x, y }] };
-    } else {
-      cur.points.push({ x, y });
-    }
-  });
-  if (cur) segs.push(cur);
+  // y축 ticks (좌: oscillator, 우: 지수)
+  const oTickStep = oAbsMax >= 0.02 ? 0.01 : 0.005;
+  const oTicks = [];
+  for (let v = -Math.ceil(oRange / oTickStep) * oTickStep; v <= oRange; v += oTickStep) {
+    if (Math.abs(v) > oRange) continue;
+    const y = yMid - (v / oRange) * (innerH * 0.5);
+    oTicks.push({ v, y });
+  }
 
-  const fillSegs = segs.map(s => {
-    if (s.points.length < 2) return '';
-    const pts = s.points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-    const firstX = s.points[0].x, lastX = s.points[s.points.length - 1].x;
-    const fill = s.sign === 'pos' ? 'rgba(229,57,53,0.22)' : 'rgba(30,136,229,0.22)';
-    return `<path d="M${firstX.toFixed(1)},${yMid.toFixed(1)} L${pts} L${lastX.toFixed(1)},${yMid.toFixed(1)} Z" fill="${fill}"/>`;
-  }).join('');
+  const cTickCount = 4;
+  const cTicks = [];
+  for (let i = 0; i <= cTickCount; i++) {
+    const v = cMin + (cSpan * i) / cTickCount;
+    const y = padT + (1 - (v - cMin) / cSpan) * innerH;
+    cTicks.push({ v, y });
+  }
 
-  // 과열/과매도 가이드 라인 (±25 = fearGreed 75/25)
-  const yOver = yMid - (25 / oRange) * (h - padT - padB) * 0.42;
-  const yUnder = yMid + (25 / oRange) * (h - padT - padB) * 0.42;
-  const guideLines = `
-    <line x1="${padL}" y1="${yOver.toFixed(1)}" x2="${w - padR}" y2="${yOver.toFixed(1)}" stroke="#E53935" stroke-dasharray="1,3" stroke-width="0.6" opacity="0.4"/>
-    <line x1="${padL}" y1="${yUnder.toFixed(1)}" x2="${w - padR}" y2="${yUnder.toFixed(1)}" stroke="#1E88E5" stroke-dasharray="1,3" stroke-width="0.6" opacity="0.4"/>
-  `;
+  const oAxis = oTicks.map(t => `
+    <line x1="${padL}" y1="${t.y.toFixed(1)}" x2="${w - padR}" y2="${t.y.toFixed(1)}" stroke="#eee" stroke-width="0.6"/>
+    <text x="${(padL - 3).toFixed(1)}" y="${(t.y + 3).toFixed(1)}" text-anchor="end" font-size="8" fill="#6A5ACD">${t.v.toFixed(t.v === 0 ? 2 : 3)}</text>
+  `).join('');
+
+  const cAxis = cTicks.map(t => `
+    <text x="${(w - padR + 3).toFixed(1)}" y="${(t.y + 3).toFixed(1)}" text-anchor="start" font-size="8" fill="#444">${t.v.toFixed(0)}</text>
+  `).join('');
+
+  // 0선 강조
+  const zeroLine = `<line x1="${padL}" y1="${yMid.toFixed(1)}" x2="${w - padR}" y2="${yMid.toFixed(1)}" stroke="#999" stroke-width="0.8"/>`;
 
   return `
     <svg viewBox="0 0 ${w} ${h}" class="dual-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      ${guideLines}
-      <line x1="${padL}" y1="${yMid.toFixed(1)}" x2="${w - padR}" y2="${yMid.toFixed(1)}" stroke="#888" stroke-dasharray="3,3" stroke-width="1"/>
-      ${fillSegs}
-      <polyline points="${oscPts}" fill="none" stroke="#6A5ACD" stroke-width="1.7"/>
-      <polyline points="${closePts}" fill="none" stroke="#1A1A1A" stroke-width="1.8"/>
+      ${oAxis}
+      ${zeroLine}
+      ${cAxis}
+      <polyline points="${oscPts}" fill="none" stroke="#6A5ACD" stroke-width="1.6"/>
+      <polyline points="${closePts}" fill="none" stroke="#1A1A1A" stroke-width="1.6"/>
     </svg>
   `;
 }
@@ -403,11 +396,8 @@ function buildStep1Card(sentiment, cash) {
           ${renderDualAxisChart(q.history)}
         </div>
         <div class="dual-legend">
+          <span class="legend-fg">━ Fear &amp; Greed Oscillator</span>
           <span class="legend-price">━ 지수</span>
-          <span class="legend-fg">━ Pier&Grid (F&amp;G−50)</span>
-          <span class="legend-ref">┄ 0선 / ┈ ±25 가이드</span>
-          <span class="legend-pos">▒ 그리드(과열)</span>
-          <span class="legend-neg">▒ 피어(과매도)</span>
         </div>
       </div>
     </div>

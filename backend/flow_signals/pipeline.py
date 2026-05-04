@@ -1,7 +1,7 @@
 """flow_signals 파이프라인 오케스트레이션.
 
 전체 흐름:
-1. 시장 심리 (KOSPI/KOSDAQ Pier&Grid 단순화)
+1. 시장 심리 (KOSPI/KOSDAQ Fear & Greed 단순화)
 2. 주도 업종 (ETF Mansfield RS + 변동성 조정 모멘텀)
 3. 업종 쏠림 지수
 4. 유니버스 구성 (시총 상위 N개)
@@ -34,9 +34,9 @@ KST = timezone(timedelta(hours=9))
 
 
 def build_cash_recommendation(market_sentiment: dict, crowding: dict) -> dict:
-    """피어그리드 + 쏠림지수 기반 권고 현금 비중.
+    """Fear & Greed + 쏠림지수 기반 권고 현금 비중.
 
-    피어그리드 기반:
+    Fear & Greed 기반:
       과열(75+) → 현금 30%
       강세(55+) → 현금 10%
       중립(45+) → 현금 10%
@@ -136,9 +136,9 @@ def build_flow_dashboard(
     started = time.time()
 
     # ─────────────────────────────────────────
-    # Step 1: Market sentiment (Pier&Grid)
+    # Step 1: Market sentiment (Fear & Greed)
     # ─────────────────────────────────────────
-    print("\n[Step 1] 시장 심리 (Pier&Grid)")
+    print("\n[Step 1] 시장 심리 (Fear & Greed)")
     try:
         market_sentiment = build_market_sentiment()
     except Exception as e:
