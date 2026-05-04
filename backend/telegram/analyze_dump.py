@@ -31,8 +31,19 @@ except ImportError:
     OpenAI = None
 
 
-GPT_MODEL = os.getenv("TG_ANALYZE_MODEL", "gpt-4o-mini")
+GPT_MODEL = os.getenv("TG_ANALYZE_MODEL", "gemini-2.5-flash-lite")
 BATCH_SIZE = int(os.getenv("TG_ANALYZE_BATCH", "80"))
+GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+
+def _make_llm_client():
+    """Gemini OpenAI-호환 endpoint 클라이언트. 키 없거나 SDK 미설치 시 None."""
+    if OpenAI is None:
+        return None
+    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    if not api_key:
+        return None
+    return OpenAI(api_key=api_key, base_url=GEMINI_OPENAI_BASE_URL)
 
 CLASSIFY_PROMPT = """\
 당신은 한국 주식 텔레그램 채널 분석 전문가입니다.
@@ -244,11 +255,11 @@ def _classify_batch(client, batch: list[dict]) -> dict[int, str]:
 
 
 def _classify_all(messages: list[dict]) -> dict[int, str]:
-    if OpenAI is None or not os.getenv("OPENAI_API_KEY"):
-        print("[!] OPENAI_API_KEY 가 없거나 openai 미설치 — 분류 건너뜀.")
+    client = _make_llm_client()
+    if client is None:
+        print("[!] GEMINI_API_KEY 가 없거나 openai SDK 미설치 — 분류 건너뜀.")
         return {}
 
-    client = OpenAI()
     classifications: dict[int, str] = {}
     total_batches = (len(messages) + BATCH_SIZE - 1) // BATCH_SIZE
 
@@ -267,7 +278,8 @@ def _classify_all(messages: list[dict]) -> dict[int, str]:
 
 
 def _summarize_with_gpt(messages: list[dict], classifications: dict[int, str], category_counts: Counter) -> dict | None:
-    if OpenAI is None or not os.getenv("OPENAI_API_KEY"):
+    client = _make_llm_client()
+    if client is None:
         return None
 
     by_id = {m["id"]: m for m in messages}
@@ -295,8 +307,7 @@ def _summarize_with_gpt(messages: list[dict], classifications: dict[int, str], c
 {chr(10).join(sample_lines)}
 """
 
-    print(f"[*] 요약 GPT 호출 ({GPT_MODEL})...")
-    client = OpenAI()
+    print(f"[*] 요약 LLM 호출 ({GPT_MODEL})...")
     resp = client.chat.completions.create(
         model=GPT_MODEL,
         temperature=0.2,
@@ -447,7 +458,8 @@ def _print_flow_matrix(flow: dict) -> None:
 
 
 def _summarize_flow_with_gpt(flow: dict) -> dict | None:
-    if OpenAI is None or not os.getenv("OPENAI_API_KEY"):
+    client = _make_llm_client()
+    if client is None:
         return None
 
     matrix = flow["matrix"]
@@ -477,8 +489,7 @@ def _summarize_flow_with_gpt(flow: dict) -> dict | None:
         + "\n".join(sample_lines)
     )
 
-    print("[*] 흐름 분석 GPT 호출...")
-    client = OpenAI()
+    print("[*] 흐름 분석 LLM 호출...")
     resp = client.chat.completions.create(
         model=GPT_MODEL,
         temperature=0.3,

@@ -299,7 +299,7 @@ backend/
 
 ### 기존 메인 파이프라인용
 
-- `OPENAI_API_KEY`
+- `GEMINI_API_KEY`
 - `S3_BUCKET_NAME`
 - `S3_KEY`
 - `TELEGRAM_SIGNAL_S3_KEY=signals/telegram_faststocknews_latest.json`

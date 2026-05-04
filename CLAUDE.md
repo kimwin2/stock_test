@@ -6,10 +6,10 @@
 
 한국 주식 단타 트레이더용 대시보드. 두 개의 탭:
 
-1. **급등·테마** — 네이버 금융 뉴스 + 다중 시그널 → GPT 테마 분석 → 종목 시세
+1. **급등·테마** — 네이버 금융 뉴스 + 다중 시그널 → Gemini 테마 분석 → 종목 시세
 2. **수급·주도** — Pier&Grid 오실레이터, 주도 ETF Mansfield RS, 수급 빈집, 거래대금 강도 (TI), 외인/기관 섹터별 매수, 매수 후보 차트
 
-**스택**: Python(AWS Lambda) + vanilla JS(GitHub Pages) · 데이터: Naver mobile API, FinanceDataReader, Telegram(Telethon), OpenAI
+**스택**: Python(AWS Lambda) + vanilla JS(GitHub Pages) · 데이터: Naver mobile API, FinanceDataReader, Telegram(Telethon), Gemini (OpenAI SDK + Gemini OpenAI-호환 endpoint, model `gemini-2.5-flash-lite`)
 
 **배포**:
 - Lambda: 평일 8~16시 10분 간격(theme), 평일 8~20시 정각(flow)
@@ -86,7 +86,7 @@ cd backend && python -m flow_signals.pipeline
 cd frontend && python -m http.server 8080 --bind 127.0.0.1
 
 # Lambda 배포
-sam build && sam deploy --parameter-overrides "OpenAIApiKey=sk-..."
+sam build && sam deploy --parameter-overrides "GeminiApiKey=AIza..."
 
 # 텔레그램 채널 덤프 + 분석 (개인 분석 도구)
 cd backend && python -m telegram.fetch_dump --channel "https://t.me/+..." --limit 1000 --out telegram/dev/<name>_raw.json

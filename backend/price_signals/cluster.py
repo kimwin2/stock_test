@@ -9,7 +9,8 @@ from openai import OpenAI
 from .models import PriceThemeCandidate
 
 
-LLM_MODEL = os.getenv("PRICE_SIGNAL_MODEL", "gpt-5-mini")
+LLM_MODEL = os.getenv("PRICE_SIGNAL_MODEL", "gemini-2.5-flash-lite")
+GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 MAX_MOVER_INPUT = 36
 MAX_ARTICLE_SNIPPETS_PER_STOCK = 2
 MAX_TELEGRAM_SNIPPETS_PER_STOCK = 1
@@ -114,10 +115,10 @@ def _telegram_text(signal: dict) -> str:
 
 
 def _get_openai_client() -> OpenAI | None:
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         return None
-    return OpenAI(api_key=api_key)
+    return OpenAI(api_key=api_key, base_url=GEMINI_OPENAI_BASE_URL)
 
 
 def _select_movers_for_labeling(movers: list[dict], limit: int = MAX_MOVER_INPUT) -> list[dict]:
@@ -175,25 +176,19 @@ def _build_mover_payload(movers: list[dict], articles: list[dict], telegram_sign
 def _request_llm_json(system_prompt: str, user_prompt: str) -> dict:
     client = _get_openai_client()
     if client is None:
-        print("  [!] OPENAI_API_KEY가 없어 price_signals LLM 라벨링을 건너뜁니다.")
+        print("  [!] GEMINI_API_KEY가 없어 price_signals LLM 라벨링을 건너뜁니다.")
         return {}
 
-    request = {
-        "model": LLM_MODEL,
-        "messages": [
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        "response_format": {"type": "json_object"},
-    }
-    if LLM_MODEL.startswith("gpt-5"):
-        request["max_completion_tokens"] = 2500
-        request["reasoning_effort"] = "minimal"
-    else:
-        request["temperature"] = 0.2
-        request["max_tokens"] = 2500
-
-    response = client.chat.completions.create(**request)
+        response_format={"type": "json_object"},
+        temperature=0.2,
+        max_tokens=2500,
+    )
     return json.loads(response.choices[0].message.content)
 
 

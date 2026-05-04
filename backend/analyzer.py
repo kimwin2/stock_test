@@ -1,5 +1,5 @@
 """
-ChatGPT API를 이용한 뉴스 테마 분석 모듈
+LLM API를 이용한 뉴스 테마 분석 모듈
 - 크롤링된 기사들을 분석하여 테마 7개를 추출합니다.
 - 각 테마별 요약과 관련 종목을 반환합니다.
 """
@@ -45,11 +45,10 @@ if sys.stdout.encoding != 'utf-8':
 
 load_dotenv()
 
-DEFAULT_THEME_ANALYSIS_MODEL = "gpt-5-mini"
-DEFAULT_THEME_ANALYSIS_REASONING_EFFORT = "minimal"
-DEFAULT_THEME_ANALYSIS_MAX_COMPLETION_TOKENS = 12000
+DEFAULT_THEME_ANALYSIS_MODEL = "gemini-2.5-flash-lite"
 DEFAULT_THEME_ANALYSIS_MAX_TOKENS = 3000
 DEFAULT_THEME_ANALYSIS_TEMPERATURE = 0.3
+GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 GOOGLE_NEWS_FALLBACK_LIMIT = 3
 HEADLINE_MAX_AGE_HOURS = 36
 INFOSTOCK_STOCK_MATCH_MOVER_LIMIT = 40
@@ -328,14 +327,15 @@ def _set_theme_headline_links(theme: dict, links: list[dict]) -> None:
 
 
 def get_openai_client() -> OpenAI:
-    """OpenAI 클라이언트를 생성합니다."""
-    api_key = os.getenv("OPENAI_API_KEY")
+    """Gemini 의 OpenAI-호환 endpoint 를 가리키는 OpenAI SDK 클라이언트."""
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError(
-            "OPENAI_API_KEY 환경변수가 설정되지 않았습니다.\n"
-            ".env 파일에 OPENAI_API_KEY=sk-... 형태로 설정해주세요."
+            "GEMINI_API_KEY 환경변수가 설정되지 않았습니다.\n"
+            ".env 파일에 GEMINI_API_KEY=... 형태로 설정해주세요. "
+            "키 발급: https://aistudio.google.com/app/apikey"
         )
-    return OpenAI(api_key=api_key)
+    return OpenAI(api_key=api_key, base_url=GEMINI_OPENAI_BASE_URL)
 
 
 def _get_theme_analysis_model() -> str:
@@ -343,35 +343,20 @@ def _get_theme_analysis_model() -> str:
 
 
 def _build_theme_analysis_request(model_name: str, user_prompt: str) -> dict:
-    request = {
+    return {
         "model": model_name,
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
         ],
         "response_format": {"type": "json_object"},
-    }
-
-    if model_name.startswith("gpt-5"):
-        request["max_completion_tokens"] = int(
-            os.getenv(
-                "THEME_ANALYSIS_MAX_COMPLETION_TOKENS",
-                str(DEFAULT_THEME_ANALYSIS_MAX_COMPLETION_TOKENS),
-            )
-        )
-        request["reasoning_effort"] = (
-            os.getenv("THEME_ANALYSIS_REASONING_EFFORT", DEFAULT_THEME_ANALYSIS_REASONING_EFFORT)
-            or DEFAULT_THEME_ANALYSIS_REASONING_EFFORT
-        ).strip()
-    else:
-        request["temperature"] = float(
+        "temperature": float(
             os.getenv("THEME_ANALYSIS_TEMPERATURE", str(DEFAULT_THEME_ANALYSIS_TEMPERATURE))
-        )
-        request["max_tokens"] = int(
+        ),
+        "max_tokens": int(
             os.getenv("THEME_ANALYSIS_MAX_TOKENS", str(DEFAULT_THEME_ANALYSIS_MAX_TOKENS))
-        )
-
-    return request
+        ),
+    }
 
 
 SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다. 단타 트레이딩에 특화되어 있으며, 
@@ -743,14 +728,8 @@ def _build_infostock_stock_match_request(user_prompt: str) -> dict:
         "response_format": {"type": "json_object"},
     }
 
-    model_name = request["model"]
-    if model_name.startswith("gpt-5"):
-        request["max_completion_tokens"] = 1200
-        request["reasoning_effort"] = "minimal"
-    else:
-        request["temperature"] = 0.1
-        request["max_tokens"] = 900
-
+    request["temperature"] = 0.1
+    request["max_tokens"] = 900
     return request
 
 
@@ -1961,7 +1940,7 @@ def format_articles_for_prompt(
     """
     기사 리스트를 프롬프트에 넣을 텍스트로 변환합니다.
     [특징주], 강세, 상한가, 급등 등의 키워드가 포함된 기사를 최상단에 배치하고
-    ★ 마커를 붙여 ChatGPT가 가중치를 줄 수 있도록 합니다.
+    ★ 마커를 붙여 LLM가 가중치를 줄 수 있도록 합니다.
     개미승리 관련 기사는 ● 마커로 최고 가중치를 부여합니다.
     """
     youtube_keywords = _get_youtube_keywords(youtube_signals or [])
@@ -2183,7 +2162,7 @@ def _deduplicate_stocks_across_themes(themes: list[dict], max_occurrences: int =
 
 def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
     """
-    ChatGPT API를 사용하여 기사들에서 테마를 추출합니다.
+    LLM API를 사용하여 기사들에서 테마를 추출합니다.
 
     Args:
         articles: 크롤링된 기사 리스트
@@ -2255,7 +2234,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
     model_name = _get_theme_analysis_model()
 
-    print(f"[INFO] ChatGPT API 호출 중... (기사 {len(articles)}개 분석)")
+    print(f"[INFO] LLM API 호출 중... (기사 {len(articles)}개 분석)")
     print(f"  [>] 분석 모델: {model_name}")
     print(f"  [>] 프롬프트 길이: {len(user_prompt):,}자")
 
@@ -2263,7 +2242,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         response = client.chat.completions.create(**_build_theme_analysis_request(model_name, user_prompt))
 
         result_text = response.choices[0].message.content
-        print(f"  [OK] ChatGPT 응답 수신 완료")
+        print(f"  [OK] LLM 응답 수신 완료")
         print(f"  [>] 토큰 사용: input={response.usage.prompt_tokens}, output={response.usage.completion_tokens}")
 
         result = json.loads(result_text)
@@ -2321,11 +2300,11 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         return result
 
     except json.JSONDecodeError as e:
-        print(f"[ERROR] ChatGPT 응답 JSON 파싱 실패: {e}")
+        print(f"[ERROR] LLM 응답 JSON 파싱 실패: {e}")
         print(f"  원본 응답: {result_text[:500]}")
         raise
     except Exception as e:
-        print(f"[ERROR] ChatGPT API 호출 실패: {e}")
+        print(f"[ERROR] LLM API 호출 실패: {e}")
         raise
 
 

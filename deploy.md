@@ -10,7 +10,7 @@
 |------|----------|
 | AWS 계정 | ✅ |
 | GitHub 계정 | ✅ |
-| OpenAI API Key | `sk-...` 준비 |
+| Gemini API Key | `AIza...` 준비 |
 | AWS CLI 설치 | 아래 참고 |
 | SAM CLI 설치 | 아래 참고 |
 
@@ -79,7 +79,7 @@ aws configure
 |-------------|-----|
 | `AWS_ACCESS_KEY_ID` | IAM 액세스 키 |
 | `AWS_SECRET_ACCESS_KEY` | IAM 시크릿 키 |
-| `OPENAI_API_KEY` | `sk-...` OpenAI 키 |
+| `GEMINI_API_KEY` | `AIza...` OpenAI 키 |
 
 ---
 
@@ -102,7 +102,7 @@ sam deploy --guided
 ```
 Stack Name: stock-dashboard-stack
 AWS Region: ap-northeast-2
-Parameter OpenAIApiKey: sk-your-api-key-here
+Parameter GeminiApiKey: AIza-your-key-here
 Parameter S3BucketName: stock-dashboard-data
 Confirm changes before deploy: N
 Allow SAM CLI IAM role creation: Y
@@ -112,7 +112,7 @@ Save arguments to configuration file: Y
 ### 4-2. 또는 한 줄로 배포
 
 ```powershell
-sam build; sam deploy --parameter-overrides "OpenAIApiKey=sk-your-api-key"
+sam build; sam deploy --parameter-overrides "GeminiApiKey=AIza-your-key"
 ```
 
 ### 4-3. 배포 확인
