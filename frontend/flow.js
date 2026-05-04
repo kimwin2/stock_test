@@ -175,9 +175,13 @@ function renderDualAxisChart(history, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
-// Mini price chart with MA10/20 + supply bars overlay
+// Mini price chart with MA10/20 + supply chart overlay
 //   prices: array of 60 daily closes (left → right = old → recent)
 //   dailyFlow10d: array of {instAmount} for the most recent ~10 days
+//
+// 수급은 막대가 아니라 0선을 기준으로 한 양극 영역 차트로 가격 차트 위에
+// 겹쳐 그린다. 빨강(매수일) / 파랑(매도일) translucent fill 로 표현해
+// 가격 라인이 위에서 살아 있도록.
 // ─────────────────────────────────────────┘
 function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
   const w = opts.width || 175;
@@ -187,11 +191,8 @@ function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
   const valid = prices.filter(v => v != null);
   if (valid.length < 2) return '<div class="sparkline-empty"></div>';
 
-  // Layout: top 70% = price, bottom 30% = supply bars
-  const priceTop = 1, priceBottom = h * 0.68;
-  const flowTop = h * 0.72, flowBottom = h - 1;
-  const flowMid = (flowTop + flowBottom) / 2;
-  const flowHalf = (flowBottom - flowTop) / 2;
+  // 가격 차트가 전체 영역 사용
+  const priceTop = 1, priceBottom = h - 1;
 
   const min = Math.min(...valid), max = Math.max(...valid);
   const span = max - min || 1;
@@ -208,7 +209,7 @@ function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
   const stroke = lastPrice >= prices[0] ? '#E53935' : '#1E88E5';
   const fillColor = lastPrice >= prices[0] ? 'rgba(229,57,53,0.13)' : 'rgba(30,136,229,0.13)';
 
-  // MA lines (constrained to price area)
+  // MA lines
   let maLine = '';
   if (ma10 != null && ma10 >= min && ma10 <= max) {
     const yMA = priceTop + (1 - (ma10 - min) / span) * (priceBottom - priceTop);
@@ -222,36 +223,61 @@ function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
   const firstPt = pts.split(' ')[0];
   const lastPt = pts.split(' ').slice(-1)[0];
 
-  // ── 수급 바 오버레이 (마지막 N일을 차트 우측에 매핑)
-  let supplyBars = '';
-  let supplyMid = '';
+  // ── 수급 양극 영역 차트 — 가격 차트 위에 겹쳐 그림
+  let supplyOverlay = '';
   if (dailyFlow10d && dailyFlow10d.length > 0) {
     const flowCount = Math.min(dailyFlow10d.length, prices.length);
     const flowAmounts = dailyFlow10d.slice(-flowCount).map(d => d.instAmount);
     const maxAbs = Math.max(...flowAmounts.map(v => Math.abs(v))) || 1;
     const startIdx = prices.length - flowCount;
 
-    supplyMid = `<line x1="0" y1="${flowMid.toFixed(1)}" x2="${w}" y2="${flowMid.toFixed(1)}" stroke="#666" stroke-width="0.6" opacity="0.4"/>`;
-    supplyMid += `<line x1="${(startIdx * stepX).toFixed(1)}" y1="${priceBottom.toFixed(1)}" x2="${(startIdx * stepX).toFixed(1)}" y2="${flowBottom.toFixed(1)}" stroke="#bbb" stroke-dasharray="1,2" stroke-width="0.6"/>`;
+    // 수급 0선은 차트 세로 중앙. 진폭은 차트 높이의 ±35% 까지 사용.
+    const supplyMid = h / 2;
+    const supplyHalf = h * 0.35;
 
-    supplyBars = flowAmounts.map((amt, i) => {
+    const supplyPts = flowAmounts.map((amt, i) => {
       const x = (startIdx + i) * stepX;
-      const ratio = Math.abs(amt) / maxAbs;
-      const barHeight = flowHalf * ratio;
-      const isBuy = amt > 0;
-      const yTop = isBuy ? flowMid - barHeight : flowMid;
-      const color = isBuy ? '#E53935' : '#1E88E5';
-      return `<rect x="${(x - 1.4).toFixed(1)}" y="${yTop.toFixed(1)}" width="2.8" height="${Math.max(0.5, barHeight).toFixed(1)}" fill="${color}" opacity="0.78"/>`;
+      const y = supplyMid - (amt / maxAbs) * supplyHalf;
+      return { x, y, amt };
+    });
+
+    // 시작점/끝점을 0선으로 닫아 빨강(양수)·파랑(음수) 영역을 분리해서 fill
+    const segs = [];
+    let cur = null;
+    supplyPts.forEach((p) => {
+      const sign = p.amt >= 0 ? 'pos' : 'neg';
+      if (!cur || cur.sign !== sign) {
+        if (cur) segs.push(cur);
+        cur = { sign, points: [p] };
+      } else {
+        cur.points.push(p);
+      }
+    });
+    if (cur) segs.push(cur);
+
+    const fillSegs = segs.map(s => {
+      if (s.points.length === 0) return '';
+      const xs = s.points.map(p => p.x);
+      const startX = xs[0], endX = xs[xs.length - 1];
+      const linePts = s.points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L');
+      const fill = s.sign === 'pos' ? 'rgba(229,57,53,0.32)' : 'rgba(30,136,229,0.32)';
+      return `<path d="M${startX.toFixed(1)},${supplyMid.toFixed(1)} L${linePts} L${endX.toFixed(1)},${supplyMid.toFixed(1)} Z" fill="${fill}"/>`;
     }).join('');
+
+    const supplyLinePts = supplyPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const supplyLine = `<polyline points="${supplyLinePts}" fill="none" stroke="#555" stroke-width="0.9" opacity="0.65"/>`;
+    const supplyZeroLine = `<line x1="${(startIdx * stepX).toFixed(1)}" y1="${supplyMid.toFixed(1)}" x2="${w}" y2="${supplyMid.toFixed(1)}" stroke="#666" stroke-dasharray="2,2" stroke-width="0.6" opacity="0.5"/>`;
+    const supplyDivider = `<line x1="${(startIdx * stepX).toFixed(1)}" y1="${priceTop}" x2="${(startIdx * stepX).toFixed(1)}" y2="${priceBottom.toFixed(1)}" stroke="#bbb" stroke-dasharray="1,2" stroke-width="0.6" opacity="0.5"/>`;
+
+    supplyOverlay = supplyZeroLine + supplyDivider + fillSegs + supplyLine;
   }
 
   return `
     <svg viewBox="0 0 ${w} ${h}" class="mini-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <path d="M${firstPt} L${pts.split(' ').slice(1).join(' L')} L${lastPt.split(',')[0]},${priceBottom.toFixed(1)} L${firstPt.split(',')[0]},${priceBottom.toFixed(1)} Z" fill="${fillColor}"/>
       ${maLine}
+      ${supplyOverlay}
       <polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="1.5"/>
-      ${supplyMid}
-      ${supplyBars}
     </svg>
   `;
 }
@@ -476,7 +502,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
         <span><span class="legend-dot gray"></span>20MA</span>
         <span><span class="legend-bar red"></span>외인+기관 매수일</span>
         <span><span class="legend-bar blue"></span>매도일</span>
-        <span class="legend-tip">수급바: 우측 = 최근 10일. 게이지: 오늘 분석 종목 중 percentile</span>
+        <span class="legend-tip">수급 영역: 차트 중앙 0선 기준, 우측 10일 매수↑/매도↓. 게이지: percentile</span>
       </div>
     </div>
   `;
