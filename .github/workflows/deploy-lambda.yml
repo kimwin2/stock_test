@@ -87,11 +87,27 @@ jobs:
         run: sam build
 
       - name: SAM Deploy
+        env:
+          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          # GeminiApiKey 결정 우선순위:
+          #   1) GEMINI_API_KEY 시크릿이 있으면 그 값 사용
+          #   2) 아니면 OPENAI_API_KEY 시크릿이 Gemini 형식(AIza...) 이면 그 값 사용
+          #   3) 둘 다 아니면 CFN UsePreviousValue 로 기존 stack 값 보존 (Lambda 가 console/CLI 로
+          #      직접 갱신된 키를 잃지 않게 함)
+          if [ -n "$GEMINI_KEY" ]; then
+            KEY_PARAM=("GeminiApiKey=$GEMINI_KEY")
+          elif [ -n "$OPENAI_KEY" ] && [[ "$OPENAI_KEY" == AIza* ]]; then
+            KEY_PARAM=("GeminiApiKey=$OPENAI_KEY")
+          else
+            echo "::warning::No Gemini API key in GH secrets — preserving existing CFN stack value."
+            KEY_PARAM=("ParameterKey=GeminiApiKey,UsePreviousValue=true")
+          fi
           sam deploy \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
-              "GeminiApiKey=${{ secrets.GEMINI_API_KEY || secrets.OPENAI_API_KEY }}" \
+              "${KEY_PARAM[@]}" \
               "S3BucketName=${{ secrets.S3_BUCKET_NAME || 'stock-dashboard-data' }}" \
               "TelegramApiId=${{ secrets.TG_API_ID || '' }}" \
               "TelegramApiHash=${{ secrets.TG_API_HASH || '' }}" \
