@@ -85,7 +85,11 @@ def _is_llm_unavailable_error(exc: BaseException) -> bool:
         return False
     if isinstance(exc, (RateLimitError, AuthenticationError)):
         return True
-    if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) in (401, 402, 403, 429):
+    if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) in (400, 401, 402, 403, 429):
+        msg = str(exc).lower()
+        # 400 은 'API key not valid'/'invalid argument' 같은 인증·한도 사례만 graceful 처리
+        if getattr(exc, "status_code", None) == 400:
+            return any(kw in msg for kw in ("api key", "invalid_argument", "permission", "quota"))
         return True
     msg = str(exc).lower()
     return any(kw in msg for kw in (
