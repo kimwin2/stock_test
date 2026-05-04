@@ -3,7 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Stock Dashboard Backend
   # S3 bucket: stock-dashboard-data
-  - Lambda: 뉴스 크롤링 + ChatGPT 분석 + 종목 데이터
+  - Lambda: 뉴스 크롤링 + Gemini 분석 + 종목 데이터
   - EventBridge: 평일 08:00~16:00(KST, 16:00 포함) 실행되는 스케줄러
   - S3: dashboard_data.json 저장
 
@@ -11,10 +11,10 @@ Description: >
 # Parameters
 # ─────────────────────────────────────────
 Parameters:
-  OpenAIApiKey:
+  GeminiApiKey:
     Type: String
     NoEcho: true
-    Description: OpenAI API Key (sk-...)
+    Description: Google AI Studio Gemini API Key (https://aistudio.google.com/app/apikey)
 
   S3BucketName:
     Type: String
@@ -101,13 +101,14 @@ Resources:
       Description: Stock pipeline (v5-flow-tab)
       Environment:
         Variables:
-          OPENAI_API_KEY: !Ref OpenAIApiKey
+          GEMINI_API_KEY: !Ref GeminiApiKey
           S3_BUCKET_NAME: !Ref S3BucketName
           S3_KEY: dashboard_data.json
           FLOW_S3_KEY: flow_dashboard.json
           FLOW_TOP_KOSPI: '300'
           FLOW_TOP_KOSDAQ: '150'
-          THEME_ANALYSIS_MODEL: gpt-4o-mini
+          THEME_ANALYSIS_MODEL: gemini-2.5-flash-lite
+          PRICE_SIGNAL_MODEL: gemini-2.5-flash-lite
           ANTWINNER_SIGNAL_S3_KEY: signals/antwinner_themes_latest.json
           PRICE_SIGNAL_S3_KEY: signals/price_theme_signals_latest.json
           TELEGRAM_SIGNAL_S3_KEY: signals/telegram_faststocknews_latest.json

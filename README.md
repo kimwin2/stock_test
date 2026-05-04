@@ -1,6 +1,6 @@
 # 🎯 Stock Premium - 주식 테마 대시보드
 
-실시간 주식 테마 분석 대시보드. 네이버 금융 뉴스를 크롤링하고, ChatGPT로 오늘의 주도 테마를 분석하여 대장주를 보여줍니다.
+실시간 주식 테마 분석 대시보드. 네이버 금융 뉴스를 크롤링하고, Gemini로 오늘의 주도 테마를 분석하여 대장주를 보여줍니다.
 
 ## 아키텍처
 
@@ -28,7 +28,7 @@
 │   ├── handler.py              # Lambda 진입점
 │   ├── main.py                 # 로컬 파이프라인
 │   ├── crawler.py              # 네이버 뉴스 크롤러
-│   ├── analyzer.py             # ChatGPT 테마 분석
+│   ├── analyzer.py             # Gemini 테마 분석
 │   ├── stock_data.py           # 종목 데이터 조회
 │   ├── requirements.txt
 │   └── .env.example
@@ -50,7 +50,7 @@
 cd backend
 pip install -r requirements.txt
 cp .env.example .env
-# .env 파일에 OPENAI_API_KEY 설정
+# .env 파일에 GEMINI_API_KEY 설정
 
 python main.py              # 전체 파이프라인
 python main.py --skip-crawl # 저장된 기사로 분석만
@@ -74,7 +74,7 @@ aws configure
 
 # SAM 배포
 sam build
-sam deploy --parameter-overrides "OpenAIApiKey=sk-your-key"
+sam deploy --parameter-overrides "GeminiApiKey=AIza-your-key"
 ```
 
 ### 4. GitHub Secrets 설정
@@ -85,7 +85,7 @@ sam deploy --parameter-overrides "OpenAIApiKey=sk-your-key"
 |--------|------|
 | `AWS_ACCESS_KEY_ID` | AWS IAM 액세스 키 |
 | `AWS_SECRET_ACCESS_KEY` | AWS IAM 시크릿 키 |
-| `OPENAI_API_KEY` | OpenAI API 키 |
+| `GEMINI_API_KEY` | Gemini API 키 (Google AI Studio) |
 
 ### 5. GitHub Pages 활성화
 
@@ -95,7 +95,7 @@ sam deploy --parameter-overrides "OpenAIApiKey=sk-your-key"
 
 1. **EventBridge**가 평일 08:00~16:00(KST) 동안 10분마다 Lambda 트리거
 2. **Lambda**가 네이버 뉴스 크롤링 (200개)
-3. **ChatGPT API**로 주도 테마 7개 추출
+3. **Gemini API**로 주도 테마 7개 추출
 4. 각 테마별 **대장주 4개** 실시간 시세 조회
 5. `dashboard_data.json`을 **S3**에 업로드
 6. **GitHub Pages** 웹사이트에서 S3 JSON을 fetch하여 렌더링
@@ -108,7 +108,7 @@ sam deploy --parameter-overrides "OpenAIApiKey=sk-your-key"
 | S3 | 5GB 무료 | $0 |
 | EventBridge | 무료 | $0 |
 | GitHub Pages | 무료 | $0 |
-| OpenAI API | - | ~$1/월 (gpt-4o-mini) |
+| Gemini API | - | ~$1/월 (gemini-2.5-flash-lite) |
 
 ## 라이선스
 

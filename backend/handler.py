@@ -4,7 +4,7 @@ AWS Lambda Handler for Stock Dashboard Backend Pipeline
 POST /run (수동 실행) → 이 함수 실행 → S3에 dashboard_data.json 업로드
 
 환경변수:
-    - OPENAI_API_KEY: OpenAI API 키
+    - GEMINI_API_KEY: Google AI Studio Gemini API 키 (OpenAI-호환 endpoint 사용)
     - S3_BUCKET_NAME: S3 버킷 이름 (예: stock-dashboard-data)
     - S3_KEY: S3 객체 키 (기본값: dashboard_data.json)
 """
@@ -76,8 +76,8 @@ def _fetch_existing_dashboard(bucket: str, key: str) -> dict | None:
         return None
 
 
-def _is_openai_quota_error(exc: BaseException) -> bool:
-    """OpenAI quota/rate 한도 에러 여부."""
+def _is_llm_quota_error(exc: BaseException) -> bool:
+    """LLM provider quota/rate 한도 에러 여부 (Gemini OpenAI-호환 endpoint 포함)."""
     try:
         from openai import APIStatusError, RateLimitError
     except Exception:
@@ -87,7 +87,13 @@ def _is_openai_quota_error(exc: BaseException) -> bool:
     if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) in (429, 402):
         return True
     msg = str(exc).lower()
-    return "insufficient_quota" in msg or "exceeded your current quota" in msg
+    return any(kw in msg for kw in (
+        "insufficient_quota",
+        "exceeded your current quota",
+        "resource_exhausted",
+        "rate limit",
+        "quota exceeded",
+    ))
 
 
 def upload_to_s3(data: dict, bucket: str, key: str) -> str:
@@ -200,24 +206,24 @@ def lambda_handler(event, context):
         except Exception as e:
             print(f"  [!] 가격 기반 테마 시그널 수집 실패: {e}")
 
-        # ── Step 3: ChatGPT 테마 분석 ──
-        print("\n[Step 3] ChatGPT API 테마 분석")
+        # ── Step 3: Gemini 테마 분석 ──
+        print("\n[Step 3] Gemini API 테마 분석")
         date_str = datetime.now(KST).strftime("%Y-%m-%d")
         try:
             analysis = analyze_themes(articles, date_str)
         except Exception as e:
-            if _is_openai_quota_error(e):
-                print(f"  [!] OpenAI 한도 초과 — 기존 dashboard 보존하고 updatedAt 만 갱신: {e}")
+            if _is_llm_quota_error(e):
+                print(f"  [!] LLM 한도 초과 — 기존 dashboard 보존하고 updatedAt 만 갱신: {e}")
                 existing = _fetch_existing_dashboard(bucket, s3_key) or {}
                 degraded = dict(existing)
                 degraded["updatedAt"] = datetime.now(KST).isoformat()
-                degraded["themesError"] = "OpenAI quota exceeded — themes not refreshed (billing 확인 필요)"
+                degraded["themesError"] = "LLM quota exceeded — themes not refreshed (Gemini billing 확인 필요)"
                 degraded["themesErrorDetail"] = str(e)[:500]
                 upload_to_s3(degraded, bucket, s3_key)
                 return {
                     "statusCode": 200,
                     "body": json.dumps({
-                        "message": "themes 갱신 스킵 (OpenAI 한도) — 기존 데이터 보존",
+                        "message": "themes 갱신 스킵 (LLM 한도) — 기존 데이터 보존",
                         "themesError": degraded["themesError"],
                         "updatedAt": degraded["updatedAt"],
                     }, ensure_ascii=False),

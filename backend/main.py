@@ -1,6 +1,6 @@
 """
 메인 파이프라인
-네이버 금융 뉴스 크롤링 → ChatGPT 테마 분석 → 종목 데이터 조회 → JSON 출력
+네이버 금융 뉴스 크롤링 → Gemini LLM 테마 분석 → 종목 데이터 조회 → JSON 출력
 
 사용법:
     python main.py              # 전체 파이프라인 실행
@@ -94,13 +94,13 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
             print(f"   [!] 가격 기반 테마 시그널 수집 실패: {e}")
 
     # ─────────────────────────────────────────────
-    # Step 3: ChatGPT API 테마 분석
+    # Step 3: Gemini LLM API 테마 분석
     # ─────────────────────────────────────────────
     if skip_analysis:
         print("\n[Step 3] 분석 건너뛰 (저장된 분석 결과 사용)")
         analysis = load_analysis()
     else:
-        print("\n[Step 3] ChatGPT API 테마 분석")
+        print("\n[Step 3] Gemini LLM API 테마 분석")
         date_str = datetime.now(KST).strftime("%Y-%m-%d")
         analysis = analyze_themes(articles, date_str)
         save_analysis(analysis)
