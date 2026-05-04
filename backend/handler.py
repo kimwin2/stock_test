@@ -10,6 +10,7 @@ POST /run (수동 실행) → 이 함수 실행 → S3에 dashboard_data.json �
 """
 
 import json
+import math
 import os
 import sys
 import io
@@ -51,6 +52,19 @@ def _import_flow_pipeline():
     return build_flow_dashboard
 
 
+def _sanitize_for_json(obj):
+    """Infinity / NaN 을 null 로 변환 (브라우저 JSON.parse 호환)."""
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_json(v) for v in obj]
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    return obj
+
+
 def upload_to_s3(data: dict, bucket: str, key: str) -> str:
     """
     dashboard_data.json을 S3에 업로드합니다.
@@ -65,7 +79,10 @@ def upload_to_s3(data: dict, bucket: str, key: str) -> str:
     """
     s3 = boto3.client("s3")
 
-    json_bytes = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+    sanitized = _sanitize_for_json(data)
+    json_bytes = json.dumps(
+        sanitized, ensure_ascii=False, indent=2, allow_nan=False
+    ).encode("utf-8")
 
     s3.put_object(
         Bucket=bucket,
