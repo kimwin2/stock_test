@@ -65,6 +65,31 @@ def _sanitize_for_json(obj):
     return obj
 
 
+def _fetch_existing_dashboard(bucket: str, key: str) -> dict | None:
+    """S3 에서 기존 dashboard_data.json 을 조회. 없거나 파싱 실패 시 None."""
+    try:
+        s3 = boto3.client("s3")
+        resp = s3.get_object(Bucket=bucket, Key=key)
+        return json.loads(resp["Body"].read().decode("utf-8"))
+    except Exception as e:
+        print(f"  [!] 기존 dashboard 조회 실패: {e}")
+        return None
+
+
+def _is_openai_quota_error(exc: BaseException) -> bool:
+    """OpenAI quota/rate 한도 에러 여부."""
+    try:
+        from openai import APIStatusError, RateLimitError
+    except Exception:
+        return False
+    if isinstance(exc, RateLimitError):
+        return True
+    if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) in (429, 402):
+        return True
+    msg = str(exc).lower()
+    return "insufficient_quota" in msg or "exceeded your current quota" in msg
+
+
 def upload_to_s3(data: dict, bucket: str, key: str) -> str:
     """
     dashboard_data.json을 S3에 업로드합니다.
@@ -178,7 +203,27 @@ def lambda_handler(event, context):
         # ── Step 3: ChatGPT 테마 분석 ──
         print("\n[Step 3] ChatGPT API 테마 분석")
         date_str = datetime.now(KST).strftime("%Y-%m-%d")
-        analysis = analyze_themes(articles, date_str)
+        try:
+            analysis = analyze_themes(articles, date_str)
+        except Exception as e:
+            if _is_openai_quota_error(e):
+                print(f"  [!] OpenAI 한도 초과 — 기존 dashboard 보존하고 updatedAt 만 갱신: {e}")
+                existing = _fetch_existing_dashboard(bucket, s3_key) or {}
+                degraded = dict(existing)
+                degraded["updatedAt"] = datetime.now(KST).isoformat()
+                degraded["themesError"] = "OpenAI quota exceeded — themes not refreshed (billing 확인 필요)"
+                degraded["themesErrorDetail"] = str(e)[:500]
+                upload_to_s3(degraded, bucket, s3_key)
+                return {
+                    "statusCode": 200,
+                    "body": json.dumps({
+                        "message": "themes 갱신 스킵 (OpenAI 한도) — 기존 데이터 보존",
+                        "themesError": degraded["themesError"],
+                        "updatedAt": degraded["updatedAt"],
+                    }, ensure_ascii=False),
+                }
+            raise
+
         themes = analysis.get("themes", [])
 
         if not themes:
