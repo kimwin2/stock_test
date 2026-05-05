@@ -48,8 +48,11 @@ THEME_ETFS = {
     "456600": "KODEX K-방산",
     "449450": "PLUS K방산",
     "471490": "ACE 글로벌HBM반도체액티브",
-    "454910": "KODEX K-로봇액티브",
-    "445290": "TIGER 코스피고배당",
+    # 로봇 ETF — 이전에 454910(=두산로보틱스 개별 종목)이 잘못 등록돼 있어 RS 가
+    # 음수로 잡혀서 로봇 섹터가 leading 에 못 들어갔음. 정정.
+    "445290": "KODEX 로봇액티브",
+    "464310": "TIGER 글로벌AI&로보틱스",
+    "471040": "KoAct 글로벌AI&로봇액티브",
     "449180": "KOSEF K-게임",
     "395750": "TIGER 글로벌리튬",
     "381170": "TIGER 미국테크TOP10",
@@ -165,7 +168,15 @@ def build_leading_sectors(top_n: int = 10) -> dict:
     if df.empty:
         return {"items": [], "top": [], "leading": []}
 
-    leading = df[df["rsNorm"] >= 70].copy()
+    # leading 정의 (둘 중 하나라도 만족):
+    #   1) rsNorm >= 70  — 장기 인덱스 대비 강세 (Mansfield RS)
+    #   2) ret1m >= 20 & volAdjMomentum >= 0.10  — 단기 모멘텀 강세
+    # 단기 조건을 추가한 이유: KODEX 로봇액티브 처럼 IPO 후 급락 종목이 ETF
+    # 비중 높아 장기 RS 는 낮지만 단기엔 폭등하는 케이스 (분석가들이 주목하는
+    # "거래대금 상위 + 빈집" 패턴) 를 놓치지 않기 위함.
+    long_term = df["rsNorm"] >= 70
+    short_term = (df["ret1m"] >= 20) & (df["volAdjMomentum"] >= 0.10)
+    leading = df[long_term | short_term].copy()
 
     return {
         "all": df.to_dict("records"),

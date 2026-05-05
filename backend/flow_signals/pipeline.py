@@ -419,5 +419,7 @@ def save_flow_dashboard(payload: dict, output_path: str | None = None) -> str:
 
 
 if __name__ == "__main__":
-    payload = build_flow_dashboard(top_n_kospi=200, top_n_kosdaq=100)
+    # KOSDAQ 시총 100~250위에 분석가들이 자주 다루는 종목들 (RF머트리얼즈,
+    # 한국피아이엠, 덕산하이메탈, 테스, 심텍 등) 이 있어 200까지 확대.
+    payload = build_flow_dashboard(top_n_kospi=300, top_n_kosdaq=200)
     save_flow_dashboard(payload)
