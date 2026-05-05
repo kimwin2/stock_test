@@ -8,9 +8,12 @@
 - 변동성 (20일 표준편차의 역수)
 - 거래량 모멘텀
 
-Oscillator 정의 (참고 자료 그래프와 시각적으로 일치):
-- fear_greed 를 0~1 로 정규화한 뒤 EMA12 − EMA26 (MACD line)
-- 최종 진동 폭은 약 ±0.03 — 참고 자료 차트와 동일 스케일
+Oscillator 정의 (참고 자료 원본 그대로):
+- fear_greed 를 0~1 로 정규화한 뒤 MACD 히스토그램 (macd − signal)
+  · macd = EMA12 − EMA26
+  · signal = EMA9(macd)
+  · oscillator = macd − signal
+- 최종 진동 폭은 약 ±0.03 — 참고 자료 차트와 동일
 - 0 위 = Greed (과열), 0 아래 = Fear (과매도)
 """
 
@@ -70,12 +73,14 @@ def fear_greed_oscillator(df: pd.DataFrame) -> pd.DataFrame:
 
     df["fear_greed"] = df[[f"{f}_n" for f in feats]].mean(axis=1)
 
-    # Oscillator: fear_greed 를 0~1 로 정규화한 후 MACD line (EMA12 − EMA26).
-    # 참고 자료 그래프와 동일한 ±0.03 스케일을 갖도록 설계.
+    # Oscillator: fear_greed 를 0~1 로 정규화한 후 MACD 히스토그램 (macd − signal).
+    # 참고 자료 원본 코드와 동일.
     fg_normalized = df["fear_greed"] / 100.0
     ema12 = fg_normalized.ewm(span=12, adjust=False).mean()
     ema26 = fg_normalized.ewm(span=26, adjust=False).mean()
-    df["fg_oscillator"] = ema12 - ema26
+    macd = ema12 - ema26
+    signal = macd.ewm(span=9, adjust=False).mean()
+    df["fg_oscillator"] = macd - signal
 
     return df
 
