@@ -81,34 +81,67 @@ def build_cash_recommendation(market_sentiment: dict, crowding: dict) -> dict:
 
 def _resolve_leading_sectors_from_etfs(leading_etfs: list[dict]) -> list[str]:
     """주도 ETF 라벨에서 우리 sector taxonomy 라벨 추출."""
+    # 매핑은 ETF 명에 키워드가 등장하는 순서대로 매칭. 더 specific 한 키워드를 위에 둔다.
+    # (예: "200 IT" 는 사실상 반도체 ETF 라 게임/IT 가 아닌 반도체로 매핑)
     sector_map = [
+        # 반도체 (specific 먼저)
+        ("HBM", "반도체"),
+        ("팹리스", "AI/반도체팹리스"),
+        ("기판", "반도체장비"),
+        ("OSAT", "반도체장비"),
+        ("패키징", "반도체장비"),
+        ("디스플레이", "반도체"),
+        ("200 IT", "반도체"),       # KOSPI 200 IT — 삼성전자/하이닉스 비중 큼
+        ("코스닥150 IT", "반도체"),  # 코스닥 IT — 반도체 비중 큼
         ("반도체", "반도체"),
+        # 2차전지/ESS
         ("2차전지", "2차전지"),
         ("배터리", "2차전지"),
         ("리튬", "2차전지"),
+        ("ESS", "2차전지"),
+        # 자동차/소비재
         ("자동차", "자동차"),
         ("화장품", "화장품/소비재"),
+        # 화학/에너지
         ("화학", "화학"),
         ("에너지", "화학"),
+        # 게임/IT (남은 IT 류)
         ("게임", "게임/IT"),
         ("소프트", "게임/IT"),
-        ("코스닥150 IT", "게임/IT"),
         ("IT", "게임/IT"),
+        # 로봇/AI
         ("로봇", "로봇"),
         ("AI", "AI/반도체팹리스"),
-        ("HBM", "반도체"),
+        # 방산/조선/중공업
         ("방산", "방산"),
         ("조선", "조선"),
         ("중공업", "조선"),
+        # 전력 인프라
+        ("전력", "전력기기"),
         ("산업재", "전력기기"),
+        ("원전", "원전"),
+        # 바이오/우주
         ("바이오", "바이오"),
         ("헬스케어", "바이오"),
         ("우주", "우주항공"),
+        ("위성", "우주항공"),
+        # 건설 (좁게 — 시멘트/철강 ETF 는 매핑 X 로 두어 노이즈 차단)
         ("건설", "건설/인프라"),
-        ("철강", "건설/인프라"),
+        ("인프라", "건설/인프라"),
+        # 금융 (증권 가장 먼저)
+        ("증권", "금융"),
+        ("KRX 증권", "금융"),
         ("보험", "금융"),
         ("배당", "금융"),
-        ("미국", "기타"),  # 해외 ETF 는 한국 sector 매핑 없음
+        ("은행", "금융"),
+        # 연료전지/신재생
+        ("연료전지", "연료전지/수소"),
+        ("수소", "연료전지/수소"),
+        ("태양광", "신재생"),
+        ("신재생", "신재생"),
+        ("그린뉴딜", "신재생"),
+        # 해외 ETF 는 한국 sector 매핑 없음
+        ("미국", "기타"),
         ("나스닥", "기타"),
         ("S&P", "기타"),
         ("차이나", "기타"),
@@ -215,15 +248,17 @@ def build_flow_dashboard(
         sector_flows = {"foreigner": [], "organ": [], "total": []}
         sector_movers = {}
 
-    # leadingSectors 보강 — 기관/외인 매수 상위 섹터를 추가 (ETF 없는 섹터를 잡기 위함)
+    # leadingSectors 보강 — 기관/외인 매수 상위 섹터를 추가 (ETF 없는 섹터를 잡기 위함).
+    # top5 컷오프는 "금융/연료전지/신재생" 같이 시총은 적지만 분명한 주도 섹터를 놓쳐서 top8 로 확대.
+    # 또한 vacancy_df 에 들어있는 모든 섹터 중 매수 우위 (organ+foreigner > 0) 면 후보 인정.
     flow_sectors: list[str] = []
-    for entry in (sector_flows.get("organ") or [])[:5]:
+    for entry in (sector_flows.get("organ") or [])[:8]:
         if entry["amount"] > 0 and entry["sector"] not in flow_sectors:
             flow_sectors.append(entry["sector"])
-    for entry in (sector_flows.get("foreigner") or [])[:5]:
+    for entry in (sector_flows.get("foreigner") or [])[:8]:
         if entry["amount"] > 0 and entry["sector"] not in flow_sectors:
             flow_sectors.append(entry["sector"])
-    leading_sectors_flow = flow_sectors[:6]
+    leading_sectors_flow = flow_sectors[:10]
     print(f"   기관/외인 매수 상위 섹터: {leading_sectors_flow}")
     for sector in leading_sectors_flow:
         if sector not in leading_sectors:
@@ -270,6 +305,9 @@ def build_flow_dashboard(
 
     # 매수 후보 우선순위: 추세살아있음(MA10위) + 신고가 가까움 + 빈집정도
     # 참고 자료 강조점: "지금" 비어있는 상태 (currentVacancyDays / currentlyVacant)
+    # + "주도섹터 1·2위 위주" + 단기 모멘텀 (시세강도) 가산
+    top_sectors_for_scoring = leading_sectors[:2] if leading_sectors else []
+
     def _candidate_score(c: dict) -> float:
         score = 0.0
         if c.get("aboveMA10"):
@@ -294,6 +332,14 @@ def build_flow_dashboard(
         score += min(15, streak * 5)  # 1일 5점, 2일 10점, 3일+ 15점 캡
         if c.get("currentlyVacant"):
             score += 5
+        # 강한섹터 1·2위 가산 — 텔레그램 분석상 "최우선" 섹터에 베팅 집중
+        if c.get("sector") in top_sectors_for_scoring:
+            score += 25
+        # 단기 모멘텀 (시세강도) — RS 가 우리 종목 db 에 없어 5d 수익률로 대용.
+        # 양수면 가산, 음수면 감산 (강하게 빠지는 종목은 빈집이라도 스코어 낮춤).
+        ret5d = c.get("ret5d")
+        if ret5d is not None:
+            score += max(-15, min(20, ret5d * 1.5))
         return score
 
     enriched_candidates.sort(key=_candidate_score, reverse=True)
@@ -419,7 +465,8 @@ def save_flow_dashboard(payload: dict, output_path: str | None = None) -> str:
 
 
 if __name__ == "__main__":
-    # KOSDAQ 시총 100~250위에 분석가들이 자주 다루는 종목들 (RF머트리얼즈,
-    # 한국피아이엠, 덕산하이메탈, 테스, 심텍 등) 이 있어 200까지 확대.
-    payload = build_flow_dashboard(top_n_kospi=300, top_n_kosdaq=200)
+    # KOSDAQ 시총 200~300위에 텔레그램·외부 분석에서 자주 다루는 종목 (오이솔루션,
+    # 인텍플러스, 네패스아크, 알멕, 브이엠, 한선엔지니어링, 와이지원, 아스플로,
+    # 세미파이브, 싸이맥스, 나노, 세아메카닉스 등) 이 있어 300까지 확대.
+    payload = build_flow_dashboard(top_n_kospi=300, top_n_kosdaq=300)
     save_flow_dashboard(payload)

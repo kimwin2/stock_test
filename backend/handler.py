@@ -140,7 +140,7 @@ def _run_flow_pipeline(bucket: str) -> dict:
     """수급/주도 파이프라인. EventBridge에서 mode=flow 로 호출."""
     flow_key = os.environ.get("FLOW_S3_KEY", "flow_dashboard.json")
     top_kospi = int(os.environ.get("FLOW_TOP_KOSPI", "300"))
-    top_kosdaq = int(os.environ.get("FLOW_TOP_KOSDAQ", "150"))
+    top_kosdaq = int(os.environ.get("FLOW_TOP_KOSDAQ", "250"))
 
     build_flow_dashboard = _import_flow_pipeline()
     payload = build_flow_dashboard(top_n_kospi=top_kospi, top_n_kosdaq=top_kosdaq)
