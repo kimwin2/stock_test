@@ -191,15 +191,18 @@ function renderDualAxisChart(history, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
-// Mini price chart with MA10/20 + supply chart overlay
+// Mini price chart with MA10/20 + supply histogram overlay
 //   prices: array of 60 daily closes (left → right = old → recent)
 //   dailyFlow10d: array of {instAmount} for the most recent ~10 days
+//   marketCap: 종목 시가총액 (원) — 막대 높이를 표준화하기 위함
 //
-// 수급은 막대가 아니라 0선을 기준으로 한 양극 영역 차트로 가격 차트 위에
-// 겹쳐 그린다. 빨강(매수일) / 파랑(매도일) translucent fill 로 표현해
-// 가격 라인이 위에서 살아 있도록.
+// 수급은 참고 자료(태린이아빠 엑셀) 스타일로 빨강/파랑 막대 히스토그램.
+// 막대 높이 = 일별 (외인+기관 순매수금액 / 시가총액)
+//   · 양수 = 빨강 (외인·기관 매수)
+//   · 음수 = 파랑 (외인·기관 매도)
+// 0선 기준 대칭으로 그려서 한 패널 안에서 가격 line + 수급 bar 동시 인식.
 // ─────────────────────────────────────────┘
-function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
+function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, marketCap, opts = {}) {
   const w = opts.width || 175;
   const h = opts.height || 64;
   if (!prices || prices.length < 2) return '<div class="sparkline-empty"></div>';
@@ -207,7 +210,6 @@ function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
   const valid = prices.filter(v => v != null);
   if (valid.length < 2) return '<div class="sparkline-empty"></div>';
 
-  // 가격 차트가 전체 영역 사용
   const priceTop = 1, priceBottom = h - 1;
 
   const min = Math.min(...valid), max = Math.max(...valid);
@@ -221,9 +223,8 @@ function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  const lastPrice = prices[prices.length - 1];
-  const stroke = lastPrice >= prices[0] ? '#E53935' : '#1E88E5';
-  const fillColor = lastPrice >= prices[0] ? 'rgba(229,57,53,0.13)' : 'rgba(30,136,229,0.13)';
+  // 가격선은 단색(검정) — 빨강/파랑은 수급 막대 전용으로 비워둔다.
+  const stroke = '#1A1A1A';
 
   // MA lines
   let maLine = '';
@@ -236,62 +237,38 @@ function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, opts = {}) {
     maLine += `<line x1="0" y1="${yMA.toFixed(1)}" x2="${w}" y2="${yMA.toFixed(1)}" stroke="#9E9E9E" stroke-dasharray="2,2" stroke-width="1"/>`;
   }
 
-  const firstPt = pts.split(' ')[0];
-  const lastPt = pts.split(' ').slice(-1)[0];
-
-  // ── 수급 양극 영역 차트 — 가격 차트 위에 겹쳐 그림
-  // 수급 데이터는 최근 10일만 있지만, 가시성을 위해 전체 차트 폭에 펴서 표시.
-  // (가격선의 x축과는 시간 매핑이 다름 — 수급 영역은 "최근 10일 흐름" 의 모양만 전달)
+  // ── 수급 막대 히스토그램 — 0선 기준 빨강/파랑 bar
+  // 시가총액 대비 표준화: bar 길이 = (instAmount / marketCap) / scale
+  // scale 은 이 종목 10일 max abs ratio — 자동 fit. 시각 비교는 한 종목 내 상대적.
   let supplyOverlay = '';
   if (dailyFlow10d && dailyFlow10d.length > 0) {
-    const flowAmounts = dailyFlow10d.map(d => d.instAmount);
-    const flowCount = flowAmounts.length;
-    const maxAbs = Math.max(...flowAmounts.map(v => Math.abs(v))) || 1;
+    const useRatio = marketCap && marketCap > 0;
+    const flowVals = dailyFlow10d.map(d => useRatio ? d.instAmount / marketCap : d.instAmount);
+    const flowCount = flowVals.length;
+    const maxAbs = Math.max(...flowVals.map(v => Math.abs(v))) || 1;
 
-    // 수급 0선은 차트 세로 중앙. 진폭은 차트 높이의 ±42% 까지 사용 — 시각적 무게 우선.
     const supplyMid = h / 2;
     const supplyHalf = h * 0.42;
-    const supplyStepX = w / Math.max(1, flowCount - 1);
+    // 막대 폭: 셀 폭의 ~70%, 인접 막대 사이 gap 30%
+    const cellW = w / flowCount;
+    const barW = Math.max(1.2, cellW * 0.70);
 
-    const supplyPts = flowAmounts.map((amt, i) => {
-      const x = i * supplyStepX;
-      const y = supplyMid - (amt / maxAbs) * supplyHalf;
-      return { x, y, amt };
-    });
-
-    // 시작점/끝점을 0선으로 닫아 빨강(양수)·파랑(음수) 영역을 분리해서 fill
-    const segs = [];
-    let cur = null;
-    supplyPts.forEach((p) => {
-      const sign = p.amt >= 0 ? 'pos' : 'neg';
-      if (!cur || cur.sign !== sign) {
-        if (cur) segs.push(cur);
-        cur = { sign, points: [p] };
-      } else {
-        cur.points.push(p);
-      }
-    });
-    if (cur) segs.push(cur);
-
-    const fillSegs = segs.map(s => {
-      if (s.points.length === 0) return '';
-      const xs = s.points.map(p => p.x);
-      const startX = xs[0], endX = xs[xs.length - 1];
-      const linePts = s.points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L');
-      const fill = s.sign === 'pos' ? 'rgba(229,57,53,0.38)' : 'rgba(30,136,229,0.38)';
-      return `<path d="M${startX.toFixed(1)},${supplyMid.toFixed(1)} L${linePts} L${endX.toFixed(1)},${supplyMid.toFixed(1)} Z" fill="${fill}"/>`;
+    const bars = flowVals.map((v, i) => {
+      const cx = (i + 0.5) * cellW;
+      const x = cx - barW / 2;
+      const barH = Math.abs(v / maxAbs) * supplyHalf;
+      const y = v >= 0 ? supplyMid - barH : supplyMid;
+      const fill = v >= 0 ? 'rgba(229,57,53,0.78)' : 'rgba(30,136,229,0.78)';
+      return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0.5, barH).toFixed(1)}" fill="${fill}"/>`;
     }).join('');
 
-    const supplyLinePts = supplyPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-    const supplyLine = `<polyline points="${supplyLinePts}" fill="none" stroke="#444" stroke-width="1" opacity="0.7"/>`;
     const supplyZeroLine = `<line x1="0" y1="${supplyMid.toFixed(1)}" x2="${w}" y2="${supplyMid.toFixed(1)}" stroke="#888" stroke-dasharray="2,2" stroke-width="0.7" opacity="0.55"/>`;
 
-    supplyOverlay = supplyZeroLine + fillSegs + supplyLine;
+    supplyOverlay = supplyZeroLine + bars;
   }
 
   return `
     <svg viewBox="0 0 ${w} ${h}" class="mini-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      <path d="M${firstPt} L${pts.split(' ').slice(1).join(' L')} L${lastPt.split(',')[0]},${priceBottom.toFixed(1)} L${firstPt.split(',')[0]},${priceBottom.toFixed(1)} Z" fill="${fillColor}"/>
       ${maLine}
       ${supplyOverlay}
       <polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="1.5"/>
@@ -516,7 +493,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
             </div>
           </div>
           <div class="cand-chart">
-            ${renderMiniPriceChart(c.priceHistory60d, c.ma10, c.ma20, c.dailyFlow10d)}
+            ${renderMiniPriceChart(c.priceHistory60d, c.ma10, c.ma20, c.dailyFlow10d, c.marketCap)}
           </div>
         </div>
         ${renderSupplyGauge(c.vacancyPercentile, c.vacancyZone, c.institutionNet5d)}
@@ -537,7 +514,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
         <span><span class="legend-dot gray"></span>20MA</span>
         <span><span class="legend-bar red"></span>외인+기관 매수일</span>
         <span><span class="legend-bar blue"></span>매도일</span>
-        <span class="legend-tip">★ 표시 = 강한섹터 1·2위, 🔥 = 현재 매도 연속, 게이지: 빈집 percentile</span>
+        <span class="legend-tip">막대 높이 = 시총 대비 일별 순매수 · ★ 강한섹터 1·2위 · 🔥 현재 매도 연속 · 게이지: 빈집 percentile</span>
       </div>
     </div>
   `;
