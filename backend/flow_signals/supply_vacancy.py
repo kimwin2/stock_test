@@ -26,7 +26,7 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
-from .data_sources import fetch_naver_investor_trend, parse_investor_trend, fetch_stock_ohlcv
+from .data_sources import fetch_naver_investor_trend, parse_investor_trend, fetch_stock_ohlcv, fetch_naver_pc_frgn
 from .buy_zones import compute_buy_zone
 
 
@@ -257,15 +257,22 @@ def enrich_with_chart_and_buyzone(
         #   MACD    = EMA12 − EMA26
         #   Signal  = EMA9 of MACD (α = 2/10)
         #   Osc     = MACD − Signal   (= MACD Histogram)
-        # daily_flow 는 enrich 입력의 item 에 들어있는 dailyFlow10d 를 사용.
-        daily_flow_10d = item.get("dailyFlow10d") or []
+        # 60일치 수급 시계열은 Naver PC frgn 페이지에서 받음 (페이지당 ~10일).
+        # 실패 시 dailyFlow10d 로 폴백.
         supply_osc_series: list[dict] = []
-        if daily_flow_10d and cap_history_won:
+        long_flow: pd.DataFrame | None = None
+        try:
+            long_flow = fetch_naver_pc_frgn(code, pages=6)
+        except Exception as e:
+            print(f"  [!] {code} 60일 수급 fetch 실패: {e}")
+            long_flow = None
+
+        if long_flow is not None and not long_flow.empty and cap_history_won:
             cap_by_date = {d: c for d, c in zip(date_hist, cap_history_won)}
             ratio_series: list[tuple[str, float]] = []
-            for entry in daily_flow_10d:
-                d = entry.get("date")
-                inst = entry.get("instAmount") or 0
+            for _, row in long_flow.iterrows():
+                d = row["date"].strftime("%Y-%m-%d")
+                inst = float(row.get("institutional_amount") or 0)
                 cap_d = cap_by_date.get(d) or market_cap_now
                 if cap_d and cap_d > 0:
                     ratio_series.append((d, inst / cap_d))

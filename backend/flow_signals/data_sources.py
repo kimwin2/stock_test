@@ -121,6 +121,81 @@ def fetch_naver_investor_trend(code: str, retries: int = 2, timeout: int = 6) ->
     return []
 
 
+def fetch_naver_pc_frgn(code: str, pages: int = 6, sleep: float = 0.25, timeout: int = 8) -> pd.DataFrame:
+    """https://finance.naver.com/item/frgn.naver?code=...&page=N
+
+    페이지당 약 10 거래일치. pages=6 이면 ~60일치.
+    Returns DataFrame with columns: date, close, volume, organ_qty, foreigner_qty,
+                                     foreigner_hold_qty, foreigner_hold_ratio.
+    단위: qty=주식수, close=원, volume=주식수, foreigner_hold_ratio=문자열 "49.43%".
+    """
+    from io import StringIO
+
+    url = "https://finance.naver.com/item/frgn.naver"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://finance.naver.com/",
+    }
+    rows: list[dict] = []
+    seen_dates: set[str] = set()
+    for page in range(1, pages + 1):
+        r = requests.get(url, params={"code": code, "page": page}, headers=headers, timeout=timeout)
+        if r.status_code != 200:
+            break
+        r.encoding = "euc-kr"
+        try:
+            tables = pd.read_html(StringIO(r.text))
+        except ValueError:
+            break
+        # frgn 페이지의 일자별 매매 테이블은 9 컬럼 (multi-level header 포함)
+        target = None
+        for t in tables:
+            if t.shape[1] == 9 and t.shape[0] >= 5:
+                target = t
+                break
+        if target is None:
+            break
+        # multi-level → flat
+        target.columns = [
+            "date", "close", "diff", "rate", "volume",
+            "organ_qty", "foreigner_qty", "foreigner_hold_qty", "foreigner_hold_ratio",
+        ]
+        df = target.dropna(subset=["date", "close"]).copy()
+        if df.empty:
+            break
+        added = False
+        for _, row in df.iterrows():
+            d = str(row["date"]).strip()
+            if d in seen_dates:
+                continue
+            seen_dates.add(d)
+            try:
+                rows.append({
+                    "date": datetime.strptime(d, "%Y.%m.%d"),
+                    "close": int(row["close"]) if pd.notna(row["close"]) else None,
+                    "volume": int(row["volume"]) if pd.notna(row["volume"]) else 0,
+                    "organ_qty": int(row["organ_qty"]) if pd.notna(row["organ_qty"]) else 0,
+                    "foreigner_qty": int(row["foreigner_qty"]) if pd.notna(row["foreigner_qty"]) else 0,
+                    "foreigner_hold_qty": int(row["foreigner_hold_qty"]) if pd.notna(row["foreigner_hold_qty"]) else None,
+                    "foreigner_hold_ratio": str(row["foreigner_hold_ratio"]).strip() if pd.notna(row["foreigner_hold_ratio"]) else None,
+                })
+                added = True
+            except (ValueError, TypeError):
+                continue
+        if not added:
+            break
+        if sleep:
+            time.sleep(sleep)
+    if not rows:
+        return pd.DataFrame()
+    df_out = pd.DataFrame(rows).sort_values("date").reset_index(drop=True)
+    # 금액 환산 (주식수 × 종가)
+    df_out["foreigner_amount"] = df_out["foreigner_qty"] * df_out["close"]
+    df_out["organ_amount"] = df_out["organ_qty"] * df_out["close"]
+    df_out["institutional_amount"] = df_out["foreigner_amount"] + df_out["organ_amount"]
+    return df_out
+
+
 def parse_investor_trend(rows: list[dict]) -> pd.DataFrame:
     """Naver trend → DataFrame (단위: 주식수, 순매수금액은 종가 곱해서 별도 계산)."""
     if not rows:
