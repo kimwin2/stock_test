@@ -223,60 +223,64 @@ function renderMiniPriceChart(c, opts = {}) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  // 수급 오실레이터 —
-  //   막대 = 일별 raw ratio = (외+기)/시총   (들쭉날쭉)
-  //   선   = MACD Histogram osc                (매끈)
-  // 둘 다 같은 y축 (max abs 공유) 에 그려서 16717 dashboard 와 동일한 모양.
+  // 수급 오실레이터 — 참고 자료(태린이아빠 dashboard, 16717) 스타일
+  //   막대 = 일별 raw ratio = (외+기)/시총      — ratio 자체 스케일로 normalize
+  //   선   = MACD Histogram osc (= MACD − Signal9) — osc 자체 스케일로 normalize
+  // 두 시리즈가 스케일이 매우 다르므로 (ratio 가 osc 보다 보통 10~30배 큼)
+  // 각자 자신의 max abs 로 정규화 — 막대도 라인도 차트 높이를 충분히 활용해
+  // 둘 다 잘 보이도록.
   let oscOverlay = '';
   let lastOscVal = null;
+  let oscMaxPct = null;
   const oscSeries = c.supplyOscHistory || [];
   if (oscSeries.length >= 2) {
     const ratioVals = oscSeries.map(o => o.ratio || 0);
     const oscVals = oscSeries.map(o => o.osc || 0);
-    const maxAbs = Math.max(
-      ...ratioVals.map(v => Math.abs(v)),
-      ...oscVals.map(v => Math.abs(v))
-    ) || 1;
+    const ratioMaxAbs = Math.max(...ratioVals.map(v => Math.abs(v))) || 1;
+    const oscMaxAbs = Math.max(...oscVals.map(v => Math.abs(v))) || 1;
     lastOscVal = oscVals[oscVals.length - 1];
+    oscMaxPct = oscMaxAbs * 100;
 
     const oscMid = h / 2;
     const oscHalf = h * 0.45;
 
-    // osc 시계열은 보통 cap 보다 짧음 (10일치 vs 60일치).
-    // cap 의 우측 끝과 osc 의 우측 끝을 정렬, 좌측은 osc 길이만큼만.
     const offset = Math.max(0, cap.length - oscSeries.length);
     const cellW = stepX;
     const barW = Math.max(1.2, cellW * 0.7);
 
-    // 막대 = raw ratio
+    // 막대 = raw ratio — ratio 자체 스케일
     const bars = ratioVals.map((v, i) => {
       const cx = (offset + i) * stepX;
       const x = cx - barW / 2;
-      const barH = Math.abs(v / maxAbs) * oscHalf;
+      const barH = Math.abs(v / ratioMaxAbs) * oscHalf;
       const y = v >= 0 ? oscMid - barH : oscMid;
-      const fill = v >= 0 ? 'rgba(229,57,53,0.78)' : 'rgba(30,136,229,0.78)';
+      const fill = v >= 0 ? 'rgba(229,57,53,0.45)' : 'rgba(30,136,229,0.45)';
       return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0.5, barH).toFixed(1)}" fill="${fill}"/>`;
     }).join('');
 
-    // 선 = osc (매끈한 MACD Histogram)
+    // 선 = osc (매끈한 MACD Histogram) — osc 자체 스케일, 진하게 강조
     const linePts = oscVals.map((v, i) => {
       const cx = (offset + i) * stepX;
-      const y = oscMid - (v / maxAbs) * oscHalf;
+      const y = oscMid - (v / oscMaxAbs) * oscHalf;
       return `${cx.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
-    const oscLine = `<polyline points="${linePts}" fill="none" stroke="#6A1B9A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>`;
+    const oscLine = `<polyline points="${linePts}" fill="none" stroke="#6A1B9A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
 
-    oscOverlay = bars + oscLine;
+    // 0 라인 — osc 가 0 을 가로지르는지 시각적 기준
+    const zeroLine = `<line x1="0" y1="${oscMid.toFixed(1)}" x2="${w}" y2="${oscMid.toFixed(1)}" stroke="#aaa" stroke-width="0.5" stroke-dasharray="2,2"/>`;
+
+    oscOverlay = zeroLine + bars + oscLine;
   }
 
-  // 라벨: 좌측 = 시가총액 (조), 우측 = osc 마지막 값 (%)
+  // 라벨: 좌측 = 시가총액 (조), 우측 = osc 마지막값(%) + 위/아래 = ±max
   const lastCap = cap[cap.length - 1];
   const capLabel = lastCap >= 1e12 ? `${(lastCap / 1e12).toFixed(1)}조`
                   : lastCap >= 1e8 ? `${(lastCap / 1e8).toFixed(0)}억`
                   : `${lastCap}`;
-  const oscLabel = lastOscVal != null ? `${(lastOscVal * 100).toFixed(2)}%` : '';
+  const oscLastLabel = lastOscVal != null ? `${(lastOscVal * 100).toFixed(3)}%` : '';
   const oscColor = lastOscVal == null ? '#777'
                  : lastOscVal > 0 ? '#C62828' : '#1565C0';
+  const oscMaxLabel = oscMaxPct != null ? `±${oscMaxPct.toFixed(3)}%` : '';
 
   return `
     <div class="mini-chart-wrap">
@@ -285,7 +289,10 @@ function renderMiniPriceChart(c, opts = {}) {
         ${oscOverlay}
         <polyline points="${capPts}" fill="none" stroke="#1A1A1A" stroke-width="1.5"/>
       </svg>
-      <span class="mini-chart-label-right" style="color:${oscColor}">${oscLabel}</span>
+      <span class="mini-chart-label-right">
+        <span class="mini-chart-osc-max">${oscMaxLabel}</span>
+        <span class="mini-chart-osc-last" style="color:${oscColor}">${oscLastLabel}</span>
+      </span>
     </div>
   `;
 }

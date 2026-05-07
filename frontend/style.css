@@ -1085,7 +1085,21 @@ body {
   flex: 0 0 auto;
 }
 .mini-chart-label-left { color: #1A1A1A; }
-.mini-chart-label-right { font-variant-numeric: tabular-nums; }
+.mini-chart-label-right {
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+.mini-chart-osc-max {
+  color: #888;
+  font-size: 0.58rem;
+  font-weight: 500;
+}
+.mini-chart-osc-last {
+  font-weight: 700;
+}
 .cand-legend {
   display: flex; gap: 16px; align-items: center; padding: 6px 12px 8px;
   border-top: 1px solid #eee; font-size: 0.72rem; color: var(--text-muted);
