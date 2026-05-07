@@ -345,6 +345,34 @@ def build_flow_dashboard(
     enriched_candidates.sort(key=_candidate_score, reverse=True)
 
     # ─────────────────────────────────────────
+    # Step 7c: 주도섹터 거래대금 톱5 — 빈집 필터와 별개로 외인+기관 동행 매수 주도주
+    # 매수 후보(빈집 전략)에는 institutionNet5d<0 필터로 빠지지만, 삼전·하닉처럼
+    # 외인·기관이 폭풍 매수 중인 거래대금 1위급 주도주를 별도 섹션으로 노출.
+    # ─────────────────────────────────────────
+    leading_value_top: list[dict] = []
+    if not vacancy_df.empty and leading_sectors:
+        pool = vacancy_df[vacancy_df["sector"].isin(leading_sectors)]
+        pool = pool[pool["tradingValue5dAvg"].notna()]
+        pool = pool.sort_values("tradingValue5dAvg", ascending=False).head(5)
+        for _, r in pool.iterrows():
+            leading_value_top.append({
+                "code": r["code"],
+                "name": r["name"],
+                "sector": r["sector"],
+                "marketCap": int(r["marketCap"]) if r.get("marketCap") is not None else None,
+                "close": r.get("close"),
+                "tradingValue5dAvg": r.get("tradingValue5dAvg"),
+                "tradingValueRatio": r.get("tradingValueRatio"),
+                "foreignerNet5d": r.get("foreignerNet5d"),
+                "organNet5d": r.get("organNet5d"),
+                "institutionNet5d": r.get("institutionNet5d"),
+                "institutionNet20d": r.get("institutionNet20d"),
+                "currentVacancyDays": r.get("currentVacancyDays"),
+                "currentlyVacant": r.get("currentlyVacant"),
+                "dailyFlow10d": r.get("dailyFlow10d"),
+            })
+
+    # ─────────────────────────────────────────
     # Step 7b: 50일/250일 신고가 리스트
     # ─────────────────────────────────────────
     new_highs = {
@@ -415,6 +443,7 @@ def build_flow_dashboard(
         "leadingSectorLabels": leading_sectors,
         "supplyVacancy": vacancy_result,
         "buyCandidates": enriched_candidates[:30],
+        "leadingValueTop": leading_value_top,
         "sectorFlows": sector_flows,
         "sectorMovers": sector_movers,
         "newHighs": new_highs,

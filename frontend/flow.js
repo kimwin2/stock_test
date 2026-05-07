@@ -521,6 +521,54 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
 }
 
 // ─────────────────────────────────────────┐
+// CARD: 주도섹터 거래대금 톱5                │
+// 매수 후보(빈집 전략) 와 별개로, 외인+기관   │
+// 동행 매수 중인 거래대금 1위급 주도주        │
+// ─────────────────────────────────────────┘
+function buildLeadingValueCard(items, leadingLabels) {
+  if (!items || items.length === 0) return '';
+  const TOP_SECTORS = (leadingLabels || []).slice(0, 2);
+
+  const rows = items.map(c => {
+    const isTopSector = TOP_SECTORS.includes(c.sector);
+    const inst5d = c.institutionNet5d ?? 0;
+    const flowClass = inst5d > 0 ? 'up' : inst5d < 0 ? 'down' : 'flat';
+    const flowLabel = inst5d > 0 ? '동행 매수' : inst5d < 0 ? '동행 매도' : '중립';
+    const topSectorBadge = isTopSector
+      ? `<span class="badge badge-gold">★ 강한섹터 ${TOP_SECTORS.indexOf(c.sector) + 1}위</span>`
+      : '';
+
+    return `
+      <div class="lvt-row">
+        <div class="lvt-info">
+          <div class="lvt-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(c.sector || '-')}</small> ${topSectorBadge}</div>
+          <div class="lvt-meta">
+            <span class="lvt-value">거래대금 5d평균 <strong>${fmtBillion(c.tradingValue5dAvg)}</strong></span>
+            <span class="lvt-flow ${flowClass}"><strong>${flowLabel}</strong> 외인 ${fmtBillion(c.foreignerNet5d)} · 기관 ${fmtBillion(c.organNet5d)}</span>
+          </div>
+          <div class="lvt-meta-sub">
+            <span>종가 ${fmtNumber(c.close)}원</span>
+            ${c.tradingValueRatio != null ? `<span>거래량 비율 ${c.tradingValueRatio.toFixed(2)}x</span>` : ''}
+          </div>
+        </div>
+        <div class="lvt-amount ${flowClass}">${fmtBillion(inst5d)}</div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="flow-card flow-card-leading-value">
+      <div class="card-header">
+        <span class="card-theme-name">💰 주도섹터 거래대금 톱 5 — 외인·기관 동행 매수 주도주</span>
+        <span class="card-volume">${items.length}개</span>
+      </div>
+      <div class="lvt-body">${rows}</div>
+      <div class="lvt-tip">매수 후보(빈집 전략)에는 안 잡히지만, 외인+기관이 가장 큰 돈을 베팅 중인 주도주.</div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────┐
 // CARD: Trading intensity                   │
 // ─────────────────────────────────────────┘
 function buildTICard(items) {
@@ -653,6 +701,7 @@ async function loadFlow() {
         ${buildStep1Card(data.marketSentiment, data.cashRecommendation)}
         ${buildStep2Card(data.leadingSectors, data.crowding, data.leadingSectorLabels)}
         ${buildBuyCandidatesCard(data.buyCandidates, data.leadingSectorLabels)}
+        ${buildLeadingValueCard(data.leadingValueTop, data.leadingSectorLabels)}
       </div>
       <details class="flow-collapsible">
         <summary>▼ 정밀 분석 펼치기 (주트레이더용)</summary>

@@ -582,6 +582,74 @@ body {
   .flow-card-step1 { grid-column: 1 / 2; }
   .flow-card-step2 { grid-column: 2 / 3; }
   .flow-card-candidates { grid-column: 1 / -1; }
+  .flow-card-leading-value { grid-column: 1 / -1; }
+}
+
+/* === 주도섹터 거래대금 톱5 === */
+.flow-card-leading-value .lvt-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.flow-card-leading-value .lvt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #fafafa;
+  border-radius: 6px;
+  border-left: 3px solid #d0d0d0;
+}
+.flow-card-leading-value .lvt-info {
+  flex: 1;
+  min-width: 0;
+}
+.flow-card-leading-value .lvt-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+.flow-card-leading-value .lvt-name small {
+  color: #888;
+  font-weight: 400;
+  font-size: 0.78rem;
+  margin-left: 4px;
+}
+.flow-card-leading-value .lvt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 0.82rem;
+  color: #555;
+  margin-bottom: 2px;
+}
+.flow-card-leading-value .lvt-meta-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 0.75rem;
+  color: #999;
+}
+.flow-card-leading-value .lvt-value strong { color: #1a1a1a; }
+.flow-card-leading-value .lvt-flow.up { color: #c62828; }
+.flow-card-leading-value .lvt-flow.down { color: #1565c0; }
+.flow-card-leading-value .lvt-flow.flat { color: #777; }
+.flow-card-leading-value .lvt-amount {
+  flex: 0 0 auto;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: right;
+  min-width: 80px;
+}
+.flow-card-leading-value .lvt-amount.up { color: #c62828; }
+.flow-card-leading-value .lvt-amount.down { color: #1565c0; }
+.flow-card-leading-value .lvt-amount.flat { color: #777; }
+.flow-card-leading-value .lvt-tip {
+  padding: 8px 14px 12px;
+  font-size: 0.78rem;
+  color: #888;
 }
 
 .flow-grid-collapsed {
