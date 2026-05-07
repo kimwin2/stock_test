@@ -585,72 +585,22 @@ body {
   .flow-card-leading-value { grid-column: 1 / -1; }
 }
 
-/* === 주도섹터 거래대금 톱5 === */
-.flow-card-leading-value .lvt-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+/* === 주도섹터 거래대금 톱5 (step3 cand-row 스타일 재사용) === */
+.flow-card-leading-value .card-header { background: linear-gradient(90deg, #7B1FA2, #AB47BC); color: #fff; }
+.flow-card-leading-value .cand-row {
+  display: block;
+  padding: 10px 0;
 }
-.flow-card-leading-value .lvt-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  background: #fafafa;
-  border-radius: 6px;
-  border-left: 3px solid #d0d0d0;
+.flow-card-leading-value .cand-top {
+  display: grid; grid-template-columns: 1fr 195px; gap: 10px; align-items: center;
 }
-.flow-card-leading-value .lvt-info {
-  flex: 1;
-  min-width: 0;
-}
-.flow-card-leading-value .lvt-name {
-  font-weight: 600;
-  font-size: 0.95rem;
-  margin-bottom: 4px;
-}
-.flow-card-leading-value .lvt-name small {
-  color: #888;
-  font-weight: 400;
+.lvt-flow-inline {
   font-size: 0.78rem;
-  margin-left: 4px;
+  margin-left: 8px;
 }
-.flow-card-leading-value .lvt-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  font-size: 0.82rem;
-  color: #555;
-  margin-bottom: 2px;
-}
-.flow-card-leading-value .lvt-meta-sub {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  font-size: 0.75rem;
-  color: #999;
-}
-.flow-card-leading-value .lvt-value strong { color: #1a1a1a; }
-.flow-card-leading-value .lvt-flow.up { color: #c62828; }
-.flow-card-leading-value .lvt-flow.down { color: #1565c0; }
-.flow-card-leading-value .lvt-flow.flat { color: #777; }
-.flow-card-leading-value .lvt-amount {
-  flex: 0 0 auto;
-  font-size: 1.05rem;
-  font-weight: 700;
-  text-align: right;
-  min-width: 80px;
-}
-.flow-card-leading-value .lvt-amount.up { color: #c62828; }
-.flow-card-leading-value .lvt-amount.down { color: #1565c0; }
-.flow-card-leading-value .lvt-amount.flat { color: #777; }
-.flow-card-leading-value .lvt-tip {
-  padding: 8px 14px 12px;
-  font-size: 0.78rem;
-  color: #888;
-}
+.lvt-flow-inline.up { color: #c62828; }
+.lvt-flow-inline.down { color: #1565c0; }
+.lvt-flow-inline.flat { color: #777; }
 
 .flow-grid-collapsed {
   display: grid;
@@ -1100,6 +1050,7 @@ body {
 .badge-blue { background: #E3F2FD; color: #1E88E5; }
 .badge-gray { background: #F5F5F5; color: #757575; }
 .badge-gold { background: #FFF8E1; color: #C77800; border: 1px solid #FFD54F; font-weight: 800; }
+.badge-purple { background: #F3E5F5; color: #7B1FA2; }
 .cand-row-top-sector {
   background: linear-gradient(90deg, rgba(255,213,79,0.12), rgba(255,213,79,0.02));
   border-left: 3px solid #FFB300; padding-left: 6px;

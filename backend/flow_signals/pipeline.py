@@ -351,26 +351,28 @@ def build_flow_dashboard(
     # ─────────────────────────────────────────
     leading_value_top: list[dict] = []
     if not vacancy_df.empty and leading_sectors:
+        import math
         pool = vacancy_df[vacancy_df["sector"].isin(leading_sectors)]
         pool = pool[pool["tradingValue5dAvg"].notna()]
         pool = pool.sort_values("tradingValue5dAvg", ascending=False).head(5)
-        for _, r in pool.iterrows():
-            leading_value_top.append({
-                "code": r["code"],
-                "name": r["name"],
-                "sector": r["sector"],
-                "marketCap": int(r["marketCap"]) if r.get("marketCap") is not None else None,
-                "close": r.get("close"),
-                "tradingValue5dAvg": r.get("tradingValue5dAvg"),
-                "tradingValueRatio": r.get("tradingValueRatio"),
-                "foreignerNet5d": r.get("foreignerNet5d"),
-                "organNet5d": r.get("organNet5d"),
-                "institutionNet5d": r.get("institutionNet5d"),
-                "institutionNet20d": r.get("institutionNet20d"),
-                "currentVacancyDays": r.get("currentVacancyDays"),
-                "currentlyVacant": r.get("currentlyVacant"),
-                "dailyFlow10d": r.get("dailyFlow10d"),
-            })
+        pool_dicts = pool.to_dict("records")
+        # vacancyPercentile 계산용 전 유니버스 점수 — Step 7 의 if 블록 안에서만
+        # 정의되어 여기서는 재사용 불가. 같은 방식으로 다시 계산.
+        all_scores_lvt = [
+            float(s) for s in vacancy_df["vacancyScore"].tolist()
+            if s is not None and not (isinstance(s, float) and math.isnan(s))
+        ]
+        print(f"\n[Step 7c] 주도섹터 거래대금 톱5 enrichment (차트+빈집게이지) {len(pool_dicts)}개")
+        try:
+            leading_value_top = enrich_with_chart_and_buyzone(
+                pool_dicts,
+                all_vacancy_scores=all_scores_lvt,
+                sleep_sec=0.0,
+                progress_every=5,
+            )
+        except Exception as e:
+            print(f"  [!] leading_value enrichment 실패: {e}")
+            leading_value_top = pool_dicts
 
     # ─────────────────────────────────────────
     # Step 7b: 50일/250일 신고가 리스트

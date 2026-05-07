@@ -530,40 +530,67 @@ function buildLeadingValueCard(items, leadingLabels) {
   const TOP_SECTORS = (leadingLabels || []).slice(0, 2);
 
   const rows = items.map(c => {
+    const bz = c.buyZone || {};
     const isTopSector = TOP_SECTORS.includes(c.sector);
     const inst5d = c.institutionNet5d ?? 0;
     const flowClass = inst5d > 0 ? 'up' : inst5d < 0 ? 'down' : 'flat';
     const flowLabel = inst5d > 0 ? '동행 매수' : inst5d < 0 ? '동행 매도' : '중립';
+
     const topSectorBadge = isTopSector
       ? `<span class="badge badge-gold">★ 강한섹터 ${TOP_SECTORS.indexOf(c.sector) + 1}위</span>`
       : '';
+    const newHighBadge = c.newHigh250d ? '<span class="badge badge-red">250d 신고가</span>'
+                       : c.newHigh50d ? '<span class="badge badge-orange">50d 신고가</span>'
+                       : '';
+    const trendBadge = c.aboveMA10 ? '<span class="badge badge-green">↑10MA</span>'
+                     : c.aboveMA20 ? '<span class="badge badge-yellow">↑20MA</span>'
+                     : '<span class="badge badge-gray">추세약함</span>';
+    const buyZoneBadge = bz.inBuyZone ? '<span class="badge badge-blue">매수권</span>' : '';
+    const valueBadge = `<span class="badge badge-purple">💰 거래대금 ${fmtBillion(c.tradingValue5dAvg)}</span>`;
+
+    const todayPullback = bz.todayPullbackPct ?? 0;
+    const buyZonePullback = bz.avgHighToClosePct ?? 0;
 
     return `
-      <div class="lvt-row">
-        <div class="lvt-info">
-          <div class="lvt-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(c.sector || '-')}</small> ${topSectorBadge}</div>
-          <div class="lvt-meta">
-            <span class="lvt-value">거래대금 5d평균 <strong>${fmtBillion(c.tradingValue5dAvg)}</strong></span>
-            <span class="lvt-flow ${flowClass}"><strong>${flowLabel}</strong> 외인 ${fmtBillion(c.foreignerNet5d)} · 기관 ${fmtBillion(c.organNet5d)}</span>
+      <div class="cand-row${isTopSector ? ' cand-row-top-sector' : ''}">
+        <div class="cand-top">
+          <div class="cand-info">
+            <div class="cand-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(c.sector || '-')}</small></div>
+            <div class="cand-badges">${topSectorBadge}${valueBadge}${trendBadge}${newHighBadge}${buyZoneBadge}</div>
+            <div class="cand-prices">
+              <span class="cand-close">${fmtNumber(c.close)}</span>
+              ${c.ret5d != null ? `<span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>` : ''}
+              <span class="lvt-flow-inline ${flowClass}"><strong>${flowLabel}</strong> 외인 ${fmtBillion(c.foreignerNet5d)} · 기관 ${fmtBillion(c.organNet5d)}</span>
+            </div>
+            <div class="cand-bz">
+              오늘 고가 대비 <strong class="${todayPullback < 0 ? 'down' : 'flat'}">${todayPullback.toFixed(2)}%</strong>
+              · 매수권 -${Math.abs(buyZonePullback).toFixed(2)}%
+              ${bz.buyZonePrice ? `· 매수가 ${fmtNumber(bz.buyZonePrice)}` : ''}
+            </div>
           </div>
-          <div class="lvt-meta-sub">
-            <span>종가 ${fmtNumber(c.close)}원</span>
-            ${c.tradingValueRatio != null ? `<span>거래량 비율 ${c.tradingValueRatio.toFixed(2)}x</span>` : ''}
+          <div class="cand-chart">
+            ${renderMiniPriceChart(c.priceHistory60d, c.ma10, c.ma20, c.dailyFlow10d, c.marketCap)}
           </div>
         </div>
-        <div class="lvt-amount ${flowClass}">${fmtBillion(inst5d)}</div>
+        ${renderSupplyGauge(c.vacancyPercentile, c.vacancyZone, c.institutionNet5d)}
       </div>
     `;
   }).join('');
 
   return `
-    <div class="flow-card flow-card-leading-value">
+    <div class="flow-card flow-card-candidates flow-card-leading-value">
       <div class="card-header">
         <span class="card-theme-name">💰 주도섹터 거래대금 톱 5 — 외인·기관 동행 매수 주도주</span>
         <span class="card-volume">${items.length}개</span>
       </div>
-      <div class="lvt-body">${rows}</div>
-      <div class="lvt-tip">매수 후보(빈집 전략)에는 안 잡히지만, 외인+기관이 가장 큰 돈을 베팅 중인 주도주.</div>
+      <div class="cand-body">${rows}</div>
+      <div class="cand-legend">
+        <span><span class="legend-dot orange"></span>10MA</span>
+        <span><span class="legend-dot gray"></span>20MA</span>
+        <span><span class="legend-bar red"></span>외인+기관 매수일</span>
+        <span><span class="legend-bar blue"></span>매도일</span>
+        <span class="legend-tip">매수 후보(빈집 전략)에는 안 잡히지만 외인+기관이 가장 큰 돈을 베팅 중인 주도주. 게이지 "찼음"=수급 들어와 있음.</span>
+      </div>
     </div>
   `;
 }
