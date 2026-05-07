@@ -203,9 +203,15 @@ function renderMiniPriceChart(c, opts = {}) {
   const w = opts.width || 175;
   const h = opts.height || 64;
 
-  const cap = (c.capHistory60d && c.capHistory60d.length >= 2)
+  // 시가총액 시계열은 60일치, 수급 osc 시계열은 ~10일치.
+  // 차트 X축이 일관되도록 cap 도 osc 길이만큼 우측 끝부터 trim.
+  const oscLen = (c.supplyOscHistory || []).length;
+  const capFull = (c.capHistory60d && c.capHistory60d.length >= 2)
     ? c.capHistory60d
     : (c.priceHistory60d || []);
+  const cap = oscLen >= 2 && capFull.length > oscLen
+    ? capFull.slice(-oscLen)
+    : capFull;
   if (!cap || cap.length < 2) return '<div class="sparkline-empty"></div>';
 
   const validCap = cap.filter(v => v != null);
