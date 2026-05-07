@@ -262,7 +262,7 @@ def enrich_with_chart_and_buyzone(
         supply_osc_series: list[dict] = []
         long_flow: pd.DataFrame | None = None
         try:
-            long_flow = fetch_naver_pc_frgn(code, pages=6)
+            long_flow = fetch_naver_pc_frgn(code, pages=4, sleep=0.12)
         except Exception as e:
             print(f"  [!] {code} 60일 수급 fetch 실패: {e}")
             long_flow = None
