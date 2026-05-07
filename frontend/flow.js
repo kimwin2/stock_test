@@ -223,13 +223,20 @@ function renderMiniPriceChart(c, opts = {}) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  // 수급 오실레이터 — 막대(일별) + 선(막대 잇는 곡선)
+  // 수급 오실레이터 —
+  //   막대 = 일별 raw ratio = (외+기)/시총   (들쭉날쭉)
+  //   선   = MACD Histogram osc                (매끈)
+  // 둘 다 같은 y축 (max abs 공유) 에 그려서 16717 dashboard 와 동일한 모양.
   let oscOverlay = '';
   let lastOscVal = null;
   const oscSeries = c.supplyOscHistory || [];
   if (oscSeries.length >= 2) {
+    const ratioVals = oscSeries.map(o => o.ratio || 0);
     const oscVals = oscSeries.map(o => o.osc || 0);
-    const maxAbs = Math.max(...oscVals.map(v => Math.abs(v))) || 1;
+    const maxAbs = Math.max(
+      ...ratioVals.map(v => Math.abs(v)),
+      ...oscVals.map(v => Math.abs(v))
+    ) || 1;
     lastOscVal = oscVals[oscVals.length - 1];
 
     const oscMid = h / 2;
@@ -241,7 +248,8 @@ function renderMiniPriceChart(c, opts = {}) {
     const cellW = stepX;
     const barW = Math.max(1.2, cellW * 0.7);
 
-    const bars = oscVals.map((v, i) => {
+    // 막대 = raw ratio
+    const bars = ratioVals.map((v, i) => {
       const cx = (offset + i) * stepX;
       const x = cx - barW / 2;
       const barH = Math.abs(v / maxAbs) * oscHalf;
@@ -250,6 +258,7 @@ function renderMiniPriceChart(c, opts = {}) {
       return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0.5, barH).toFixed(1)}" fill="${fill}"/>`;
     }).join('');
 
+    // 선 = osc (매끈한 MACD Histogram)
     const linePts = oscVals.map((v, i) => {
       const cx = (offset + i) * stepX;
       const y = oscMid - (v / maxAbs) * oscHalf;
