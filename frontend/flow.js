@@ -191,88 +191,93 @@ function renderDualAxisChart(history, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
-// Mini price chart with MA10/20 + supply histogram overlay
-//   prices: array of 60 daily closes (left → right = old → recent)
-//   dailyFlow10d: array of {instAmount} for the most recent ~10 days
-//   marketCap: 종목 시가총액 (원) — 막대 높이를 표준화하기 위함
-//
-// 수급은 참고 자료(태린이아빠 엑셀) 스타일로 빨강/파랑 막대 히스토그램.
-// 막대 높이 = 일별 (외인+기관 순매수금액 / 시가총액)
-//   · 양수 = 빨강 (외인·기관 매수)
-//   · 음수 = 파랑 (외인·기관 매도)
-// 0선 기준 대칭으로 그려서 한 패널 안에서 가격 line + 수급 bar 동시 인식.
+// Mini price chart — 참고 자료(태린이아빠 .xlsm dashboard) 스타일
+//   좌축 (검정): 시가총액 시계열 (capHistory60d)
+//   우축 (빨강/파랑 막대 + 보라 선): 수급 오실레이터
+//     osc = MACD Histogram of (외+기 일별 순매수 / 시가총액)
+//     · 양수 → 빨강 (수급 들어옴)
+//     · 음수 → 파랑 (빈집)
+//   이동평균선(MA10/MA20) 점선은 그리지 않는다.
 // ─────────────────────────────────────────┘
-function renderMiniPriceChart(prices, ma10, ma20, dailyFlow10d, marketCap, opts = {}) {
+function renderMiniPriceChart(c, opts = {}) {
   const w = opts.width || 175;
   const h = opts.height || 64;
-  if (!prices || prices.length < 2) return '<div class="sparkline-empty"></div>';
 
-  const valid = prices.filter(v => v != null);
-  if (valid.length < 2) return '<div class="sparkline-empty"></div>';
+  const cap = (c.capHistory60d && c.capHistory60d.length >= 2)
+    ? c.capHistory60d
+    : (c.priceHistory60d || []);
+  if (!cap || cap.length < 2) return '<div class="sparkline-empty"></div>';
 
-  const priceTop = 1, priceBottom = h - 1;
+  const validCap = cap.filter(v => v != null);
+  if (validCap.length < 2) return '<div class="sparkline-empty"></div>';
 
-  const min = Math.min(...valid), max = Math.max(...valid);
-  const span = max - min || 1;
-  const stepX = w / (prices.length - 1);
+  const capMin = Math.min(...validCap);
+  const capMax = Math.max(...validCap);
+  const capSpan = capMax - capMin || 1;
+  const stepX = w / (cap.length - 1);
 
-  const pts = prices.map((v, i) => {
+  const capPts = cap.map((v, i) => {
     if (v == null) return null;
     const x = i * stepX;
-    const y = priceTop + (1 - (v - min) / span) * (priceBottom - priceTop);
+    const y = 1 + (1 - (v - capMin) / capSpan) * (h - 2);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  // 가격선은 단색(검정) — 빨강/파랑은 수급 막대 전용으로 비워둔다.
-  const stroke = '#1A1A1A';
+  // 수급 오실레이터 — 막대(일별) + 선(막대 잇는 곡선)
+  let oscOverlay = '';
+  let lastOscVal = null;
+  const oscSeries = c.supplyOscHistory || [];
+  if (oscSeries.length >= 2) {
+    const oscVals = oscSeries.map(o => o.osc || 0);
+    const maxAbs = Math.max(...oscVals.map(v => Math.abs(v))) || 1;
+    lastOscVal = oscVals[oscVals.length - 1];
 
-  // MA lines
-  let maLine = '';
-  if (ma10 != null && ma10 >= min && ma10 <= max) {
-    const yMA = priceTop + (1 - (ma10 - min) / span) * (priceBottom - priceTop);
-    maLine += `<line x1="0" y1="${yMA.toFixed(1)}" x2="${w}" y2="${yMA.toFixed(1)}" stroke="#FB8C00" stroke-dasharray="2,2" stroke-width="1"/>`;
-  }
-  if (ma20 != null && ma20 >= min && ma20 <= max) {
-    const yMA = priceTop + (1 - (ma20 - min) / span) * (priceBottom - priceTop);
-    maLine += `<line x1="0" y1="${yMA.toFixed(1)}" x2="${w}" y2="${yMA.toFixed(1)}" stroke="#9E9E9E" stroke-dasharray="2,2" stroke-width="1"/>`;
-  }
+    const oscMid = h / 2;
+    const oscHalf = h * 0.45;
 
-  // ── 수급 막대 히스토그램 — 0선 기준 빨강/파랑 bar
-  // 시가총액 대비 표준화: bar 길이 = (instAmount / marketCap) / scale
-  // scale 은 이 종목 10일 max abs ratio — 자동 fit. 시각 비교는 한 종목 내 상대적.
-  let supplyOverlay = '';
-  if (dailyFlow10d && dailyFlow10d.length > 0) {
-    const useRatio = marketCap && marketCap > 0;
-    const flowVals = dailyFlow10d.map(d => useRatio ? d.instAmount / marketCap : d.instAmount);
-    const flowCount = flowVals.length;
-    const maxAbs = Math.max(...flowVals.map(v => Math.abs(v))) || 1;
+    // osc 시계열은 보통 cap 보다 짧음 (10일치 vs 60일치).
+    // cap 의 우측 끝과 osc 의 우측 끝을 정렬, 좌측은 osc 길이만큼만.
+    const offset = Math.max(0, cap.length - oscSeries.length);
+    const cellW = stepX;
+    const barW = Math.max(1.2, cellW * 0.7);
 
-    const supplyMid = h / 2;
-    const supplyHalf = h * 0.42;
-    // 막대 폭: 셀 폭의 ~70%, 인접 막대 사이 gap 30%
-    const cellW = w / flowCount;
-    const barW = Math.max(1.2, cellW * 0.70);
-
-    const bars = flowVals.map((v, i) => {
-      const cx = (i + 0.5) * cellW;
+    const bars = oscVals.map((v, i) => {
+      const cx = (offset + i) * stepX;
       const x = cx - barW / 2;
-      const barH = Math.abs(v / maxAbs) * supplyHalf;
-      const y = v >= 0 ? supplyMid - barH : supplyMid;
+      const barH = Math.abs(v / maxAbs) * oscHalf;
+      const y = v >= 0 ? oscMid - barH : oscMid;
       const fill = v >= 0 ? 'rgba(229,57,53,0.78)' : 'rgba(30,136,229,0.78)';
       return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0.5, barH).toFixed(1)}" fill="${fill}"/>`;
     }).join('');
 
-    const supplyZeroLine = `<line x1="0" y1="${supplyMid.toFixed(1)}" x2="${w}" y2="${supplyMid.toFixed(1)}" stroke="#888" stroke-dasharray="2,2" stroke-width="0.7" opacity="0.55"/>`;
+    const linePts = oscVals.map((v, i) => {
+      const cx = (offset + i) * stepX;
+      const y = oscMid - (v / maxAbs) * oscHalf;
+      return `${cx.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const oscLine = `<polyline points="${linePts}" fill="none" stroke="#6A1B9A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>`;
 
-    supplyOverlay = supplyZeroLine + bars;
+    oscOverlay = bars + oscLine;
   }
 
+  // 라벨: 좌측 = 시가총액 (조), 우측 = osc 마지막 값 (%)
+  const lastCap = cap[cap.length - 1];
+  const capLabel = lastCap >= 1e12 ? `${(lastCap / 1e12).toFixed(1)}조`
+                  : lastCap >= 1e8 ? `${(lastCap / 1e8).toFixed(0)}억`
+                  : `${lastCap}`;
+  const oscLabel = lastOscVal != null ? `${(lastOscVal * 100).toFixed(2)}%` : '';
+  const oscColor = lastOscVal == null ? '#777'
+                 : lastOscVal > 0 ? '#C62828' : '#1565C0';
+
   return `
-    <svg viewBox="0 0 ${w} ${h}" class="mini-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      ${maLine}
-      ${supplyOverlay}
-      <polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="1.5"/>
-    </svg>
+    <div class="mini-chart-wrap">
+      <span class="mini-chart-label-left">${capLabel}</span>
+      <svg viewBox="0 0 ${w} ${h}" class="mini-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        ${oscOverlay}
+        <polyline points="${capPts}" fill="none" stroke="#1A1A1A" stroke-width="1.5"/>
+      </svg>
+      <span class="mini-chart-label-right" style="color:${oscColor}">${oscLabel}</span>
+    </div>
   `;
 }
 
@@ -493,7 +498,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
             </div>
           </div>
           <div class="cand-chart">
-            ${renderMiniPriceChart(c.priceHistory60d, c.ma10, c.ma20, c.dailyFlow10d, c.marketCap)}
+            ${renderMiniPriceChart(c)}
           </div>
         </div>
         ${renderSupplyGauge(c.vacancyPercentile, c.vacancyZone, c.institutionNet5d)}
@@ -510,15 +515,16 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       </div>
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">
-        <span><span class="legend-dot orange"></span>10MA</span>
-        <span><span class="legend-dot gray"></span>20MA</span>
-        <span><span class="legend-bar red"></span>외인+기관 매수일</span>
-        <span><span class="legend-bar blue"></span>매도일</span>
-        <span class="legend-tip">막대 높이 = 시총 대비 일별 순매수 · ★ 강한섹터 1·2위 · 🔥 현재 매도 연속 · 게이지: 빈집 percentile</span>
+        <span><span class="legend-line black"></span>시가총액(좌)</span>
+        <span><span class="legend-bar red"></span>매수 우위</span>
+        <span><span class="legend-bar blue"></span>매도 우위</span>
+        <span><span class="legend-line purple"></span>수급 오실레이터(우, MACD Histogram)</span>
+        <span class="legend-tip">참고 자료(태린이아빠 .xlsm)와 동일 — (외+기)/시총 의 EMA12-EMA26 의 Signal9 차감 · ★ 강한섹터 1·2위 · 🔥 현재 매도 연속</span>
       </div>
     </div>
   `;
 }
+// (위 cand-legend 가 buyCandidatesCard 와 leadingValueCard 양쪽에 동일하게 적용)
 
 // ─────────────────────────────────────────┐
 // CARD: 주도섹터 거래대금 톱5                │
@@ -569,7 +575,7 @@ function buildLeadingValueCard(items, leadingLabels) {
             </div>
           </div>
           <div class="cand-chart">
-            ${renderMiniPriceChart(c.priceHistory60d, c.ma10, c.ma20, c.dailyFlow10d, c.marketCap)}
+            ${renderMiniPriceChart(c)}
           </div>
         </div>
         ${renderSupplyGauge(c.vacancyPercentile, c.vacancyZone, c.institutionNet5d)}
@@ -585,11 +591,11 @@ function buildLeadingValueCard(items, leadingLabels) {
       </div>
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">
-        <span><span class="legend-dot orange"></span>10MA</span>
-        <span><span class="legend-dot gray"></span>20MA</span>
-        <span><span class="legend-bar red"></span>외인+기관 매수일</span>
-        <span><span class="legend-bar blue"></span>매도일</span>
-        <span class="legend-tip">매수 후보(빈집 전략)에는 안 잡히지만 외인+기관이 가장 큰 돈을 베팅 중인 주도주. 게이지 "찼음"=수급 들어와 있음.</span>
+        <span><span class="legend-line black"></span>시가총액(좌)</span>
+        <span><span class="legend-bar red"></span>매수 우위</span>
+        <span><span class="legend-bar blue"></span>매도 우위</span>
+        <span><span class="legend-line purple"></span>수급 오실레이터(우, MACD Histogram)</span>
+        <span class="legend-tip">매수 후보(빈집 전략)에 안 잡히지만 외인+기관이 가장 큰 돈을 베팅 중인 주도주. 게이지 "찼음"=수급 채워짐.</span>
       </div>
     </div>
   `;

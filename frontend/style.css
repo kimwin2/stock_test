@@ -1071,7 +1071,21 @@ body {
 .cand-chart {
   width: 190px; display: flex; align-items: center; justify-content: flex-end;
 }
-.mini-chart { width: 185px; height: 64px; }
+.mini-chart { width: 100%; height: 64px; flex: 1; min-width: 0; }
+.mini-chart-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.mini-chart-label-left, .mini-chart-label-right {
+  font-size: 0.66rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.mini-chart-label-left { color: #1A1A1A; }
+.mini-chart-label-right { font-variant-numeric: tabular-nums; }
 .cand-legend {
   display: flex; gap: 16px; align-items: center; padding: 6px 12px 8px;
   border-top: 1px solid #eee; font-size: 0.72rem; color: var(--text-muted);
@@ -1081,6 +1095,11 @@ body {
 }
 .legend-dot.orange { border-color: #FB8C00; }
 .legend-dot.gray { border-color: #9E9E9E; }
+.legend-line {
+  display: inline-block; width: 14px; height: 0; border-top: 2px solid; margin-right: 4px; vertical-align: middle;
+}
+.legend-line.purple { border-color: #6A1B9A; }
+.legend-line.black { border-color: #1A1A1A; }
 .legend-tip { margin-left: auto; font-style: italic; }
 
 /* === Trading intensity === */

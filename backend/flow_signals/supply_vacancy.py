@@ -242,10 +242,62 @@ def enrich_with_chart_and_buyzone(
             percentile = None
             zone = None
 
+        # 60일 시가총액 시계열 (close × 발행주식수 추정).
+        # 발행주식수 = 현재 marketCap / 현재 close (유증·분할 무시 근사).
+        market_cap_now = item.get("marketCap")
+        cap_history_won: list[float] = []
+        if market_cap_now and last_close > 0:
+            shares = float(market_cap_now) / float(last_close)
+            cap_history_won = [round(float(c) * shares, 0) for c in price_hist]
+
+        # 수급 오실레이터 시계열 — 참고 자료 xlsm 과 동일한 로직:
+        #   ratio   = (외인 + 기관) 일별 순매수 / 시가총액
+        #   EMA12   = ratio 의 12일 EMA (α = 2/13)
+        #   EMA26   = ratio 의 26일 EMA (α = 2/27)
+        #   MACD    = EMA12 − EMA26
+        #   Signal  = EMA9 of MACD (α = 2/10)
+        #   Osc     = MACD − Signal   (= MACD Histogram)
+        # daily_flow 는 enrich 입력의 item 에 들어있는 dailyFlow10d 를 사용.
+        daily_flow_10d = item.get("dailyFlow10d") or []
+        supply_osc_series: list[dict] = []
+        if daily_flow_10d and cap_history_won:
+            cap_by_date = {d: c for d, c in zip(date_hist, cap_history_won)}
+            ratio_series: list[tuple[str, float]] = []
+            for entry in daily_flow_10d:
+                d = entry.get("date")
+                inst = entry.get("instAmount") or 0
+                cap_d = cap_by_date.get(d) or market_cap_now
+                if cap_d and cap_d > 0:
+                    ratio_series.append((d, inst / cap_d))
+            if ratio_series:
+                vals = [r for _, r in ratio_series]
+
+                def _ema(values: list[float], alpha: float) -> list[float]:
+                    out: list[float] = []
+                    s: float | None = None
+                    for v in values:
+                        s = v if s is None else alpha * v + (1 - alpha) * s
+                        out.append(s)
+                    return out
+
+                ema12 = _ema(vals, 2 / 13)
+                ema26 = _ema(vals, 2 / 27)
+                macd = [ema12[i] - ema26[i] for i in range(len(vals))]
+                signal = _ema(macd, 2 / 10)
+                osc = [macd[i] - signal[i] for i in range(len(vals))]
+                for (d, r), o in zip(ratio_series, osc):
+                    supply_osc_series.append({
+                        "date": d,
+                        "ratio": r,
+                        "osc": o,
+                    })
+
         enriched = {
             **item,
             "priceHistory60d": price_hist,
             "dateHistory60d": date_hist,
+            "capHistory60d": cap_history_won,
+            "supplyOscHistory": supply_osc_series,
             "ma10": round(ma10, 0) if ma10 is not None else None,
             "ma20": round(ma20, 0) if ma20 is not None else None,
             "newHigh50d": bool(last_high >= max_50 * 0.999),
