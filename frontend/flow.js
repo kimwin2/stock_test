@@ -200,12 +200,27 @@ function renderDualAxisChart(history, opts = {}) {
 //   이동평균선(MA10/MA20) 점선은 그리지 않는다.
 // ─────────────────────────────────────────┘
 function renderMiniPriceChart(c, opts = {}) {
-  const w = opts.width || 175;
-  const h = opts.height || 64;
+  const w = opts.width || 263;       // 175 × 1.5
+  const chartH = opts.height || 96;  // 64 × 1.5
+  const axisH = 17;                  // 11 × 1.5 — 하단 X축 날짜 라벨
+  const h = chartH + axisH;    // SVG 전체 높이
 
-  const cap = (c.capHistory60d && c.capHistory60d.length >= 2)
+  // cap (시가총액, 60일) 과 osc (수급, ~76일) 길이가 다르면 둘 중 짧은 쪽
+  // 길이로 우측 끝부터 trim. 둘 다 마지막 거래일이 같으므로 우측 정렬됨.
+  const capFull = (c.capHistory60d && c.capHistory60d.length >= 2)
     ? c.capHistory60d
     : (c.priceHistory60d || []);
+  const oscFull = c.supplyOscHistory || [];
+  const dateFull = c.dateHistory60d || [];
+  const N = (oscFull.length >= 2 && capFull.length >= 2)
+    ? Math.min(capFull.length, oscFull.length)
+    : capFull.length;
+  const cap = capFull.slice(-N);
+  const oscSeries = oscFull.slice(-N);
+  // X축 날짜: dateHistory60d (cap 과 동일 길이) 우선, 없으면 osc 의 date
+  const dates = (dateFull.length >= N)
+    ? dateFull.slice(-N)
+    : oscSeries.map(o => o.date);
   if (!cap || cap.length < 2) return '<div class="sparkline-empty"></div>';
 
   const validCap = cap.filter(v => v != null);
@@ -219,56 +234,78 @@ function renderMiniPriceChart(c, opts = {}) {
   const capPts = cap.map((v, i) => {
     if (v == null) return null;
     const x = i * stepX;
-    const y = 1 + (1 - (v - capMin) / capSpan) * (h - 2);
+    const y = 1 + (1 - (v - capMin) / capSpan) * (chartH - 2);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  // 수급 오실레이터 — 참고 자료 xlsm 의 '시기외'(막대) + '오실'(선) 동일 로직
-  //   막대 = 시기외 = (외+기) 5일누적 순매수 / 시총   — ratio 자체 스케일로 normalize
-  //   선   = MACD Histogram osc (= MACD − Signal9)    — osc 자체 스케일로 normalize
-  // 두 시리즈가 스케일이 다르므로 (ratio 가 osc 보다 보통 5~15배 큼)
-  // 각자 자신의 max abs 로 정규화 — 막대도 라인도 차트 높이를 충분히 활용.
+  // 수급 오실레이터 — xlsm '수급오실레이터' 시트의 LineChart 와 동일 형식
+  //   선   = osc 자체 (= MACD Histogram = MACD − Signal9), 보라색
+  //   점선 = historical osc 의 percentile 4개 (xlsm L7~L11):
+  //          상위 10/25%, 하위 25/10%
+  //   0선 = 실선 회색
+  //   현재값 = 마지막 osc 값 (xlsm L12 = '=H84') — 우측 라벨로 표시
   let oscOverlay = '';
   let lastOscVal = null;
   let oscMaxPct = null;
-  const oscSeries = c.supplyOscHistory || [];
   if (oscSeries.length >= 2) {
-    const ratioVals = oscSeries.map(o => o.ratio || 0);
     const oscVals = oscSeries.map(o => o.osc || 0);
-    const ratioMaxAbs = Math.max(...ratioVals.map(v => Math.abs(v))) || 1;
     const oscMaxAbs = Math.max(...oscVals.map(v => Math.abs(v))) || 1;
     lastOscVal = oscVals[oscVals.length - 1];
     oscMaxPct = oscMaxAbs * 100;
 
-    const oscMid = h / 2;
-    const oscHalf = h * 0.45;
+    const oscMid = chartH / 2;
+    const oscHalf = chartH * 0.45;
+    const yOf = (v) => oscMid - (v / oscMaxAbs) * oscHalf;
 
-    const offset = Math.max(0, cap.length - oscSeries.length);
-    const cellW = stepX;
-    const barW = Math.max(1.2, cellW * 0.7);
+    // 선 = osc — Bloomberg amber, 흰 배경에서 시인성 최대 + 빨강/파랑 percentile 과 영역 분리
+    const linePts = oscVals.map((v, i) => `${(i * stepX).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ');
+    const oscLine = `<polyline points="${linePts}" fill="none" stroke="#EF6C00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
 
-    // 막대 = raw ratio — ratio 자체 스케일
-    const bars = ratioVals.map((v, i) => {
-      const cx = (offset + i) * stepX;
-      const x = cx - barW / 2;
-      const barH = Math.abs(v / ratioMaxAbs) * oscHalf;
-      const y = v >= 0 ? oscMid - barH : oscMid;
-      const fill = v >= 0 ? 'rgba(229,57,53,0.45)' : 'rgba(30,136,229,0.45)';
-      return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0.5, barH).toFixed(1)}" fill="${fill}"/>`;
+    // 0 라인 — 부호 기준선
+    const zeroLine = `<line x1="0" y1="${oscMid.toFixed(1)}" x2="${w}" y2="${oscMid.toFixed(1)}" stroke="#999" stroke-width="0.7"/>`;
+
+    // Percentile 점선 — xlsm L7~L11
+    const sorted = [...oscVals].sort((a, b) => a - b);
+    const p = (q) => {
+      const idx = Math.max(0, Math.min(sorted.length - 1, Math.round(q * (sorted.length - 1))));
+      return sorted[idx];
+    };
+    const pcts = [
+      { v: p(0.90), color: '#C62828' },
+      { v: p(0.75), color: '#E57373' },
+      { v: p(0.25), color: '#64B5F6' },
+      { v: p(0.10), color: '#1565C0' },
+    ];
+    const pctLines = pcts.map(pc => {
+      const y = yOf(pc.v);
+      return `<line x1="0" y1="${y.toFixed(1)}" x2="${w}" y2="${y.toFixed(1)}" stroke="${pc.color}" stroke-width="0.6" stroke-dasharray="3,2" opacity="0.55"/>`;
     }).join('');
 
-    // 선 = osc (매끈한 MACD Histogram) — osc 자체 스케일, 진하게 강조
-    const linePts = oscVals.map((v, i) => {
-      const cx = (offset + i) * stepX;
-      const y = oscMid - (v / oscMaxAbs) * oscHalf;
-      return `${cx.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
-    const oscLine = `<polyline points="${linePts}" fill="none" stroke="#6A1B9A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+    oscOverlay = pctLines + zeroLine + oscLine;
+  }
 
-    // 0 라인 — osc 가 0 을 가로지르는지 시각적 기준
-    const zeroLine = `<line x1="0" y1="${oscMid.toFixed(1)}" x2="${w}" y2="${oscMid.toFixed(1)}" stroke="#aaa" stroke-width="0.5" stroke-dasharray="2,2"/>`;
-
-    oscOverlay = zeroLine + bars + oscLine;
+  // X축 날짜 라벨 — 5개 (좌끝 / 25% / 50% / 75% / 우끝). 'M/D' 짧은 형식.
+  let axisLabels = '';
+  if (dates.length >= 2) {
+    const fmt = (s) => {
+      // 'YYYY-MM-DD' → 'M/D'
+      const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(s);
+      if (!m) return s;
+      return `${parseInt(m[1], 10)}/${parseInt(m[2], 10)}`;
+    };
+    const last = dates.length - 1;
+    const ticks = [
+      { i: 0, anchor: 'start' },
+      { i: Math.round(last * 0.25), anchor: 'middle' },
+      { i: Math.round(last * 0.5),  anchor: 'middle' },
+      { i: Math.round(last * 0.75), anchor: 'middle' },
+      { i: last, anchor: 'end' },
+    ];
+    axisLabels = ticks.map(t => {
+      const x = t.i * stepX;
+      const y = chartH + axisH - 1;
+      return `<text x="${x.toFixed(1)}" y="${y}" font-size="11" fill="#888" text-anchor="${t.anchor}">${fmt(dates[t.i])}</text>`;
+    }).join('');
   }
 
   // 라벨: 좌측 = 시가총액 (조), 우측 = osc 마지막값(%) + 위/아래 = ±max
@@ -287,6 +324,7 @@ function renderMiniPriceChart(c, opts = {}) {
       <svg viewBox="0 0 ${w} ${h}" class="mini-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
         ${oscOverlay}
         <polyline points="${capPts}" fill="none" stroke="#1A1A1A" stroke-width="1.5"/>
+        ${axisLabels}
       </svg>
       <span class="mini-chart-label-right">
         <span class="mini-chart-osc-max">${oscMaxLabel}</span>
@@ -303,7 +341,7 @@ function renderMiniPriceChart(c, opts = {}) {
 // ─────────────────────────────────────────┘
 function renderSupplyGauge(percentile, zone, amount) {
   if (percentile == null) return '';
-  const w = 175, h = 14;
+  const w = 263, h = 21;  // mini chart 1.5배 스케일과 정렬
   const cx = Math.max(4, Math.min(w - 4, (percentile / 100) * w));
 
   const dotColor = percentile < 25 ? '#1E88E5'
@@ -531,10 +569,8 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">
         <span><span class="legend-line black"></span>시가총액(좌)</span>
-        <span><span class="legend-bar red"></span>매수 우위</span>
-        <span><span class="legend-bar blue"></span>매도 우위</span>
-        <span><span class="legend-line purple"></span>수급 오실레이터(우, MACD Histogram)</span>
-        <span class="legend-tip">참고 자료(.xlsm)와 동일 — (외+기) 5일누적 / 시총 의 EMA12-EMA26 - Signal9 · ★ 강한섹터 1·2위 · 🔥 현재 매도 연속</span>
+        <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
+        <span class="legend-tip">참고 자료(.xlsm) 수급오실레이터 동일 — (외+기 5일누적/시총) 의 EMA12-EMA26 - Signal9 · 점선=상/하 10·25% percentile · ★ 강한섹터 1·2위 · 🔥 현재 매도 연속</span>
       </div>
     </div>
   `;
@@ -607,9 +643,7 @@ function buildLeadingValueCard(items, leadingLabels) {
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">
         <span><span class="legend-line black"></span>시가총액(좌)</span>
-        <span><span class="legend-bar red"></span>매수 우위</span>
-        <span><span class="legend-bar blue"></span>매도 우위</span>
-        <span><span class="legend-line purple"></span>수급 오실레이터(우, MACD Histogram)</span>
+        <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
         <span class="legend-tip">매수 후보(빈집 전략)에 안 잡히지만 외인+기관이 가장 큰 돈을 베팅 중인 주도주. 게이지 "찼음"=수급 채워짐.</span>
       </div>
     </div>
