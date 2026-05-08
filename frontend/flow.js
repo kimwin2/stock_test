@@ -191,10 +191,10 @@ function renderDualAxisChart(history, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
-// Mini price chart — 참고 자료(태린이아빠 .xlsm dashboard) 스타일
+// Mini price chart — 참고 자료(.xlsm dashboard) 스타일
 //   좌축 (검정): 시가총액 시계열 (capHistory60d)
 //   우축 (빨강/파랑 막대 + 보라 선): 수급 오실레이터
-//     osc = MACD Histogram of (외+기 일별 순매수 / 시가총액)
+//     osc = MACD Histogram of (외+기 5일누적 순매수 / 시가총액)  ← xlsm '오실'
 //     · 양수 → 빨강 (수급 들어옴)
 //     · 음수 → 파랑 (빈집)
 //   이동평균선(MA10/MA20) 점선은 그리지 않는다.
@@ -223,12 +223,11 @@ function renderMiniPriceChart(c, opts = {}) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).filter(Boolean).join(' ');
 
-  // 수급 오실레이터 — 참고 자료(태린이아빠 dashboard, 16717) 스타일
-  //   막대 = 일별 raw ratio = (외+기)/시총      — ratio 자체 스케일로 normalize
-  //   선   = MACD Histogram osc (= MACD − Signal9) — osc 자체 스케일로 normalize
-  // 두 시리즈가 스케일이 매우 다르므로 (ratio 가 osc 보다 보통 10~30배 큼)
-  // 각자 자신의 max abs 로 정규화 — 막대도 라인도 차트 높이를 충분히 활용해
-  // 둘 다 잘 보이도록.
+  // 수급 오실레이터 — 참고 자료 xlsm 의 '시기외'(막대) + '오실'(선) 동일 로직
+  //   막대 = 시기외 = (외+기) 5일누적 순매수 / 시총   — ratio 자체 스케일로 normalize
+  //   선   = MACD Histogram osc (= MACD − Signal9)    — osc 자체 스케일로 normalize
+  // 두 시리즈가 스케일이 다르므로 (ratio 가 osc 보다 보통 5~15배 큼)
+  // 각자 자신의 max abs 로 정규화 — 막대도 라인도 차트 높이를 충분히 활용.
   let oscOverlay = '';
   let lastOscVal = null;
   let oscMaxPct = null;
@@ -535,7 +534,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
         <span><span class="legend-bar red"></span>매수 우위</span>
         <span><span class="legend-bar blue"></span>매도 우위</span>
         <span><span class="legend-line purple"></span>수급 오실레이터(우, MACD Histogram)</span>
-        <span class="legend-tip">참고 자료(태린이아빠 .xlsm)와 동일 — (외+기)/시총 의 EMA12-EMA26 의 Signal9 차감 · ★ 강한섹터 1·2위 · 🔥 현재 매도 연속</span>
+        <span class="legend-tip">참고 자료(.xlsm)와 동일 — (외+기) 5일누적 / 시총 의 EMA12-EMA26 - Signal9 · ★ 강한섹터 1·2위 · 🔥 현재 매도 연속</span>
       </div>
     </div>
   `;

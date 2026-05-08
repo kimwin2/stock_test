@@ -251,14 +251,13 @@ def enrich_with_chart_and_buyzone(
             cap_history_won = [round(float(c) * shares, 0) for c in price_hist]
 
         # 수급 오실레이터 시계열 — 참고 자료 xlsm 과 동일한 로직:
-        #   ratio   = (외인 + 기관) 일별 순매수 / 시가총액
+        #   ratio   = (외인 + 기관) 5일누적 순매수 / 시가총액   ← xlsm '시기외'
         #   EMA12   = ratio 의 12일 EMA (α = 2/13)
         #   EMA26   = ratio 의 26일 EMA (α = 2/27)
         #   MACD    = EMA12 − EMA26
         #   Signal  = EMA9 of MACD (α = 2/10)
         #   Osc     = MACD − Signal   (= MACD Histogram)
         # 60일치 수급 시계열은 Naver PC frgn 페이지에서 받음 (페이지당 ~10일).
-        # 실패 시 dailyFlow10d 로 폴백.
         supply_osc_series: list[dict] = []
         long_flow: pd.DataFrame | None = None
         try:
@@ -269,13 +268,17 @@ def enrich_with_chart_and_buyzone(
 
         if long_flow is not None and not long_flow.empty and cap_history_won:
             cap_by_date = {d: c for d, c in zip(date_hist, cap_history_won)}
+            # xlsm 의 '5일누적 외+기' = 직전 5거래일 합산. 첫 4일은 5일치가
+            # 모이지 않아 의미 없으므로 min_periods=5 로 NaN 처리하고 제외.
+            inst_5d = long_flow["institutional_amount"].rolling(5, min_periods=5).sum()
             ratio_series: list[tuple[str, float]] = []
-            for _, row in long_flow.iterrows():
+            for (_, row), s5 in zip(long_flow.iterrows(), inst_5d):
+                if pd.isna(s5):
+                    continue
                 d = row["date"].strftime("%Y-%m-%d")
-                inst = float(row.get("institutional_amount") or 0)
                 cap_d = cap_by_date.get(d) or market_cap_now
                 if cap_d and cap_d > 0:
-                    ratio_series.append((d, inst / cap_d))
+                    ratio_series.append((d, float(s5) / cap_d))
             if ratio_series:
                 vals = [r for _, r in ratio_series]
 
