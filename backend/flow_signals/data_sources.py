@@ -104,9 +104,12 @@ def fetch_etf_listing() -> pd.DataFrame:
 
 
 # 국채선물 추종 ETF — 참고 자료 F&G 의 BondDiff (10년−5년) 입력용.
-# V-KOSPI 200 / 옵션 ATM 은 무료 데이터 없어 제외, 채권만 추가.
+# 주의: TIGER 국채선물10년 (305080) 은 같은 1년 동안 +6.7% 인데
+# KODEX 국채선물10년 (365780) / KOSEF 국고채10년 (148070) 은 -6.5% 로
+# 다른 10년물 추종 ETF 와 정반대 → 305080 은 신뢰 불가.
+# 참고 자료 의 "10년국채선물지수" -8.8% 와 가장 가까운 KODEX 365780 사용.
 KTB_ETF_5Y = "453850"   # KODEX 국채선물5년
-KTB_ETF_10Y = "305080"  # TIGER 국채선물10년
+KTB_ETF_10Y = "365780"  # KODEX 국채선물10년
 
 
 def fetch_ktb_futures_pair(days: int = 400) -> pd.DataFrame:
