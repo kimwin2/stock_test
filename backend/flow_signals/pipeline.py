@@ -322,9 +322,22 @@ def build_flow_dashboard(
     #   매수타점                     → buyZone.inBuyZone
     #   거래대금 과열 회피           → tradingValueRatio (5d/20d, > 2 = 과열)
     #   "지금" 비어있는 상태          → currentVacancyDays, currentlyVacant
+    #   외국인 5d 순매수 절대금액    → foreignerNet5d universe 랭킹 (신호 9)
     #
     # 참고: EPS/추정이익 상향은 무료 데이터 부재로 본 함수에 미반영 (FnGuide 컨센서스 필요).
     # ─────────────────────────────────────────
+
+    # 외국인 5일 순매수 절대금액 universe 랭킹 — 참고 자료의 "외국인 매수대금 순위"
+    # 추종. 우리 빈집 후보 중에서도 "외인은 들어오는데 국내기관이 빠진" 패턴을
+    # 가산해 카페라떼 TOP30 같은 외국인 매수 강세 종목 비중을 끌어올린다.
+    foreigner_buy_rank: dict[str, int] = {}
+    if not vacancy_df.empty and "foreignerNet5d" in vacancy_df.columns:
+        fn_pos = (
+            vacancy_df[vacancy_df["foreignerNet5d"] > 0]
+            .sort_values("foreignerNet5d", ascending=False)
+        )
+        for rk, (_, row) in enumerate(fn_pos.iterrows(), start=1):
+            foreigner_buy_rank[row["code"]] = rk
 
     def _candidate_score_with_reasons(c: dict) -> tuple[float, list[str]]:
         score = 0.0
@@ -414,6 +427,19 @@ def build_flow_dashboard(
             cv = min(8.0, streak * 3)
             score += cv
             reasons.append(f"매도 {streak}일 연속 +{cv:.0f}")
+
+        # 9) 외국인 5d 순매수 절대금액 universe 랭킹 (참고 자료 TOP30 추종)
+        # 외인이 양수 매수 + universe 상위면 가산. "외인 매수 + 국내기관 매도"
+        # 교집합 패턴을 부각.
+        fn5 = c.get("foreignerNet5d") or 0
+        fn_rank = foreigner_buy_rank.get(c.get("code"))
+        if fn5 > 0 and fn_rank is not None:
+            if fn_rank <= 30:
+                score += 12; reasons.append(f"외인 5d 매수 #{fn_rank} (+{fn5/1e8:.0f}억) +12")
+            elif fn_rank <= 100:
+                score += 8;  reasons.append(f"외인 5d 매수 #{fn_rank} (+{fn5/1e8:.0f}억) +8")
+            elif fn_rank <= 300:
+                score += 4;  reasons.append(f"외인 5d 매수 #{fn_rank} (+{fn5/1e8:.0f}억) +4")
 
         return round(score, 1), reasons
 
