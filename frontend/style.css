@@ -1066,6 +1066,12 @@ body {
   font-size: 0.72rem; font-weight: 800; border-radius: 4px;
   margin-right: 4px;
 }
+.reason-chip {
+  font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 8px;
+}
+.reason-good { background: #E3F2FD; color: #1565C0; }
+.reason-warn { background: #FFEBEE; color: #C62828; }
+.reason-neutral { background: #F5F5F5; color: #616161; }
 .cand-prices {
   display: flex; gap: 12px; align-items: baseline; font-size: 0.82rem;
   margin: 2px 0;

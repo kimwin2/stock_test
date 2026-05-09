@@ -527,6 +527,36 @@ function buildStep2Card(leading, crowding, leadingLabels) {
 
 
 // ─────────────────────────────────────────┐
+// 매수 후보 핵심 키워드 chip — 기존 badge/vacancy-now 와 중복되지 않는 것만.
+// (★주도1·2위, ↑MA, 신고가, 매수권 = 이미 badge / 5d%, 매도연속 = 이미 다른 위치)
+// ─────────────────────────────────────────┘
+function deriveCandidateChips(c) {
+  const chips = [];
+
+  // 빈집 (수급 오실레이터 부호 기반)
+  if (c.oscLast != null && c.oscLast < 0) {
+    const pct = c.oscPercentile;
+    const deep = pct != null && pct <= 20;
+    chips.push({ text: deep ? '깊은 빈집' : '빈집', tone: 'good' });
+  }
+
+  // 250d 고점 근접 — 95%+
+  if (c.max250d && c.close && c.close / c.max250d >= 0.95 && !c.newHigh250d) {
+    chips.push({ text: '고점근접', tone: 'good' });
+  }
+
+  // 거래대금 강도 — 과열은 회피 시그널
+  const tvr = c.tradingValueRatio;
+  if (tvr != null) {
+    if (tvr > 2.5) chips.push({ text: '거래 과열', tone: 'warn' });
+    else if (tvr > 1.8) chips.push({ text: '거래 다소과열', tone: 'warn' });
+    else if (tvr < 0.6) chips.push({ text: '거래 빠짐', tone: 'warn' });
+  }
+
+  return chips;
+}
+
+// ─────────────────────────────────────────┐
 // CARD: Buy candidates (STEP 3 — main hero) │
 // ─────────────────────────────────────────┘
 function buildBuyCandidatesCard(candidates, leadingLabels) {
@@ -554,8 +584,11 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       ? `<span class="badge badge-gold">★ 강한섹터 ${TOP_SECTORS.indexOf(c.sector) + 1}위</span>`
       : '';
 
-    // 순위만 표시. 점수/근거 chip 은 cand-badges + vacancy-now 로 이미 시각화되므로 생략.
+    // 순위 + 핵심 근거 키워드 chip (badge/vacancy-now 와 중복되지 않는 것만)
     const rankBadge = `<span class="rank-badge">#${idx + 1}</span>`;
+    const keywordChips = deriveCandidateChips(c).map(k =>
+      `<span class="reason-chip reason-${k.tone}">${fEscape(k.text)}</span>`
+    ).join('');
 
     const todayPullback = bz.todayPullbackPct ?? 0;
     const buyZonePullback = bz.avgHighToClosePct ?? 0;
@@ -577,7 +610,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
         <div class="cand-top">
           <div class="cand-info">
             <div class="cand-name">${rankBadge} ${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small></div>
-            <div class="cand-badges">${topSectorBadge}${trendBadge}${newHighBadge}${buyZoneBadge}</div>
+            <div class="cand-badges">${topSectorBadge}${trendBadge}${newHighBadge}${buyZoneBadge}${keywordChips}</div>
             <div class="cand-prices">
               <span class="cand-close">${fmtNumber(c.close)}</span>
               <span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>
