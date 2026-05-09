@@ -1066,18 +1066,6 @@ body {
   font-size: 0.72rem; font-weight: 800; border-radius: 4px;
   margin-right: 4px;
 }
-.score-badge {
-  display: inline-block; padding: 1px 7px; margin-left: 6px;
-  background: #FFF8E1; color: #C77800; border: 1px solid #FFD54F;
-  font-size: 0.7rem; font-weight: 700; border-radius: 8px;
-}
-.cand-reasons {
-  display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;
-}
-.reason-chip {
-  font-size: 0.68rem; padding: 1px 5px; border-radius: 4px;
-  background: #F5F5F5; color: #555; font-weight: 500; line-height: 1.5;
-}
 .cand-prices {
   display: flex; gap: 12px; align-items: baseline; font-size: 0.82rem;
   margin: 2px 0;

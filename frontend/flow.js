@@ -554,14 +554,8 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       ? `<span class="badge badge-gold">★ 강한섹터 ${TOP_SECTORS.indexOf(c.sector) + 1}위</span>`
       : '';
 
-    // 점수 + 근거 (텔레그램 분석 기반 가중치) — 카드 헤더 우측에 점수, 하단에 근거 칩
-    const score = c.taerinScore;
-    const reasons = c.taerinReasons || [];
+    // 순위만 표시. 점수/근거 chip 은 cand-badges + vacancy-now 로 이미 시각화되므로 생략.
     const rankBadge = `<span class="rank-badge">#${idx + 1}</span>`;
-    const scoreBadge = score != null ? `<span class="score-badge">점수 ${score}</span>` : '';
-    const reasonsHtml = reasons.length
-      ? `<div class="cand-reasons">${reasons.map(r => `<span class="reason-chip">${fEscape(r)}</span>`).join('')}</div>`
-      : '';
 
     const todayPullback = bz.todayPullbackPct ?? 0;
     const buyZonePullback = bz.avgHighToClosePct ?? 0;
@@ -582,7 +576,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       <div class="cand-row${isTopSector ? ' cand-row-top-sector' : ''}">
         <div class="cand-top">
           <div class="cand-info">
-            <div class="cand-name">${rankBadge} ${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small> ${scoreBadge}</div>
+            <div class="cand-name">${rankBadge} ${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small></div>
             <div class="cand-badges">${topSectorBadge}${trendBadge}${newHighBadge}${buyZoneBadge}</div>
             <div class="cand-prices">
               <span class="cand-close">${fmtNumber(c.close)}</span>
@@ -594,7 +588,6 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
               · 매수권 -${Math.abs(buyZonePullback).toFixed(2)}%
               ${bz.buyZonePrice ? `· 매수가 ${fmtNumber(bz.buyZonePrice)}` : ''}
             </div>
-            ${reasonsHtml}
           </div>
           <div class="cand-chart">
             ${renderMiniPriceChart(c)}
