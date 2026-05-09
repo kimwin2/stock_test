@@ -433,11 +433,50 @@ function renderSparkline(values, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
+// 매수 안전성 5단계 표시 — 참고 자료 4월 25일 영상 로직 기반
+// ─────────────────────────────────────────┘
+function renderBuySafetyBar(safety, stages) {
+  if (!safety || safety.error || !stages) return '';
+  const idx = safety.stageIndex;
+  const segs = stages.map((s, i) => {
+    const active = i === idx;
+    const cls = `safety-seg safety-seg-${s.key}${active ? ' active' : ''}`;
+    return `<div class="${cls}" title="${fEscape(s.label)} (${s.min}~${s.max}점)">
+      <span class="safety-emoji">${s.emoji}</span>
+      <span class="safety-label">${fEscape(s.label)}</span>
+      ${active ? `<span class="safety-marker">▼</span>` : ''}
+    </div>`;
+  }).join('');
+  const rationaleHtml = (safety.rationale || []).map(r => {
+    const sign = r.weight > 0 ? `+${r.weight}` : `${r.weight}`;
+    const cls = r.weight > 0 ? 'rat-pos' : (r.weight < 0 ? 'rat-neg' : 'rat-neu');
+    return `<li class="${cls}"><span class="rat-w">[${sign}]</span> ${fEscape(r.msg)}</li>`;
+  }).join('');
+  return `
+    <div class="safety-block">
+      <div class="safety-summary">
+        <strong>${safety.stageEmoji} ${fEscape(safety.stageLabel)}</strong>
+        <span class="safety-stage-num">${safety.stageIndex + 1} / ${safety.totalStages}단계</span>
+        <span class="safety-score">${safety.score}점</span>
+        <span class="safety-cash">현금 ${fEscape(safety.cashRecommend)}</span>
+        <span class="safety-credit">신용 ${fEscape(safety.creditRecommend)}</span>
+      </div>
+      <div class="safety-bar">${segs}</div>
+      ${rationaleHtml ? `<ul class="safety-rationale">${rationaleHtml}</ul>` : ''}
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────┐
 // CARD: STEP 1 — 시장 심리 + 현금 비중 통합 │
 // ─────────────────────────────────────────┘
 function buildStep1Card(sentiment, cash) {
   const k = sentiment?.kospi || {};
   const q = sentiment?.kosdaq || {};
+  const buySafety = sentiment?.buySafety || null;
+  const stages = buySafety?.stages || null;
+  const kSafety = buySafety?.kospi || null;
+  const qSafety = buySafety?.kosdaq || null;
   const cashPct = cash?.cashPct ?? null;
   const cashLevel = cash?.level || '';
   const cashColor = cashPct == null ? '#999'
@@ -462,6 +501,7 @@ function buildStep1Card(sentiment, cash) {
             <span class="sentiment-fg">F&G ${k.fearGreed?.toFixed(1) ?? '-'} · Osc ${k.oscillator?.toFixed(2) ?? '-'}</span>
             <span class="sentiment-close">종가 ${fmtNumber(k.close)}</span>
           </div>
+          ${renderBuySafetyBar(kSafety, stages)}
           ${renderDualAxisChart(k.history)}
         </div>
         <div class="step1-row">
@@ -471,6 +511,7 @@ function buildStep1Card(sentiment, cash) {
             <span class="sentiment-fg">F&G ${q.fearGreed?.toFixed(1) ?? '-'} · Osc ${q.oscillator?.toFixed(2) ?? '-'}</span>
             <span class="sentiment-close">종가 ${fmtNumber(q.close)}</span>
           </div>
+          ${renderBuySafetyBar(qSafety, stages)}
           ${renderDualAxisChart(q.history)}
         </div>
         <div class="dual-legend">
@@ -537,20 +578,20 @@ function deriveCandidateChips(c) {
   if (c.oscLast != null && c.oscLast < 0) {
     const pct = c.oscPercentile;
     const deep = pct != null && pct <= 20;
-    chips.push({ text: deep ? '깊은 빈집' : '빈집', tone: 'good' });
+    chips.push({ text: deep ? '깊은 빈집' : '빈집', cls: 'badge-blue' });
   }
 
-  // 250d 고점 근접 — 95%+
+  // 250d 고점 근접 — 95%+ (신고가 아닐 때만)
   if (c.max250d && c.close && c.close / c.max250d >= 0.95 && !c.newHigh250d) {
-    chips.push({ text: '고점근접', tone: 'good' });
+    chips.push({ text: '고점근접', cls: 'badge-purple' });
   }
 
   // 거래대금 강도 — 과열은 회피 시그널
   const tvr = c.tradingValueRatio;
   if (tvr != null) {
-    if (tvr > 2.5) chips.push({ text: '거래 과열', tone: 'warn' });
-    else if (tvr > 1.8) chips.push({ text: '거래 다소과열', tone: 'warn' });
-    else if (tvr < 0.6) chips.push({ text: '거래 빠짐', tone: 'warn' });
+    if (tvr > 2.5) chips.push({ text: '거래 과열', cls: 'badge-red' });
+    else if (tvr > 1.8) chips.push({ text: '거래 다소과열', cls: 'badge-orange' });
+    else if (tvr < 0.6) chips.push({ text: '거래 빠짐', cls: 'badge-gray' });
   }
 
   return chips;

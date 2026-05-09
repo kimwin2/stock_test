@@ -212,7 +212,14 @@ def build_market_sentiment() -> dict:
     except Exception as e:
         print(f"  [!] KOSDAQ PutCall proxy 수신 실패: {e}")
         kosdaq_pc = None
-    return {
+    base = {
         "kospi": build_index_sentiment("KS11", "KOSPI", bond_df=bond_df, putcall_proxy=kospi_pc),
         "kosdaq": build_index_sentiment("KQ11", "KOSDAQ", bond_df=bond_df, putcall_proxy=kosdaq_pc),
     }
+    # 매수 안전성 5단계 판단 — 참고 자료 4월 25일 영상 로직
+    try:
+        from .buy_safety import build_buy_safety
+        base["buySafety"] = build_buy_safety(base)
+    except Exception as e:
+        print(f"  [!] buy_safety 계산 실패: {e}")
+    return base
