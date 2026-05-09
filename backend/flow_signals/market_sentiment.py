@@ -112,16 +112,22 @@ def fear_greed_oscillator(df: pd.DataFrame, bond_df: pd.DataFrame | None = None)
     return df
 
 
-def classify_zone(value: float) -> str:
-    if value is None or pd.isna(value):
+def classify_zone(oscillator: float) -> str:
+    """참고 자료 관점: zone 은 Oscillator(MACD 히스토그램) 의 부호/크기로 분류.
+
+    F&G 인덱스 절대값(0~100) 은 1년 윈도우 MinMax 결과라 추세 전환을 늦게 잡음.
+    참고 자료 차트의 진짜 시그널은 oscillator 의 zero-cross — 이게 zone 라벨이 돼야 함.
+    Oscillator 일반 진폭 ≈ ±0.03 기준으로 5단계.
+    """
+    if oscillator is None or pd.isna(oscillator):
         return "-"
-    if value >= 75:
+    if oscillator >= 0.020:
         return "과열"
-    if value >= 55:
+    if oscillator >= 0.005:
         return "강세"
-    if value >= 45:
+    if oscillator >= -0.005:
         return "중립"
-    if value >= 25:
+    if oscillator >= -0.020:
         return "약세"
     return "공포"
 
@@ -157,7 +163,7 @@ def build_index_sentiment(symbol: str, label: str, bond_df: pd.DataFrame | None 
         "close": round(close, 2),
         "fearGreed": round(fg, 1),
         "oscillator": round(osc, 4),
-        "zone": classify_zone(fg),
+        "zone": classify_zone(osc),
         "history": history_records,
     }
 
