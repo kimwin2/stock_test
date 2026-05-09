@@ -581,7 +581,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
 // (위 cand-legend 가 buyCandidatesCard 와 leadingValueCard 양쪽에 동일하게 적용)
 
 // ─────────────────────────────────────────┐
-// CARD: 주도섹터 거래대금 톱5                │
+// CARD: 주도섹터 거래대금 톱10               │
 // 매수 후보(빈집 전략) 와 별개로, 외인+기관   │
 // 동행 매수 중인 거래대금 1위급 주도주        │
 // ─────────────────────────────────────────┘
@@ -640,7 +640,7 @@ function buildLeadingValueCard(items, leadingLabels) {
   return `
     <div class="flow-card flow-card-candidates flow-card-leading-value">
       <div class="card-header">
-        <span class="card-theme-name">💰 주도섹터 거래대금 톱 5 — 외인·기관 동행 매수 주도주</span>
+        <span class="card-theme-name">💰 주도섹터 거래대금 톱 10 — 외인·기관 동행 매수 주도주</span>
         <span class="card-volume">${items.length}개</span>
       </div>
       <div class="cand-body">${rows}</div>

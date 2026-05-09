@@ -346,7 +346,7 @@ def build_flow_dashboard(
     enriched_candidates.sort(key=_candidate_score, reverse=True)
 
     # ─────────────────────────────────────────
-    # Step 7c: 주도섹터 거래대금 톱5 — 빈집 필터와 별개로 외인+기관 동행 매수 주도주
+    # Step 7c: 주도섹터 거래대금 톱10 — 빈집 필터와 별개로 외인+기관 동행 매수 주도주
     # 매수 후보(빈집 전략)에는 institutionNet5d<0 필터로 빠지지만, 삼전·하닉처럼
     # 외인·기관이 폭풍 매수 중인 거래대금 1위급 주도주를 별도 섹션으로 노출.
     # ─────────────────────────────────────────
@@ -355,7 +355,7 @@ def build_flow_dashboard(
         import math
         pool = vacancy_df[vacancy_df["sector"].isin(leading_sectors)]
         pool = pool[pool["tradingValue5dAvg"].notna()]
-        pool = pool.sort_values("tradingValue5dAvg", ascending=False).head(5)
+        pool = pool.sort_values("tradingValue5dAvg", ascending=False).head(10)
         pool_dicts = pool.to_dict("records")
         # vacancyPercentile 계산용 전 유니버스 점수 — Step 7 의 if 블록 안에서만
         # 정의되어 여기서는 재사용 불가. 같은 방식으로 다시 계산.
