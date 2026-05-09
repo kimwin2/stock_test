@@ -84,10 +84,13 @@ def fear_greed_oscillator(
     # 2) RSI(10)
     df["fg_rsi10"] = _rsi(close, 10)
 
-    # 3) (1 − Volatility): 20일 수익률 표준편차 — V-KOSPI 200 대용
+    # 3) (1 − Volatility): 20일 수익률 표준편차의 60일 EMA — V-KOSPI 200 대용
+    #    실현 vol 자체는 시장 잠잠해지면 즉시 떨어지지만 내재 vol(V-KOSPI)은 헤지 수요로
+    #    끈끈하게 유지됨 → EMA 로 부드럽게 처리해서 V-KOSPI 의 sticky 성질 모방.
     #    원본은 변동성 자체를 minmax 후 (1 − v) 처리 → 우리는 음수화 후 minmax 결과가 동일
     vol20 = close.pct_change().rolling(20).std() * np.sqrt(252) * 100  # 연율화 %
-    df["fg_inv_vol"] = -vol20
+    vol_smooth = vol20.ewm(span=60, adjust=False).mean()
+    df["fg_inv_vol"] = -vol_smooth
 
     feats = ["fg_momentum", "fg_rsi10", "fg_inv_vol"]
 
