@@ -344,12 +344,15 @@ function renderSupplyGauge(percentile, zone, amount) {
   const w = 263, h = 21;  // mini chart 1.5배 스케일과 정렬
   const cx = Math.max(4, Math.min(w - 4, (percentile / 100) * w));
 
-  const dotColor = percentile < 25 ? '#1E88E5'
-                 : percentile > 75 ? '#E53935'
-                 : '#555';
-  const zoneTextColor = percentile < 25 ? '#1E88E5'
-                      : percentile > 75 ? '#E53935'
-                      : '#666';
+  // 색상은 zone 라벨 우선 (osc 부호 기반). zone 없으면 percentile fallback.
+  const zoneColor = zone === '빈집' ? '#1E88E5'
+                  : zone === '찼음' ? '#E53935'
+                  : zone === '정상' ? '#666'
+                  : (percentile < 25 ? '#1E88E5'
+                   : percentile > 75 ? '#E53935'
+                   : '#666');
+  const dotColor = zoneColor;
+  const zoneTextColor = zoneColor;
 
   // 3 zone bands: blue / gray / red
   return `

@@ -1,21 +1,27 @@
 """수급 빈집 (Supply Vacancy) — 핵심 지표.
 
-원리:
-- "외국인 + 기관 누적 매수금액"이 최근에 줄어들었지만 (수급이 식음)
-- 동시에 그 종목이 주도 섹터에 속해 있다면
-- 다시 채워질 가능성이 높은 매수 후보다.
+원리 (참고 자료 엑셀/오실레이터 시트 기준):
+- "수급 오실레이터(MACD Histogram) 가 음수" 인 상태를 빈집이라 부른다.
+- 오실레이터 정의:
+    ratio   = (외인+기관 5일 누적 순매수) / 시가총액   ← 시기외(시총 표준화)
+    EMA12   = ratio 의 12일 EMA (α = 2/13)
+    EMA26   = ratio 의 26일 EMA (α = 2/27)
+    MACD    = EMA12 - EMA26
+    Signal  = EMA9 of MACD
+    Osc     = MACD - Signal   (= MACD Histogram)
+  Osc < 0 → 빈집.  주도섹터/추세추종/EPS 상향과 교집합으로 매수 후보.
 
-핵심 두 컬럼 (참고 엑셀 모델):
-1. "거래대금: 최근일 - 5일평균"  ← 거래대금이 최근 줄었나
-2. "연금/사모/투신 매수대금: 최근일 - 5일평균"  ← 큰손 자금이 줄었나
+본 모듈은 두 단계로 동작한다:
+1. Universe 전체에 대한 1차 스크리닝 (compute_vacancy_score / collect_universe_vacancy):
+   trend 데이터(10일치)만으로 계산 가능한 보조 지표를 제공.
+   - flowStrength5d  = (외+기 5일 누적) / 시가총액   ← 시총 표준화 강도 (xlsm 시기외)
+   - flowStrength20d = (외+기 20일 누적) / 시가총액
+   - vacancyScore   = 시총 표준화된 모멘텀 (5일 강도 - 20일 환산 baseline) — universe 정렬용
+   - currentVacancyDays / currentlyVacant — 일별 부호 기반 현재성
 
-우리는 무료 데이터로 다음을 사용:
-- foreigner_amount + organ_amount = institutional_amount (외인+기관 매수액 일자별)
-- 5일 누적 / 20일 누적 비교 → 비어있는 정도 점수
-- 거래대금 최근 vs 5일평균 → 거래 활성도
-
-Score 정의:
-  vacancy = (5일 누적) - (20일 평균을 5일로 환산)  (음수일수록 빈집)
+2. 후보 종목 enrich (enrich_with_chart_and_buyzone):
+   60일 수급 시계열을 fetch 해 정식 수급 오실레이터(osc) 를 계산.
+   oscLast 부호가 빈집 zone 판정의 1차 기준 (참고 자료 정의).
 """
 
 from __future__ import annotations
@@ -30,11 +36,12 @@ from .data_sources import fetch_naver_investor_trend, parse_investor_trend, fetc
 from .buy_zones import compute_buy_zone
 
 
-def compute_vacancy_score(trend: pd.DataFrame) -> dict | None:
-    """투자자 트렌드 (날짜 정렬) → 빈집 점수.
+def compute_vacancy_score(trend: pd.DataFrame, market_cap: float | None = None) -> dict | None:
+    """투자자 트렌드 (날짜 정렬) → 빈집 1차 지표.
 
+    market_cap 이 주어지면 시총 표준화된 강도/모멘텀 을 계산해 universe 비교에 사용한다.
     빈집이 클수록 (음수일수록) "수급이 빠진" 상태.
-    Returns: dict with vacancyScore, foreignerNet5d, organNet5d, etc.
+    Returns: dict with vacancyScore, flowStrength5d/20d, foreignerNet5d, organNet5d, etc.
     """
     if trend is None or trend.empty or len(trend) < 5:
         return None
@@ -55,7 +62,18 @@ def compute_vacancy_score(trend: pd.DataFrame) -> dict | None:
     # 5일 환산 평균
     inst_per_5d_baseline = inst_n / max(1, n) * 5
 
-    vacancy = inst5 - inst_per_5d_baseline  # 음수 = 빈집
+    # 시총 표준화 강도 (xlsm 시기외 컬럼과 동일 단위) — universe 비교의 핵심 키
+    if market_cap and market_cap > 0:
+        strength_5d = inst5 / float(market_cap)
+        strength_20d = inst_n / float(market_cap)
+        baseline_5d = inst_per_5d_baseline / float(market_cap)
+        # 정규화된 모멘텀: 시총 대비 5일 강도가 20일 baseline 보다 얼마나 빠졌나
+        vacancy = strength_5d - baseline_5d
+    else:
+        strength_5d = None
+        strength_20d = None
+        # market_cap 없을 때만 fallback: 절대 모멘텀 (이전 정의)
+        vacancy = inst5 - inst_per_5d_baseline
 
     # 거래대금 5일 평균 변화율 (close × volume)
     if "close" in df.columns and "volume" in df.columns:
@@ -100,7 +118,10 @@ def compute_vacancy_score(trend: pd.DataFrame) -> dict | None:
     currently_vacant = bool(len(daily_amounts) >= 2 and daily_amounts[-1] < 0 and daily_amounts[-2] < 0)
 
     return {
-        "vacancyScore": round(vacancy, 0),
+        # vacancyScore: market_cap 주어진 경우 시총표준화 모멘텀(차원 무차원), 아니면 원화 모멘텀
+        "vacancyScore": round(vacancy, 8) if (market_cap and market_cap > 0) else round(vacancy, 0),
+        "flowStrength5d": round(strength_5d, 8) if strength_5d is not None else None,
+        "flowStrength20d": round(strength_20d, 8) if strength_20d is not None else None,
         "foreignerNet5d": round(foreigner5, 0),
         "organNet5d": round(organ5, 0),
         "institutionNet5d": round(inst5, 0),
@@ -131,10 +152,11 @@ def collect_universe_vacancy(
     total = len(universe)
     for idx, row in universe.iterrows():
         code = row["code"]
+        market_cap = float(row["marketCap"]) if row.get("marketCap") is not None else None
         try:
             raw = fetch_naver_investor_trend(code)
             trend = parse_investor_trend(raw)
-            score = compute_vacancy_score(trend)
+            score = compute_vacancy_score(trend, market_cap=market_cap)
         except Exception as e:
             if on_error == "raise":
                 raise
@@ -173,12 +195,35 @@ def _compute_percentile(score: float, all_scores: list[float]) -> float:
 
 
 def _vacancy_zone(percentile: float) -> str:
-    """percentile → zone 라벨."""
+    """percentile → zone 라벨 (fallback — osc 데이터 없을 때만)."""
     if percentile < 25:
         return "빈집"
     if percentile > 75:
         return "찼음"
     return "정상"
+
+
+def _zone_from_osc(osc_series: list[float]) -> tuple[str, float | None]:
+    """수급 오실레이터(MACD Histogram) 의 마지막 값과 자기 종목 historical 분포로 zone 결정.
+
+    참고 자료(태린이아빠) 정의:
+      - osc < 0  →  "빈집"  (수급이 빠져나간 상태, 추세 안에서 눌림목 공략 후보)
+      - osc 의 historical 상위 25% 초과 → "찼음" (xlsm 수급오실레이터 시트 점선 기준)
+      - 그 외 → "정상"
+    Returns: (zone_label, historical_percentile_of_last_osc)
+    """
+    if not osc_series:
+        return ("정상", None)
+    last = osc_series[-1]
+    sorted_vals = sorted(osc_series)
+    less_than = sum(1 for v in sorted_vals if v < last)
+    pct = round(less_than / len(sorted_vals) * 100, 1)
+
+    if last < 0:
+        return ("빈집", pct)
+    if pct > 75:
+        return ("찼음", pct)
+    return ("정상", pct)
 
 
 def enrich_with_chart_and_buyzone(
@@ -302,12 +347,26 @@ def enrich_with_chart_and_buyzone(
                         "osc": o,
                     })
 
+        # 수급 오실레이터 기반 zone 재정의 — 참고 자료(태린이아빠) 기준이 1차.
+        # osc 시계열이 있으면 그 부호로 빈집/정상/찼음 결정 (universe percentile 무시).
+        osc_last = None
+        ratio_last = None
+        osc_pct = None
+        if supply_osc_series:
+            osc_last = supply_osc_series[-1]["osc"]
+            ratio_last = supply_osc_series[-1]["ratio"]
+            zone_osc, osc_pct = _zone_from_osc([p["osc"] for p in supply_osc_series])
+            zone = zone_osc
+
         enriched = {
             **item,
             "priceHistory60d": price_hist,
             "dateHistory60d": date_hist,
             "capHistory60d": cap_history_won,
             "supplyOscHistory": supply_osc_series,
+            "oscLast": osc_last,
+            "oscPercentile": osc_pct,
+            "ratioLast": ratio_last,
             "ma10": round(ma10, 0) if ma10 is not None else None,
             "ma20": round(ma20, 0) if ma20 is not None else None,
             "newHigh50d": bool(last_high >= max_50 * 0.999),

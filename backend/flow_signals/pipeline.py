@@ -324,9 +324,10 @@ def build_flow_dashboard(
             score += min(20, max(0, (ratio - 0.85) / 0.15 * 20))
         if c.get("buyZone", {}).get("inBuyZone"):
             score += 15
-        # 누적 vacancy 정도 (음수일수록 빈집 큼)
+        # 누적 vacancy 정도 (음수일수록 빈집 큼) — vacancyScore 는 시총표준화 모멘텀(ratio)
+        # 일반 종목 vacancyScore 는 보통 -0.005 ~ +0.005 범위. -0.001 ≈ 15점 수준으로 매핑.
         v = c.get("vacancyScore") or 0
-        score += max(0, min(20, -v / 1e10))
+        score += max(0, min(20, -v * 15000))
         # 현재성: 매도 연속 일수 (참고 자료: "지금 비어있는지" 가 핵심)
         streak = c.get("currentVacancyDays") or 0
         score += min(15, streak * 5)  # 1일 5점, 2일 10점, 3일+ 15점 캡
