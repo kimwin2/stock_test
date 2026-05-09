@@ -433,38 +433,12 @@ function renderSparkline(values, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
-// 매수 안전성 5단계 표시 — 참고 자료 4월 25일 영상 로직 기반
+// 매수 안전성 — 동그라미 + "매수가능 4/5단계" 만 한 줄에 표시
 // ─────────────────────────────────────────┘
-function renderBuySafetyBar(safety, stages) {
-  if (!safety || safety.error || !stages) return '';
-  const idx = safety.stageIndex;
-  const segs = stages.map((s, i) => {
-    const active = i === idx;
-    const cls = `safety-seg safety-seg-${s.key}${active ? ' active' : ''}`;
-    return `<div class="${cls}" title="${fEscape(s.label)} (${s.min}~${s.max}점)">
-      <span class="safety-emoji">${s.emoji}</span>
-      <span class="safety-label">${fEscape(s.label)}</span>
-      ${active ? `<span class="safety-marker">▼</span>` : ''}
-    </div>`;
-  }).join('');
-  const rationaleHtml = (safety.rationale || []).map(r => {
-    const sign = r.weight > 0 ? `+${r.weight}` : `${r.weight}`;
-    const cls = r.weight > 0 ? 'rat-pos' : (r.weight < 0 ? 'rat-neg' : 'rat-neu');
-    return `<li class="${cls}"><span class="rat-w">[${sign}]</span> ${fEscape(r.msg)}</li>`;
-  }).join('');
-  return `
-    <div class="safety-block">
-      <div class="safety-summary">
-        <strong>${safety.stageEmoji} ${fEscape(safety.stageLabel)}</strong>
-        <span class="safety-stage-num">${safety.stageIndex + 1} / ${safety.totalStages}단계</span>
-        <span class="safety-score">${safety.score}점</span>
-        <span class="safety-cash">현금 ${fEscape(safety.cashRecommend)}</span>
-        <span class="safety-credit">신용 ${fEscape(safety.creditRecommend)}</span>
-      </div>
-      <div class="safety-bar">${segs}</div>
-      ${rationaleHtml ? `<ul class="safety-rationale">${rationaleHtml}</ul>` : ''}
-    </div>
-  `;
+function renderBuySafetyPill(safety) {
+  if (!safety || safety.error) return '';
+  const tip = `${safety.score}점 · 현금 ${fEscape(safety.cashRecommend)} · 신용 ${fEscape(safety.creditRecommend)}`;
+  return `<span class="safety-pill safety-pill-${safety.stage}" title="${tip}">${safety.stageEmoji} ${fEscape(safety.stageLabel)} ${safety.stageIndex + 1}/${safety.totalStages}단계</span>`;
 }
 
 // ─────────────────────────────────────────┐
@@ -497,21 +471,21 @@ function buildStep1Card(sentiment, cash) {
         <div class="step1-row">
           <div class="step1-row-head">
             <strong>${fEscape(k.label || 'KOSPI')}</strong>
+            ${renderBuySafetyPill(kSafety)}
             <span class="sentiment-zone">${fEscape(k.zone || '-')}</span>
             <span class="sentiment-fg">F&G ${k.fearGreed?.toFixed(1) ?? '-'} · Osc ${k.oscillator?.toFixed(2) ?? '-'}</span>
             <span class="sentiment-close">종가 ${fmtNumber(k.close)}</span>
           </div>
-          ${renderBuySafetyBar(kSafety, stages)}
           ${renderDualAxisChart(k.history)}
         </div>
         <div class="step1-row">
           <div class="step1-row-head">
             <strong>${fEscape(q.label || 'KOSDAQ')}</strong>
+            ${renderBuySafetyPill(qSafety)}
             <span class="sentiment-zone">${fEscape(q.zone || '-')}</span>
             <span class="sentiment-fg">F&G ${q.fearGreed?.toFixed(1) ?? '-'} · Osc ${q.oscillator?.toFixed(2) ?? '-'}</span>
             <span class="sentiment-close">종가 ${fmtNumber(q.close)}</span>
           </div>
-          ${renderBuySafetyBar(qSafety, stages)}
           ${renderDualAxisChart(q.history)}
         </div>
         <div class="dual-legend">

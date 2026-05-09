@@ -670,92 +670,22 @@ body {
 }
 .step1-row-head strong { font-size: 0.92rem; color: var(--text-primary); }
 
-/* 매수 안전성 5단계 — 참고 자료 4월 25일 영상 로직 기반 */
-.safety-block {
-  margin: 4px 0 6px;
-  padding: 6px 8px;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-}
-.safety-summary {
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-.safety-summary strong {
-  font-size: 0.92rem;
-  color: var(--text-primary);
-}
-.safety-stage-num {
-  background: #f0f0f0;
+/* 매수 안전성 — 한 줄 pill (참고 자료 4월 25일 영상 로직) */
+.safety-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   padding: 2px 8px;
   border-radius: 10px;
-  font-weight: 600;
-}
-.safety-score { color: #1976D2; font-weight: 700; }
-.safety-cash { color: #E65100; font-weight: 600; }
-.safety-credit { color: #6A1B9A; font-weight: 600; }
-
-.safety-bar {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 2px;
-  margin: 4px 0;
-}
-.safety-seg {
-  position: relative;
-  text-align: center;
-  padding: 6px 2px 14px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  border-radius: 3px;
-  background: #f5f5f5;
-  color: #999;
-  opacity: 0.5;
-  transition: all 0.15s;
-}
-.safety-seg .safety-emoji { display: block; font-size: 1rem; margin-bottom: 1px; }
-.safety-seg .safety-label { display: block; }
-.safety-seg .safety-marker {
-  position: absolute;
-  bottom: 0; left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.7rem;
-  color: var(--text-primary);
-}
-.safety-seg.safety-seg-danger  { background: #FFEBEE; }
-.safety-seg.safety-seg-caution { background: #FFF3E0; }
-.safety-seg.safety-seg-neutral { background: #FFFDE7; }
-.safety-seg.safety-seg-ok      { background: #E8F5E9; }
-.safety-seg.safety-seg-buy     { background: #E3F2FD; }
-.safety-seg.active {
-  opacity: 1;
-  color: var(--text-primary);
-  border: 2px solid var(--text-primary);
-  padding: 4px 0 12px;
+  font-size: 0.78rem;
   font-weight: 700;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  border: 1px solid transparent;
 }
-.safety-seg.active.safety-seg-danger  { border-color: #C62828; color: #B71C1C; }
-.safety-seg.active.safety-seg-caution { border-color: #E65100; color: #E65100; }
-.safety-seg.active.safety-seg-neutral { border-color: #F57F17; color: #F57F17; }
-.safety-seg.active.safety-seg-ok      { border-color: #2E7D32; color: #1B5E20; }
-.safety-seg.active.safety-seg-buy     { border-color: #1565C0; color: #0D47A1; }
-
-.safety-rationale {
-  margin: 4px 0 0;
-  padding: 0 0 0 14px;
-  font-size: 0.74rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-.safety-rationale li { margin: 1px 0; }
-.safety-rationale .rat-w { font-family: monospace; font-weight: 700; margin-right: 4px; }
-.safety-rationale .rat-pos .rat-w { color: #2E7D32; }
-.safety-rationale .rat-neg .rat-w { color: #C62828; }
-.safety-rationale .rat-neu .rat-w { color: #999; }
+.safety-pill-danger  { background: #FFEBEE; color: #B71C1C; border-color: #EF9A9A; }
+.safety-pill-caution { background: #FFF3E0; color: #E65100; border-color: #FFCC80; }
+.safety-pill-neutral { background: #FFFDE7; color: #F57F17; border-color: #FFF59D; }
+.safety-pill-ok      { background: #E8F5E9; color: #1B5E20; border-color: #A5D6A7; }
+.safety-pill-buy     { background: #E3F2FD; color: #0D47A1; border-color: #90CAF9; }
 
 .step2-body { padding: 8px 12px 12px; }
 .step2-label { font-size: 0.76rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
