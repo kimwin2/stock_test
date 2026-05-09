@@ -107,7 +107,7 @@ function renderGauge(value, label) {
 function renderDualAxisChart(history, opts = {}) {
   const w = opts.width || 360;
   const h = opts.height || 130;
-  const padL = 30, padR = 32, padT = 6, padB = 14;
+  const padL = 30, padR = 32, padT = 6, padB = 22;
 
   if (!history || history.length < 5) return '<div class="sparkline-empty">데이터 부족</div>';
 
@@ -179,11 +179,37 @@ function renderDualAxisChart(history, opts = {}) {
   // 0선 강조
   const zeroLine = `<line x1="${padL}" y1="${yMid.toFixed(1)}" x2="${w - padR}" y2="${yMid.toFixed(1)}" stroke="#999" stroke-width="0.8"/>`;
 
+  // X축 월별 라벨 — 월이 바뀌는 첫 데이터 포인트마다 "YY.MM" 표기
+  const xLabels = [];
+  let prevMonth = null;
+  history.forEach((p, i) => {
+    if (!p.date) return;
+    const ym = p.date.slice(0, 7);  // "YYYY-MM"
+    if (ym === prevMonth) return;
+    prevMonth = ym;
+    const yy = p.date.slice(2, 4);
+    const mm = p.date.slice(5, 7);
+    const x = padL + i * stepX;
+    xLabels.push({ x, label: `${yy}.${mm}` });
+  });
+  // 너무 빽빽하면 격월로 솎아내기 (라벨 사이 최소 픽셀)
+  const minLabelGap = 36;
+  const xLabelsThin = [];
+  let lastX = -Infinity;
+  xLabels.forEach(l => {
+    if (l.x - lastX >= minLabelGap) { xLabelsThin.push(l); lastX = l.x; }
+  });
+  const xAxis = xLabelsThin.map(l => `
+    <line x1="${l.x.toFixed(1)}" y1="${(padT + innerH).toFixed(1)}" x2="${l.x.toFixed(1)}" y2="${(padT + innerH + 3).toFixed(1)}" stroke="#999" stroke-width="0.5"/>
+    <text x="${l.x.toFixed(1)}" y="${(padT + innerH + 11).toFixed(1)}" text-anchor="middle" font-size="7" fill="#666">${l.label}</text>
+  `).join('');
+
   return `
     <svg viewBox="0 0 ${w} ${h}" class="dual-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
       ${oAxis}
       ${zeroLine}
       ${cAxis}
+      ${xAxis}
       <polyline points="${oscPts}" fill="none" stroke="#6A5ACD" stroke-width="1.6"/>
       <polyline points="${closePts}" fill="none" stroke="#1A1A1A" stroke-width="1.6"/>
     </svg>

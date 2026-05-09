@@ -134,6 +134,42 @@ def fetch_ktb_futures_pair(days: int = 400) -> pd.DataFrame:
     return out
 
 
+# 인버스/정방향 ETF 거래대금 비율 — 옵션 PutCall ATM 의 무료 proxy.
+# bear ETF 매수 거래대금이 늘면 fear, bull ETF 매수가 늘면 greed.
+PROXY_ETFS = {
+    "KOSPI": {"bear": "114800", "bull": "069500"},   # KODEX 인버스 / KODEX 200
+    "KOSDAQ": {"bear": "251340", "bull": "233740"},  # KODEX 코스닥150선물인버스 / KODEX 코스닥150레버리지
+}
+
+
+def fetch_putcall_proxy_ratio(market: str = "KOSPI", days: int = 400) -> pd.Series:
+    """인버스 거래대금 / 정방향 거래대금 비율. 높을수록 fear (PutCall ratio 와 유사).
+
+    Returns Series indexed by date. 빈 데이터일 시 빈 Series.
+    """
+    if fdr is None:
+        raise RuntimeError("FinanceDataReader 가 설치돼 있지 않습니다.")
+    pair = PROXY_ETFS.get(market.upper())
+    if not pair:
+        return pd.Series(dtype="float64")
+    end = _kst_today()
+    start = end - timedelta(days=days)
+    try:
+        bear = fdr.DataReader(pair["bear"], start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+        bull = fdr.DataReader(pair["bull"], start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+    except Exception:
+        return pd.Series(dtype="float64")
+    if bear.empty or bull.empty:
+        return pd.Series(dtype="float64")
+    bear_value = (bear["Close"] * bear["Volume"]).rename("bear_value")
+    bull_value = (bull["Close"] * bull["Volume"]).rename("bull_value")
+    df = pd.concat([bear_value, bull_value], axis=1).dropna()
+    df = df[df["bull_value"] > 0]
+    ratio = df["bear_value"] / df["bull_value"]
+    ratio.index = pd.to_datetime(ratio.index)
+    return ratio
+
+
 def fetch_naver_investor_trend(code: str, retries: int = 2, timeout: int = 6) -> list[dict]:
     """https://m.stock.naver.com/api/stock/{code}/trend
     최근 10거래일의 외국인/기관/개인 순매수 (단위: 주식 수)."""
