@@ -1,20 +1,22 @@
-"""시장 심리 지표 — Fear & Greed Oscillator (참고 자료 스타일).
+"""시장 심리 — Fear & Greed Oscillator (참고 자료 5-feature 설계 미러링).
 
-원본 Colab 코드는 RSI(10) + 변동성지수 + Put/Call ATM + 국채선물 차이 + 모멘텀
-의 5개 feature 를 MinMax 정규화 (0~1) 후 가중평균.  옵션 ATM/국채선물 데이터는
-무료 소스가 없어 4개로 단순화:
-- RSI(10)
-- 125일 이동평균 대비 모멘텀
-- 변동성 (20일 표준편차의 역수)
-- 거래량 모멘텀
+참고 자료 원본 (구글 코랩) 의 5개 feature 설계를 최대한 그대로 따라간다:
 
-Oscillator 정의 (참고 자료 원본 그대로):
-- fear_greed 를 0~1 로 정규화한 뒤 MACD 히스토그램 (macd − signal)
-  · macd = EMA12 − EMA26
-  · signal = EMA9(macd)
-  · oscillator = macd − signal
-- 최종 진동 폭은 약 ±0.03 — 참고 자료 차트와 동일
-- 0 위 = Greed (과열), 0 아래 = Fear (과매도)
+| Feature       | 원본                          | 우리 구현                                        |
+|---------------|-------------------------------|--------------------------------------------------|
+| Momentum      | (Close − MA125)/MA125 × 100    | 동일                                              |
+| (1 − Vol)     | 1 − V-KOSPI 200 (정규화 후)    | 1 − 20일 수익률 stdev (V-KOSPI 무료 소스 없음)    |
+| BondDiff      | 10년 − 5년 국채선물 지수 (정규화) | 10y/5y 국채선물 ETF 100 으로 리베이스 후 차이      |
+| RSI(10)       | 10일 RSI                      | 동일                                              |
+| (1 − PutCall) | 1 − Put ATM/Call ATM (정규화)  | **제외** — 옵션 ATM 무료 소스 없음                 |
+
+가중치는 원본 0.2 × 5 → 0.25 × 4 (PutCall 만 빠지고 나머지 동등).
+계산 후 F&G 인덱스(0~100)에 MACD(12,26,9) 를 씌워 히스토그램 = oscillator.
+원본은 F&G 자체에 MACD 를 적용 (스케일 0~1) → 우리도 fear_greed/100 으로 통일.
+
+원본과 차이가 남는 부분 (불가피):
+- V-KOSPI 200 은 KRX 로그인 필요 → 20일 stdev 로 근사
+- KOSPI200 옵션 ATM 은 무료 소스 없음 → 5번째 feature 제외
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from .data_sources import fetch_index_ohlcv
+from .data_sources import fetch_index_ohlcv, fetch_ktb_futures_pair
 
 
 def _rsi(series: pd.Series, window: int = 10) -> pd.Series:
@@ -33,51 +35,76 @@ def _rsi(series: pd.Series, window: int = 10) -> pd.Series:
     return 100 - (100 / (1 + rs))
 
 
-def _minmax_0_100(series: pd.Series) -> pd.Series:
+def _minmax(series: pd.Series) -> pd.Series:
+    """sklearn MinMaxScaler 동등 — NaN 무시, 0~1 로 매핑."""
     s = series.dropna()
     if s.empty or s.min() == s.max():
         return series * np.nan
-    return (series - s.min()) / (s.max() - s.min()) * 100
+    return (series - s.min()) / (s.max() - s.min())
 
 
-def fear_greed_oscillator(df: pd.DataFrame) -> pd.DataFrame:
-    """일봉 OHLCV → Fear&Greed Oscillator (0~100).
+def _rebase_to_100(series: pd.Series) -> pd.Series:
+    """첫 유효값을 100 으로 리베이스. 채권 ETF 의 절대 가격 차이 제거용."""
+    s = series.dropna()
+    if s.empty:
+        return series * np.nan
+    base = s.iloc[0]
+    if base == 0 or pd.isna(base):
+        return series * np.nan
+    return series / base * 100
 
-    Output: input df + Fear_Greed (0-100), Oscillator (MACD of FG).
+
+def fear_greed_oscillator(df: pd.DataFrame, bond_df: pd.DataFrame | None = None) -> pd.DataFrame:
+    """일봉 OHLCV → F&G(0~100) + Oscillator (MACD 히스토그램).
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DatetimeIndex + Close 컬럼 (FDR 형식).
+    bond_df : pd.DataFrame | None
+        ktb5y/ktb10y 컬럼 가진 5년/10년 국채선물 ETF 종가. None 이면 BondDiff 제외.
     """
     df = df.copy()
     close = df["Close"]
 
-    # 1) RSI(10)
-    df["rsi10"] = _rsi(close, 10)
-
-    # 2) 125일 모멘텀
+    # === 5-feature 계산 (원본 설계) ===
+    # 1) Momentum — (Close − MA125)/MA125 × 100
     ma125 = close.rolling(125).mean()
-    df["momentum"] = (close - ma125) / ma125 * 100
+    df["fg_momentum"] = (close - ma125) / ma125 * 100
 
-    # 3) 변동성 (낮을수록 그리디)
-    vol20 = close.pct_change().rolling(20).std() * 100
-    df["inv_volatility"] = -vol20  # 부호 뒤집어 minmax
+    # 2) RSI(10)
+    df["fg_rsi10"] = _rsi(close, 10)
 
-    # 4) 거래량 모멘텀 (5일/20일)
-    if "Volume" in df.columns:
-        vol_ma5 = df["Volume"].rolling(5).mean()
-        vol_ma20 = df["Volume"].rolling(20).mean()
-        df["volume_momentum"] = (vol_ma5 - vol_ma20) / vol_ma20 * 100
+    # 3) (1 − Volatility): 20일 수익률 표준편차 — V-KOSPI 200 대용
+    #    원본은 변동성 자체를 minmax 후 (1 − v) 처리 → 우리는 음수화 후 minmax 결과가 동일
+    vol20 = close.pct_change().rolling(20).std() * np.sqrt(252) * 100  # 연율화 %
+    df["fg_inv_vol"] = -vol20
+
+    # 4) BondDiff — 10년 국채선물 ETF − 5년 국채선물 ETF (각각 100 으로 리베이스)
+    if bond_df is not None and not bond_df.empty:
+        bond_aligned = bond_df.reindex(df.index).ffill()
+        b5_rebased = _rebase_to_100(bond_aligned["ktb5y"])
+        b10_rebased = _rebase_to_100(bond_aligned["ktb10y"])
+        df["fg_bond_diff"] = b10_rebased - b5_rebased
+        feats = ["fg_momentum", "fg_rsi10", "fg_inv_vol", "fg_bond_diff"]
     else:
-        df["volume_momentum"] = 0.0
+        df["fg_bond_diff"] = np.nan
+        feats = ["fg_momentum", "fg_rsi10", "fg_inv_vol"]
 
-    feats = ["rsi10", "momentum", "inv_volatility", "volume_momentum"]
+    # 5) (1 − PutCall) 은 옵션 ATM 무료 소스 없음 → 제외 (4 features × 0.25)
+
+    # === 정규화 + 가중평균 (원본은 sklearn MinMaxScaler — 동등 구현) ===
+    valid_mask = df[feats].notna().all(axis=1)
     for f in feats:
-        df[f"{f}_n"] = _minmax_0_100(df[f])
+        df[f"{f}_n"] = _minmax(df[f].where(valid_mask)) * 100
 
-    df["fear_greed"] = df[[f"{f}_n" for f in feats]].mean(axis=1)
+    weight = 1.0 / len(feats)
+    df["fear_greed"] = sum(df[f"{f}_n"] * weight for f in feats)
 
-    # Oscillator: fear_greed 를 0~1 로 정규화한 후 MACD 히스토그램 (macd − signal).
-    # 참고 자료 원본 코드와 동일.
-    fg_normalized = df["fear_greed"] / 100.0
-    ema12 = fg_normalized.ewm(span=12, adjust=False).mean()
-    ema26 = fg_normalized.ewm(span=26, adjust=False).mean()
+    # === Oscillator: F&G/100 의 MACD(12,26,9) 히스토그램 ===
+    fg_n = df["fear_greed"] / 100.0
+    ema12 = fg_n.ewm(span=12, adjust=False).mean()
+    ema26 = fg_n.ewm(span=26, adjust=False).mean()
     macd = ema12 - ema26
     signal = macd.ewm(span=9, adjust=False).mean()
     df["fg_oscillator"] = macd - signal
@@ -99,11 +126,11 @@ def classify_zone(value: float) -> str:
     return "공포"
 
 
-def build_index_sentiment(symbol: str, label: str) -> dict:
+def build_index_sentiment(symbol: str, label: str, bond_df: pd.DataFrame | None = None) -> dict:
     df = fetch_index_ohlcv(symbol, days=400)
     if df.empty:
         return {"label": label, "error": "no data"}
-    df = fear_greed_oscillator(df)
+    df = fear_greed_oscillator(df, bond_df=bond_df)
     last = df.dropna(subset=["fear_greed"]).tail(1)
     if last.empty:
         return {"label": label, "error": "insufficient data"}
@@ -136,7 +163,13 @@ def build_index_sentiment(symbol: str, label: str) -> dict:
 
 
 def build_market_sentiment() -> dict:
+    # 채권 ETF 한 번만 받아서 KOSPI/KOSDAQ 양쪽에 공유
+    try:
+        bond_df = fetch_ktb_futures_pair(days=400)
+    except Exception as e:
+        print(f"  [!] 국채선물 ETF 수신 실패 — BondDiff 제외: {e}")
+        bond_df = None
     return {
-        "kospi": build_index_sentiment("KS11", "KOSPI"),
-        "kosdaq": build_index_sentiment("KQ11", "KOSDAQ"),
+        "kospi": build_index_sentiment("KS11", "KOSPI", bond_df=bond_df),
+        "kosdaq": build_index_sentiment("KQ11", "KOSDAQ", bond_df=bond_df),
     }

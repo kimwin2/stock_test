@@ -103,6 +103,37 @@ def fetch_etf_listing() -> pd.DataFrame:
     return df
 
 
+# 국채선물 추종 ETF — 참고 자료 F&G 의 BondDiff (10년−5년) 입력용.
+# V-KOSPI 200 / 옵션 ATM 은 무료 데이터 없어 제외, 채권만 추가.
+KTB_ETF_5Y = "453850"   # KODEX 국채선물5년
+KTB_ETF_10Y = "305080"  # TIGER 국채선물10년
+
+
+def fetch_ktb_futures_pair(days: int = 400) -> pd.DataFrame:
+    """5년/10년 국채선물 추종 ETF 의 종가 시계열 한 프레임에 합쳐 반환.
+
+    Returns DataFrame indexed by date with columns: ktb5y, ktb10y.
+    한쪽 ETF 결측 시 빈 DataFrame.
+    """
+    if fdr is None:
+        raise RuntimeError("FinanceDataReader 가 설치돼 있지 않습니다.")
+    end = _kst_today()
+    start = end - timedelta(days=days)
+    try:
+        d5 = fdr.DataReader(KTB_ETF_5Y, start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+        d10 = fdr.DataReader(KTB_ETF_10Y, start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+    except Exception:
+        return pd.DataFrame()
+    if d5.empty or d10.empty:
+        return pd.DataFrame()
+    out = pd.DataFrame({
+        "ktb5y": d5["Close"],
+        "ktb10y": d10["Close"],
+    })
+    out.index = pd.to_datetime(out.index)
+    return out
+
+
 def fetch_naver_investor_trend(code: str, retries: int = 2, timeout: int = 6) -> list[dict]:
     """https://m.stock.naver.com/api/stock/{code}/trend
     최근 10거래일의 외국인/기관/개인 순매수 (단위: 주식 수)."""
