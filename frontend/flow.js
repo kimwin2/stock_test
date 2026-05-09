@@ -69,6 +69,13 @@ function fmtPctSigned(v) {
   return `${v > 0 ? '+' : ''}${v.toFixed(2)}%`;
 }
 
+// RS Norm 막대 시각 폭. rsNorm 50(중립)을 0%, 100을 100%로 매핑해 70~95대 강자들의
+// 차이가 눈에 띄도록 한다. (rsNorm 자체가 시그모이드 정규화라 실수치는 그대로 표기)
+function rsBarWidth(rsNorm) {
+  if (rsNorm == null) return 2;
+  return Math.max(2, Math.min(100, (rsNorm - 50) * 2));
+}
+
 // ─────────────────────────────────────────┐
 // Sentiment Gauge SVG                       │
 // ─────────────────────────────────────────┘
@@ -506,7 +513,7 @@ function buildStep2Card(leading, crowding, leadingLabels) {
           ${rsBackup.map(e => `
             <div class="step2-rs-row">
               <span class="step2-rs-name">${fEscape(e.name)}</span>
-              <div class="rs-bar"><div class="rs-bar-fill" style="width:${Math.min(100, e.rsNorm)}%; background:${e.rsNorm >= 70 ? '#E53935' : e.rsNorm >= 50 ? '#FB8C00' : '#1E88E5'}"></div></div>
+              <div class="rs-bar"><div class="rs-bar-fill" style="width:${rsBarWidth(e.rsNorm)}%; background:${e.rsNorm >= 70 ? '#E53935' : e.rsNorm >= 50 ? '#FB8C00' : '#1E88E5'}"></div></div>
               <span class="step2-rs-num">${e.rsNorm}</span>
               <span class="step2-rs-mom ${changeClass(e.ret3m)}">${e.ret3m != null ? (e.ret3m > 0 ? '+' : '') + e.ret3m + '%' : '-'} <small>3M</small></span>
             </div>
@@ -532,7 +539,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
   // 강한 섹터 1·2위 (STEP 2 의 leadingSectorLabels 첫 두 개)
   const TOP_SECTORS = (leadingLabels || []).slice(0, 2);
 
-  const rows = candidates.slice(0, SHOW_N).map(c => {
+  const rows = candidates.slice(0, SHOW_N).map((c, idx) => {
     const bz = c.buyZone || {};
     const sectorLabel = c.sector || '-';
     const isTopSector = TOP_SECTORS.includes(c.sector);
@@ -545,6 +552,15 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
     const buyZoneBadge = bz.inBuyZone ? '<span class="badge badge-blue">매수권</span>' : '';
     const topSectorBadge = isTopSector
       ? `<span class="badge badge-gold">★ 강한섹터 ${TOP_SECTORS.indexOf(c.sector) + 1}위</span>`
+      : '';
+
+    // 점수 + 근거 (텔레그램 분석 기반 가중치) — 카드 헤더 우측에 점수, 하단에 근거 칩
+    const score = c.taerinScore;
+    const reasons = c.taerinReasons || [];
+    const rankBadge = `<span class="rank-badge">#${idx + 1}</span>`;
+    const scoreBadge = score != null ? `<span class="score-badge">점수 ${score}</span>` : '';
+    const reasonsHtml = reasons.length
+      ? `<div class="cand-reasons">${reasons.map(r => `<span class="reason-chip">${fEscape(r)}</span>`).join('')}</div>`
       : '';
 
     const todayPullback = bz.todayPullbackPct ?? 0;
@@ -566,7 +582,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       <div class="cand-row${isTopSector ? ' cand-row-top-sector' : ''}">
         <div class="cand-top">
           <div class="cand-info">
-            <div class="cand-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small></div>
+            <div class="cand-name">${rankBadge} ${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small> ${scoreBadge}</div>
             <div class="cand-badges">${topSectorBadge}${trendBadge}${newHighBadge}${buyZoneBadge}</div>
             <div class="cand-prices">
               <span class="cand-close">${fmtNumber(c.close)}</span>
@@ -578,6 +594,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
               · 매수권 -${Math.abs(buyZonePullback).toFixed(2)}%
               ${bz.buyZonePrice ? `· 매수가 ${fmtNumber(bz.buyZonePrice)}` : ''}
             </div>
+            ${reasonsHtml}
           </div>
           <div class="cand-chart">
             ${renderMiniPriceChart(c)}
@@ -760,7 +777,7 @@ function buildLeadingCard(leading) {
         ${leading.top.slice(0, 12).map(e => `
           <div class="leading-row ${e.rsNorm >= 70 ? 'is-leading' : ''}">
             <span class="leading-name">${fEscape(e.name)}</span>
-            <span class="leading-rs"><div class="rs-bar"><div class="rs-bar-fill" style="width:${Math.min(100, e.rsNorm)}%; background:${e.rsNorm >= 70 ? '#E53935' : e.rsNorm >= 50 ? '#FB8C00' : '#1E88E5'}"></div></div><span class="rs-text">${e.rsNorm}</span></span>
+            <span class="leading-rs"><div class="rs-bar"><div class="rs-bar-fill" style="width:${rsBarWidth(e.rsNorm)}%; background:${e.rsNorm >= 70 ? '#E53935' : e.rsNorm >= 50 ? '#FB8C00' : '#1E88E5'}"></div></div><span class="rs-text">${e.rsNorm}</span></span>
             <span class="${changeClass(e.ret3m)}">${e.ret3m != null ? (e.ret3m > 0 ? '+' : '') + e.ret3m + '%' : '-'}</span>
             <span class="${changeClass(e.ret1m)}">${e.ret1m != null ? (e.ret1m > 0 ? '+' : '') + e.ret1m + '%' : '-'}</span>
           </div>
