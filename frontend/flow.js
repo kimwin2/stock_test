@@ -628,7 +628,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
     // 순위 + 핵심 근거 키워드 chip (badge/vacancy-now 와 중복되지 않는 것만)
     const rankBadge = `<span class="rank-badge">#${idx + 1}</span>`;
     const keywordChips = deriveCandidateChips(c).map(k =>
-      `<span class="reason-chip reason-${k.tone}">${fEscape(k.text)}</span>`
+      `<span class="badge ${k.cls}">${fEscape(k.text)}</span>`
     ).join('');
 
     const todayPullback = bz.todayPullbackPct ?? 0;
