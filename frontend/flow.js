@@ -571,30 +571,17 @@ function buildStep2Card(leading, crowding, leadingLabels) {
 // 매수 후보 핵심 키워드 chip — 기존 badge/vacancy-now 와 중복되지 않는 것만.
 // (★주도1·2위, ↑MA, 신고가, 매수권 = 이미 badge / 5d%, 매도연속 = 이미 다른 위치)
 // ─────────────────────────────────────────┘
-function deriveCandidateChips(c) {
-  const chips = [];
-
-  // 빈집 (수급 오실레이터 부호 기반)
-  if (c.oscLast != null && c.oscLast < 0) {
-    const pct = c.oscPercentile;
-    const deep = pct != null && pct <= 20;
-    chips.push({ text: deep ? '깊은 빈집' : '빈집', cls: 'badge-blue' });
-  }
-
-  // 250d 고점 근접 — 95%+ (신고가 아닐 때만)
-  if (c.max250d && c.close && c.close / c.max250d >= 0.95 && !c.newHigh250d) {
-    chips.push({ text: '고점근접', cls: 'badge-purple' });
-  }
-
-  // 거래대금 강도 — 과열은 회피 시그널
-  const tvr = c.tradingValueRatio;
-  if (tvr != null) {
-    if (tvr > 2.5) chips.push({ text: '거래 과열', cls: 'badge-red' });
-    else if (tvr > 1.8) chips.push({ text: '거래 다소과열', cls: 'badge-orange' });
-    else if (tvr < 0.6) chips.push({ text: '거래 빠짐', cls: 'badge-gray' });
-  }
-
-  return chips;
+// taerinScore 를 5단계 매수 등급으로 매핑.
+// 종합 점수가 곧 매수 강도이므로 모든 개별 시그널을 한 라벨로 압축.
+function buyGradeBadge(score) {
+  if (score == null) return '';
+  let grade, cls;
+  if (score >= 95)      { grade = 5; cls = 'badge-red'; }
+  else if (score >= 75) { grade = 4; cls = 'badge-orange'; }
+  else if (score >= 55) { grade = 3; cls = 'badge-yellow'; }
+  else if (score >= 30) { grade = 2; cls = 'badge-gray'; }
+  else                  { grade = 1; cls = 'badge-blue'; }
+  return `<span class="badge ${cls}">매수 ${grade}/5</span>`;
 }
 
 // ─────────────────────────────────────────┐
@@ -614,22 +601,10 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
     const bz = c.buyZone || {};
     const sectorLabel = c.sector || '-';
     const isTopSector = TOP_SECTORS.includes(c.sector);
-    const newHighBadge = c.newHigh250d ? '<span class="badge badge-red">250d 신고가</span>'
-                       : c.newHigh50d ? '<span class="badge badge-orange">50d 신고가</span>'
-                       : '';
-    const trendBadge = c.aboveMA10 ? '<span class="badge badge-green">↑10MA</span>'
-                     : c.aboveMA20 ? '<span class="badge badge-yellow">↑20MA</span>'
-                     : '<span class="badge badge-gray">추세약함</span>';
-    const buyZoneBadge = bz.inBuyZone ? '<span class="badge badge-blue">매수권</span>' : '';
-    const topSectorBadge = isTopSector
-      ? `<span class="badge badge-gold">★ 강한섹터 ${TOP_SECTORS.indexOf(c.sector) + 1}위</span>`
-      : '';
 
-    // 순위 + 핵심 근거 키워드 chip (badge/vacancy-now 와 중복되지 않는 것만)
+    // 순위 + 매수 등급 (개별 chip 들은 단일 등급으로 압축)
     const rankBadge = `<span class="rank-badge">#${idx + 1}</span>`;
-    const keywordChips = deriveCandidateChips(c).map(k =>
-      `<span class="badge ${k.cls}">${fEscape(k.text)}</span>`
-    ).join('');
+    const buyBadge = buyGradeBadge(c.taerinScore);
 
     const todayPullback = bz.todayPullbackPct ?? 0;
     const buyZonePullback = bz.avgHighToClosePct ?? 0;
@@ -651,11 +626,11 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
         <div class="cand-top">
           <div class="cand-info">
             <div class="cand-name">${rankBadge} ${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small></div>
-            <div class="cand-badges">${topSectorBadge}${trendBadge}${newHighBadge}${buyZoneBadge}${keywordChips}</div>
             <div class="cand-prices">
               <span class="cand-close">${fmtNumber(c.close)}</span>
               <span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>
               ${vacancyNow}
+              ${buyBadge}
             </div>
             <div class="cand-bz">
               오늘 고가 대비 <strong class="${todayPullback < 0 ? 'down' : 'flat'}">${todayPullback.toFixed(2)}%</strong>
