@@ -153,7 +153,6 @@ function renderDualAxisChart(history, opts = {}) {
   const yMid = padT + innerH * 0.5;
 
   const closeArr = history.map(p => p.close);
-  const ma5 = computeMA(closeArr, 5);
   const ma10 = computeMA(closeArr, 10);
   const projectClose = (v, i) => {
     if (v == null) return null;
@@ -162,7 +161,6 @@ function renderDualAxisChart(history, opts = {}) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   };
   const closePts = closeArr.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
-  const ma5Pts = ma5.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
   const ma10Pts = ma10.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
 
   const oscPts = history.map((p, i) => {
@@ -241,7 +239,6 @@ function renderDualAxisChart(history, opts = {}) {
       ${xAxis}
       <polyline points="${oscPts}" fill="none" stroke="#6A5ACD" stroke-width="1.6"/>
       <polyline points="${closePts}" fill="none" stroke="#1A1A1A" stroke-width="1.6"/>
-      ${ma5Pts ? `<polyline points="${ma5Pts}" fill="none" stroke="#FB8C00" stroke-width="1.2"/>` : ''}
       ${ma10Pts ? `<polyline points="${ma10Pts}" fill="none" stroke="#1E88E5" stroke-width="1.2"/>` : ''}
     </svg>
   `;
@@ -295,9 +292,7 @@ function renderMiniPriceChart(c, opts = {}) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   };
   const capPts = cap.map((v, i) => projectCap(v, i)).filter(Boolean).join(' ');
-  const ma5Series = computeMA(cap, 5);
   const ma10Series = computeMA(cap, 10);
-  const ma5MiniPts = ma5Series.map((v, i) => projectCap(v, i)).filter(Boolean).join(' ');
   const ma10MiniPts = ma10Series.map((v, i) => projectCap(v, i)).filter(Boolean).join(' ');
 
   // 수급 오실레이터 — xlsm '수급오실레이터' 시트의 LineChart 와 동일 형식
@@ -386,7 +381,6 @@ function renderMiniPriceChart(c, opts = {}) {
       <svg viewBox="0 0 ${w} ${h}" class="mini-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
         ${oscOverlay}
         <polyline points="${capPts}" fill="none" stroke="#1A1A1A" stroke-width="1.5"/>
-        ${ma5MiniPts ? `<polyline points="${ma5MiniPts}" fill="none" stroke="#43A047" stroke-width="1.2" vector-effect="non-scaling-stroke"/>` : ''}
         ${ma10MiniPts ? `<polyline points="${ma10MiniPts}" fill="none" stroke="#1E88E5" stroke-width="1.2" vector-effect="non-scaling-stroke"/>` : ''}
         ${axisLabels}
       </svg>
@@ -522,7 +516,6 @@ function buildStep1Card(sentiment, cash) {
         <div class="dual-legend">
           <span class="legend-fg">━ Fear &amp; Greed Oscillator</span>
           <span class="legend-price">━ 지수</span>
-          <span class="legend-ma5">━ MA5</span>
           <span class="legend-ma10">━ MA10</span>
         </div>
       </div>
@@ -641,7 +634,6 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       <div class="cand-legend">
         <span><span class="legend-line black"></span>시가총액(좌)</span>
         <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
-        <span><span class="legend-line green"></span>MA5</span>
         <span><span class="legend-line blue"></span>MA10</span>
         <span class="legend-tip">참고 자료(.xlsm) 수급오실레이터 동일 — (외+기 5일누적/시총) 의 EMA12-EMA26 - Signal9 · 점선=상/하 10·25% percentile · ★ 강한섹터 1·2위 · 🔥 현재 매도 연속</span>
       </div>
@@ -700,7 +692,6 @@ function buildLeadingValueCard(items, leadingLabels) {
       <div class="cand-legend">
         <span><span class="legend-line black"></span>시가총액(좌)</span>
         <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
-        <span><span class="legend-line green"></span>MA5</span>
         <span><span class="legend-line blue"></span>MA10</span>
         <span class="legend-tip">매수 후보(빈집 전략)에 안 잡히지만 외인+기관이 가장 큰 돈을 베팅 중인 주도주. 게이지 "찼음"=수급 채워짐.</span>
       </div>
