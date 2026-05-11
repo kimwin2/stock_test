@@ -103,18 +103,34 @@ function renderGauge(value, label) {
 }
 
 // ─────────────────────────────────────────┐
+// 단순 이동평균 (null safe)                  │
+// ─────────────────────────────────────────┘
+function computeMA(values, period) {
+  const out = new Array(values.length).fill(null);
+  for (let i = period - 1; i < values.length; i++) {
+    let sum = 0, valid = 0;
+    for (let j = i - period + 1; j <= i; j++) {
+      const v = values[j];
+      if (v != null && !isNaN(v)) { sum += v; valid++; }
+    }
+    if (valid === period) out[i] = sum / period;
+  }
+  return out;
+}
+
+// ─────────────────────────────────────────┐
 // Dual-axis chart: 지수 + Fear & Greed Oscillator
 //
 // 참고 자료 그래프와 동일한 시각:
 //   - 좌측 y축: Fear & Greed Oscillator (보라색, ±0.03 스케일)
-//   - 우측 y축: 지수 (검정, 실제 가격 스케일)
+//   - 우측 y축: 지수 (검정, 실제 가격 스케일) + MA5/MA10 이동평균선
 //   - 0선만 표시, fill 없음, 가이드 없음
 //   - matplotlib 스타일의 옅은 그리드
 // ─────────────────────────────────────────┘
 function renderDualAxisChart(history, opts = {}) {
   const w = opts.width || 360;
   const h = opts.height || 130;
-  const padL = 30, padR = 32, padT = 6, padB = 22;
+  const padL = 30, padR = 38, padT = 6, padB = 22;
 
   if (!history || history.length < 5) return '<div class="sparkline-empty">데이터 부족</div>';
 
@@ -136,12 +152,18 @@ function renderDualAxisChart(history, opts = {}) {
   const stepX = innerW / (history.length - 1);
   const yMid = padT + innerH * 0.5;
 
-  const closePts = history.map((p, i) => {
-    if (p.close == null) return null;
+  const closeArr = history.map(p => p.close);
+  const ma5 = computeMA(closeArr, 5);
+  const ma10 = computeMA(closeArr, 10);
+  const projectClose = (v, i) => {
+    if (v == null) return null;
     const x = padL + i * stepX;
-    const y = padT + (1 - (p.close - cMin) / cSpan) * innerH;
+    const y = padT + (1 - (v - cMin) / cSpan) * innerH;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).filter(Boolean).join(' ');
+  };
+  const closePts = closeArr.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
+  const ma5Pts = ma5.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
+  const ma10Pts = ma10.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
 
   const oscPts = history.map((p, i) => {
     if (p.oscillator == null) return null;
@@ -219,6 +241,8 @@ function renderDualAxisChart(history, opts = {}) {
       ${xAxis}
       <polyline points="${oscPts}" fill="none" stroke="#6A5ACD" stroke-width="1.6"/>
       <polyline points="${closePts}" fill="none" stroke="#1A1A1A" stroke-width="1.6"/>
+      ${ma5Pts ? `<polyline points="${ma5Pts}" fill="none" stroke="#FB8C00" stroke-width="1.2"/>` : ''}
+      ${ma10Pts ? `<polyline points="${ma10Pts}" fill="none" stroke="#1E88E5" stroke-width="1.2"/>` : ''}
     </svg>
   `;
 }
@@ -264,12 +288,17 @@ function renderMiniPriceChart(c, opts = {}) {
   const capSpan = capMax - capMin || 1;
   const stepX = w / (cap.length - 1);
 
-  const capPts = cap.map((v, i) => {
+  const projectCap = (v, i) => {
     if (v == null) return null;
     const x = i * stepX;
     const y = 1 + (1 - (v - capMin) / capSpan) * (chartH - 2);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).filter(Boolean).join(' ');
+  };
+  const capPts = cap.map((v, i) => projectCap(v, i)).filter(Boolean).join(' ');
+  const ma5Series = computeMA(cap, 5);
+  const ma10Series = computeMA(cap, 10);
+  const ma5MiniPts = ma5Series.map((v, i) => projectCap(v, i)).filter(Boolean).join(' ');
+  const ma10MiniPts = ma10Series.map((v, i) => projectCap(v, i)).filter(Boolean).join(' ');
 
   // 수급 오실레이터 — xlsm '수급오실레이터' 시트의 LineChart 와 동일 형식
   //   선   = osc 자체 (= MACD Histogram = MACD − Signal9), 보라색
@@ -357,6 +386,8 @@ function renderMiniPriceChart(c, opts = {}) {
       <svg viewBox="0 0 ${w} ${h}" class="mini-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
         ${oscOverlay}
         <polyline points="${capPts}" fill="none" stroke="#1A1A1A" stroke-width="1.5"/>
+        ${ma5MiniPts ? `<polyline points="${ma5MiniPts}" fill="none" stroke="#43A047" stroke-width="1.2" vector-effect="non-scaling-stroke"/>` : ''}
+        ${ma10MiniPts ? `<polyline points="${ma10MiniPts}" fill="none" stroke="#1E88E5" stroke-width="1.2" vector-effect="non-scaling-stroke"/>` : ''}
         ${axisLabels}
       </svg>
       <span class="mini-chart-label-right">
@@ -491,6 +522,8 @@ function buildStep1Card(sentiment, cash) {
         <div class="dual-legend">
           <span class="legend-fg">━ Fear &amp; Greed Oscillator</span>
           <span class="legend-price">━ 지수</span>
+          <span class="legend-ma5">━ MA5</span>
+          <span class="legend-ma10">━ MA10</span>
         </div>
       </div>
     </div>
@@ -576,24 +609,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
     const sectorLabel = c.sector || '-';
     const isTopSector = TOP_SECTORS.includes(c.sector);
 
-    // 순위 + 매수 등급 (개별 chip 들은 단일 등급으로 압축)
     const rankBadge = `<span class="rank-badge">#${idx + 1}</span>`;
-    const buyBadge = buyGradeBadge(c.taerinScore);
-
-    const todayPullback = bz.todayPullbackPct ?? 0;
-    const buyZonePullback = bz.avgHighToClosePct ?? 0;
-
-    // 참고 자료 관점: 지금 비어있는 상태인지 — 매도 연속 일수 강조
-    const sellStreak = c.currentVacancyDays ?? 0;
-    const sellLast3 = c.last3DaysSellCount ?? 0;
-    let vacancyNow = '';
-    if (sellStreak >= 2) {
-      vacancyNow = `<span class="vacancy-now red">🔥 ${sellStreak}일 연속 매도 중</span>`;
-    } else if (sellLast3 >= 2) {
-      vacancyNow = `<span class="vacancy-now orange">⚡ 최근 3일 중 ${sellLast3}일 매도</span>`;
-    } else if (c.currentlyVacant) {
-      vacancyNow = `<span class="vacancy-now orange">⚡ 매도 우위</span>`;
-    }
 
     return `
       <div class="cand-row${isTopSector ? ' cand-row-top-sector' : ''}">
@@ -603,13 +619,6 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
             <div class="cand-prices">
               <span class="cand-close">${fmtNumber(c.close)}</span>
               <span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>
-              ${vacancyNow}
-              ${buyBadge}
-            </div>
-            <div class="cand-bz">
-              오늘 고가 대비 <strong class="${todayPullback < 0 ? 'down' : 'flat'}">${todayPullback.toFixed(2)}%</strong>
-              · 매수권 -${Math.abs(buyZonePullback).toFixed(2)}%
-              ${bz.buyZonePrice ? `· 매수가 ${fmtNumber(bz.buyZonePrice)}` : ''}
             </div>
           </div>
           <div class="cand-chart">
@@ -632,6 +641,8 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       <div class="cand-legend">
         <span><span class="legend-line black"></span>시가총액(좌)</span>
         <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
+        <span><span class="legend-line green"></span>MA5</span>
+        <span><span class="legend-line blue"></span>MA10</span>
         <span class="legend-tip">참고 자료(.xlsm) 수급오실레이터 동일 — (외+기 5일누적/시총) 의 EMA12-EMA26 - Signal9 · 점선=상/하 10·25% percentile · ★ 강한섹터 1·2위 · 🔥 현재 매도 연속</span>
       </div>
     </div>
@@ -658,33 +669,16 @@ function buildLeadingValueCard(items, leadingLabels) {
     const topSectorBadge = isTopSector
       ? `<span class="badge badge-gold">★ 강한섹터 ${TOP_SECTORS.indexOf(c.sector) + 1}위</span>`
       : '';
-    const newHighBadge = c.newHigh250d ? '<span class="badge badge-red">250d 신고가</span>'
-                       : c.newHigh50d ? '<span class="badge badge-orange">50d 신고가</span>'
-                       : '';
-    const trendBadge = c.aboveMA10 ? '<span class="badge badge-green">↑10MA</span>'
-                     : c.aboveMA20 ? '<span class="badge badge-yellow">↑20MA</span>'
-                     : '<span class="badge badge-gray">추세약함</span>';
-    const buyZoneBadge = bz.inBuyZone ? '<span class="badge badge-blue">매수권</span>' : '';
-    const valueBadge = `<span class="badge badge-purple">💰 거래대금 ${fmtBillion(c.tradingValue5dAvg)}</span>`;
-
-    const todayPullback = bz.todayPullbackPct ?? 0;
-    const buyZonePullback = bz.avgHighToClosePct ?? 0;
 
     return `
       <div class="cand-row${isTopSector ? ' cand-row-top-sector' : ''}">
         <div class="cand-top">
           <div class="cand-info">
             <div class="cand-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(c.sector || '-')}</small></div>
-            <div class="cand-badges">${topSectorBadge}${valueBadge}${trendBadge}${newHighBadge}${buyZoneBadge}</div>
             <div class="cand-prices">
               <span class="cand-close">${fmtNumber(c.close)}</span>
               ${c.ret5d != null ? `<span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>` : ''}
-              <span class="lvt-flow-inline ${flowClass}"><strong>${flowLabel}</strong> 외인 ${fmtBillion(c.foreignerNet5d)} · 기관 ${fmtBillion(c.organNet5d)}</span>
-            </div>
-            <div class="cand-bz">
-              오늘 고가 대비 <strong class="${todayPullback < 0 ? 'down' : 'flat'}">${todayPullback.toFixed(2)}%</strong>
-              · 매수권 -${Math.abs(buyZonePullback).toFixed(2)}%
-              ${bz.buyZonePrice ? `· 매수가 ${fmtNumber(bz.buyZonePrice)}` : ''}
+              ${topSectorBadge}
             </div>
           </div>
           <div class="cand-chart">
@@ -706,6 +700,8 @@ function buildLeadingValueCard(items, leadingLabels) {
       <div class="cand-legend">
         <span><span class="legend-line black"></span>시가총액(좌)</span>
         <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
+        <span><span class="legend-line green"></span>MA5</span>
+        <span><span class="legend-line blue"></span>MA10</span>
         <span class="legend-tip">매수 후보(빈집 전략)에 안 잡히지만 외인+기관이 가장 큰 돈을 베팅 중인 주도주. 게이지 "찼음"=수급 채워짐.</span>
       </div>
     </div>
