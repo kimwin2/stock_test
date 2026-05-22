@@ -118,6 +118,17 @@ function computeMA(values, period) {
   return out;
 }
 
+// 현재 MDD (%) — 시계열 누적 고점 대비 현재 낙폭 (참고 자료 정의)
+//   mdd = (current / running_max) - 1
+function computeCurrentMddPct(closes) {
+  const arr = closes.filter(v => v != null && !isNaN(v));
+  if (arr.length < 2) return null;
+  let peak = -Infinity;
+  for (const v of arr) if (v > peak) peak = v;
+  if (peak <= 0) return null;
+  return (arr[arr.length - 1] / peak - 1) * 100;
+}
+
 // ─────────────────────────────────────────┐
 // Dual-axis chart: 지수 + Fear & Greed Oscillator
 //
@@ -153,6 +164,7 @@ function renderDualAxisChart(history, opts = {}) {
   const yMid = padT + innerH * 0.5;
 
   const closeArr = history.map(p => p.close);
+  const ma3 = computeMA(closeArr, 3);
   const ma10 = computeMA(closeArr, 10);
   const projectClose = (v, i) => {
     if (v == null) return null;
@@ -161,6 +173,7 @@ function renderDualAxisChart(history, opts = {}) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   };
   const closePts = closeArr.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
+  const ma3Pts = ma3.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
   const ma10Pts = ma10.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
 
   const oscPts = history.map((p, i) => {
@@ -239,6 +252,7 @@ function renderDualAxisChart(history, opts = {}) {
       ${xAxis}
       <polyline points="${oscPts}" fill="none" stroke="#6A5ACD" stroke-width="1.6"/>
       <polyline points="${closePts}" fill="none" stroke="#1A1A1A" stroke-width="1.6"/>
+      ${ma3Pts ? `<polyline points="${ma3Pts}" fill="none" stroke="#FB8C00" stroke-width="1.1"/>` : ''}
       ${ma10Pts ? `<polyline points="${ma10Pts}" fill="none" stroke="#1E88E5" stroke-width="1.2"/>` : ''}
     </svg>
   `;
@@ -469,6 +483,28 @@ function renderBuySafetyPill(safety) {
 // ─────────────────────────────────────────┐
 // CARD: STEP 1 — 시장 심리 + 현금 비중 통합 │
 // ─────────────────────────────────────────┘
+function renderMddMa3(history, close) {
+  if (!history || history.length < 3) return '';
+  const closes = history.map(p => p.close);
+  const mdd = computeCurrentMddPct(closes);
+  const ma3Arr = computeMA(closes, 3);
+  const ma3 = ma3Arr[ma3Arr.length - 1];
+  const mddStr = mdd != null ? `${mdd >= 0 ? '+' : ''}${mdd.toFixed(2)}%` : '-';
+  const mddColor = mdd == null ? '#999'
+                 : mdd <= -15 ? '#E53935'
+                 : mdd <= -10 ? '#FB8C00'
+                 : mdd <= -5 ? '#FDD835'
+                 : '#43A047';
+  const ma3Str = ma3 != null ? fmtNumber(Number(ma3.toFixed(2))) : '-';
+  const arrow = (ma3 != null && close != null)
+              ? (close >= ma3 ? '<span style="color:#E53935">▲</span>' : '<span style="color:#1E88E5">▼</span>')
+              : '';
+  return `
+    <span class="sentiment-mdd" title="현재 누적 고점 대비 낙폭 (최근 120일)">MDD <strong style="color:${mddColor}">${mddStr}</strong></span>
+    <span class="sentiment-ma3" title="3일 이동평균선 — 종가가 위/아래인지로 단기 추세 판단">3일선 ${ma3Str} ${arrow}</span>
+  `;
+}
+
 function buildStep1Card(sentiment, cash) {
   const k = sentiment?.kospi || {};
   const q = sentiment?.kosdaq || {};
@@ -500,6 +536,7 @@ function buildStep1Card(sentiment, cash) {
             <span class="sentiment-zone">${fEscape(k.zone || '-')}</span>
             <span class="sentiment-fg">F&G ${k.fearGreed?.toFixed(1) ?? '-'} · Osc ${k.oscillator?.toFixed(2) ?? '-'}</span>
             <span class="sentiment-close">종가 ${fmtNumber(k.close)}</span>
+            ${renderMddMa3(k.history, k.close)}
           </div>
           ${renderDualAxisChart(k.history)}
         </div>
@@ -510,12 +547,14 @@ function buildStep1Card(sentiment, cash) {
             <span class="sentiment-zone">${fEscape(q.zone || '-')}</span>
             <span class="sentiment-fg">F&G ${q.fearGreed?.toFixed(1) ?? '-'} · Osc ${q.oscillator?.toFixed(2) ?? '-'}</span>
             <span class="sentiment-close">종가 ${fmtNumber(q.close)}</span>
+            ${renderMddMa3(q.history, q.close)}
           </div>
           ${renderDualAxisChart(q.history)}
         </div>
         <div class="dual-legend">
           <span class="legend-fg">━ Fear &amp; Greed Oscillator</span>
           <span class="legend-price">━ 지수</span>
+          <span class="legend-ma3">━ MA3</span>
           <span class="legend-ma10">━ MA10</span>
         </div>
       </div>
