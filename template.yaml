@@ -181,10 +181,9 @@ Resources:
           AllowOrigins:
             - '*'
           AllowMethods:
-            - GET
-            - OPTIONS
+            - '*'
           AllowHeaders:
-            - Content-Type
+            - '*'
           MaxAge: 3600
 
   TelegramSignalCollectorFunction:
