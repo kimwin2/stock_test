@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Iterable
 
 import numpy as np
@@ -423,3 +424,119 @@ def rank_vacancy_by_sector(
         "byLeadingSector": by_sector,
         "totalAnalyzed": int(len(df)),
     }
+
+
+# ─────────────────────────────────────────────────────────────
+# Universe chart bundle — 검색용 lightweight chart.
+#   목적: 종목 검색에서 universe 600 전 종목을 다룰 수 있도록.
+#   포함: priceHistory60d, capHistory60d, dateHistory60d, ma10, ret5d
+#   생략: supplyOscHistory, vacancyPercentile (osc 데이터는 무거워 후보 40개만)
+# ─────────────────────────────────────────────────────────────
+def _build_one_lightweight_chart(
+    code: str,
+    name: str,
+    sector: str,
+    market: str,
+    market_cap: float | None,
+) -> dict | None:
+    try:
+        df = fetch_stock_ohlcv(code, days=300)
+    except Exception:
+        return None
+    if df.empty or len(df) < 10:
+        return None
+
+    recent = df.tail(60).copy()
+    price_hist = [round(float(v), 0) for v in recent["Close"]]
+    date_hist = [d.strftime("%Y-%m-%d") for d in recent.index]
+
+    last_close = float(df["Close"].iloc[-1])
+    ma10 = float(df["Close"].rolling(10).mean().iloc[-1]) if len(df) >= 10 else None
+
+    ret5d = None
+    if len(df) > 6:
+        ret5d = round((last_close / float(df["Close"].iloc[-6]) - 1) * 100, 2)
+
+    cap_history_won: list[float] = []
+    if market_cap and last_close > 0:
+        shares = float(market_cap) / float(last_close)
+        cap_history_won = [round(float(c) * shares, 0) for c in price_hist]
+
+    return {
+        "code": code,
+        "name": name,
+        "sector": sector,
+        "market": market,
+        "marketCap": int(market_cap) if market_cap else None,
+        "close": round(last_close, 0),
+        "priceHistory60d": price_hist,
+        "capHistory60d": cap_history_won,
+        "dateHistory60d": date_hist,
+        "ma10": round(ma10, 0) if ma10 is not None else None,
+        "ret5d": ret5d,
+    }
+
+
+def build_universe_metadata(universe: pd.DataFrame) -> list[dict]:
+    """유니버스 전 종목의 검색용 metadata (code, name, sector, market, marketCap).
+
+    차트 데이터 없이 종목명 ↔ 종목코드 매핑만 필요할 때 사용 (검색바 자동완성).
+    FDR 호출 없음 — 즉시 반환.
+    """
+    out: list[dict] = []
+    for _, row in universe.iterrows():
+        code = row.get("code")
+        if not code:
+            continue
+        market_cap = row.get("marketCap")
+        out.append({
+            "code": code,
+            "name": row.get("name", ""),
+            "sector": row.get("sector", ""),
+            "market": row.get("market", ""),
+            "marketCap": int(market_cap) if market_cap is not None else None,
+        })
+    return out
+
+
+def build_universe_chart_bundle(
+    universe: pd.DataFrame,
+    exclude_codes: Iterable[str] | None = None,
+    max_workers: int = 12,
+    progress_every: int = 100,
+) -> list[dict]:
+    """유니버스 전 종목의 lightweight chart bundle (FDR 만 사용, osc 없음).
+
+    이미 full enrichment 가 적용된 코드는 exclude_codes 로 제외해 중복 페이로드 방지.
+    """
+    exclude = set(exclude_codes or [])
+    tasks: list[tuple] = []
+    for _, row in universe.iterrows():
+        code = row["code"]
+        if code in exclude:
+            continue
+        market_cap = float(row["marketCap"]) if row.get("marketCap") is not None else None
+        tasks.append(
+            (code, row.get("name", ""), row.get("sector", ""), row.get("market", ""), market_cap)
+        )
+
+    bundles: list[dict] = []
+    total = len(tasks)
+    completed = 0
+    if total == 0:
+        return bundles
+
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futures = {ex.submit(_build_one_lightweight_chart, *t): t[0] for t in tasks}
+        for fut in as_completed(futures):
+            try:
+                res = fut.result()
+            except Exception:
+                res = None
+            if res:
+                bundles.append(res)
+            completed += 1
+            if progress_every and completed % progress_every == 0:
+                print(f"  [.] chart bundle {completed}/{total}")
+
+    return bundles

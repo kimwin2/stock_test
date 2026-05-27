@@ -912,11 +912,11 @@ function buildSearchIndex() {
   if (!flowData) return [];
   const seen = new Set();
   const items = [];
-  const pushAll = (arr) => {
+  // 1차 — chart history 가 있는 종목 (모달 상단에 수급 osc 차트 표시 가능)
+  const pushWithChart = (arr) => {
     if (!arr) return;
     arr.forEach(c => {
       if (!c || !c.code || seen.has(c.code)) return;
-      // 차트에 필요한 최소 데이터 (capHistory60d 또는 priceHistory60d) 가 있어야 함
       const hasChart = (c.capHistory60d && c.capHistory60d.length >= 2)
                     || (c.priceHistory60d && c.priceHistory60d.length >= 2);
       if (!hasChart) return;
@@ -924,9 +924,19 @@ function buildSearchIndex() {
       items.push(c);
     });
   };
-  pushAll(flowData.buyCandidates);
-  pushAll(flowData.leadingValueTop);
-  pushAll(flowData.universeCharts);  // KOSPI/KOSDAQ 전 유니버스 (osc 없음)
+  // 2차 — metadata only (chart history 는 없지만 검색은 됨, 모달은 캔들차트만)
+  const pushMetaOnly = (arr) => {
+    if (!arr) return;
+    arr.forEach(c => {
+      if (!c || !c.code || seen.has(c.code)) return;
+      if (!c.name) return;
+      seen.add(c.code);
+      items.push(c);
+    });
+  };
+  pushWithChart(flowData.buyCandidates);
+  pushWithChart(flowData.leadingValueTop);
+  pushMetaOnly(flowData.universeMetadata);
   return items;
 }
 
@@ -950,7 +960,7 @@ function renderSuggestions(matches) {
   const box = document.getElementById('search-suggestions');
   if (!box) return;
   if (!matches || matches.length === 0) {
-    box.innerHTML = '<div class="search-suggestion-empty">일치하는 종목이 없습니다 (KOSPI/KOSDAQ 시총 상위 ~600 종목 검색)</div>';
+    box.innerHTML = '<div class="search-suggestion-empty">일치하는 종목이 없습니다 (KOSPI/KOSDAQ 시총 상위 600 유니버스 검색)</div>';
     box.hidden = false;
     return;
   }
@@ -973,13 +983,46 @@ function findStockByCode(code) {
   return buildSearchIndex().find(c => c.code === code) || null;
 }
 
-// 검색 결과 → 캔들 차트 모달로 직접 라우팅.
-// 모달 생성/닫기/탭/SVG 렌더는 모두 chart.js 가 담당.
+// 검색 결과 → 통합 모달 (수급 osc 차트 + 캔들 차트).
+//   - 위: renderMiniPriceChart (시가총액 + MA10 + 수급 오실레이터) + supply gauge
+//        (capHistory60d 가 있는 종목 — buyCandidates / leadingValueTop 만)
+//   - 아래: chart.js 의 캔들차트 (모든 종목)
+function buildTopOscHTML(c) {
+  const hasChart = (c.capHistory60d && c.capHistory60d.length >= 2)
+                || (c.priceHistory60d && c.priceHistory60d.length >= 2);
+  if (!hasChart) return '';
+
+  const sectorLabel = c.sector || '-';
+  const priceLine = `
+    <div class="search-modal-top-meta">
+      <span class="search-modal-top-name">${fEscape(c.name)}</span>
+      <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small>
+      <span class="cand-close">${fmtNumber(c.close)}</span>
+      ${c.ret5d != null ? `<span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>` : ''}
+    </div>
+  `;
+  const gauge = (c.vacancyPercentile != null)
+    ? renderSupplyGauge(c.vacancyPercentile, c.vacancyZone, c.institutionNet5d)
+    : '';
+  return `
+    <div class="search-modal-osc-wrap">
+      ${priceLine}
+      <div class="search-modal-osc-chart">${renderMiniPriceChart(c)}</div>
+      ${gauge}
+      <div class="search-modal-legend">
+        <span><span class="legend-line black"></span>시가총액(좌)</span>
+        <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
+        <span><span class="legend-line blue"></span>MA10</span>
+      </div>
+    </div>
+  `;
+}
+
 function openStockModal(c) {
   if (!c || !c.code) return;
-  if (typeof window.openStockChart === 'function') {
-    window.openStockChart(c.code, c.name);
-  }
+  if (typeof window.openStockChart !== 'function') return;
+  const topHTML = buildTopOscHTML(c);
+  window.openStockChart(c.code, c.name, { topHTML });
 }
 
 async function ensureFlowLoaded() {

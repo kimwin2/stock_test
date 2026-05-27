@@ -264,6 +264,38 @@ body {
   font-size: 0.9rem;
 }
 
+/* === 검색 모달 — 통합 레이아웃 (상단 osc 차트 + 하단 캔들 차트) === */
+.modal-top-section {
+  padding: 6px 4px 10px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 8px;
+}
+.search-modal-osc-wrap { display: block; }
+.search-modal-top-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.search-modal-top-name {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.search-modal-top-meta small { color: var(--text-muted); font-size: 0.72rem; }
+.search-modal-osc-chart .mini-chart { height: 180px; }
+.search-modal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
 /* === Clickable stock rows (chart 모달 트리거) === */
 .cand-row.clickable,
 .ti-row.clickable {

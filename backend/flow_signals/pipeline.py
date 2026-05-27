@@ -24,7 +24,12 @@ from .market_sentiment import build_market_sentiment
 from .relative_strength import build_leading_sectors
 from .sector_skew import compute_crowding_index
 from .universe import build_universe
-from .supply_vacancy import collect_universe_vacancy, rank_vacancy_by_sector, enrich_with_chart_and_buyzone
+from .supply_vacancy import (
+    collect_universe_vacancy,
+    rank_vacancy_by_sector,
+    enrich_with_chart_and_buyzone,
+    build_universe_metadata,
+)
 from .new_highs import detect_new_highs_for_codes
 from .sector_flows import aggregate_by_sector, top_movers_per_sector
 from .trading_intensity import compute_ti_for_codes
@@ -534,6 +539,20 @@ def build_flow_dashboard(
                 })
 
     # ─────────────────────────────────────────
+    # Step 9b: 유니버스 전 종목 검색용 metadata (이름↔코드 매핑)
+    #   검색바에서 universe 600 어떤 종목이든 자동완성 가능하게 한다.
+    #   chart history 는 무거워 매수 후보 40 종목만 — 나머지는 chart API 가
+    #   on-demand 로 캔들차트 fetch.
+    # ─────────────────────────────────────────
+    print(f"\n[Step 9b] 유니버스 metadata (검색용)")
+    try:
+        universe_metadata = build_universe_metadata(universe)
+        print(f"   metadata: {len(universe_metadata)}개")
+    except Exception as e:
+        print(f"  [!] universe metadata 실패: {e}")
+        universe_metadata = []
+
+    # ─────────────────────────────────────────
     # Step 10: Cash recommendation
     # ─────────────────────────────────────────
     cash_recommendation = build_cash_recommendation(market_sentiment, crowding)
@@ -558,6 +577,7 @@ def build_flow_dashboard(
         "newHighs": new_highs,
         "tradingIntensity": ti_results,
         "exitSignals": exit_signals[:15],
+        "universeMetadata": universe_metadata,
         "universeSize": int(len(universe)),
         "vacancyAnalyzed": int(len(vacancy_df)),
     }

@@ -49,6 +49,7 @@ const chartState = {
   data: null,            // 마지막으로 받은 응답 {code, name, candles, ...}
   loadingToken: 0,       // race 방지용 토큰
   cache: new Map(),      // 모달 열린 동안만 메모리 캐시 (key: code:timeframe)
+  topHTML: '',           // 모달 상단에 삽입할 부가 HTML (검색 → 수급 osc 차트)
 };
 
 // ─────────────────────────────────────────┐
@@ -301,8 +302,12 @@ function chartMetaHTML(data) {
 }
 
 function renderModalBody(state, body) {
+  const topSection = chartState.topHTML
+    ? `<div class="modal-top-section">${chartState.topHTML}</div>`
+    : '';
   if (state.error) {
     body.innerHTML = `
+      ${topSection}
       ${chartHeaderHTML()}
       <div class="chart-error">
         <p>차트 데이터를 불러올 수 없습니다.</p>
@@ -314,6 +319,7 @@ function renderModalBody(state, body) {
   }
   if (state.loading) {
     body.innerHTML = `
+      ${topSection}
       ${chartHeaderHTML()}
       <div class="chart-loading">
         <div class="chart-spinner"></div>
@@ -323,6 +329,7 @@ function renderModalBody(state, body) {
     return;
   }
   body.innerHTML = `
+    ${topSection}
     ${chartHeaderHTML()}
     <div class="chart-canvas">
       ${renderCandlestickSVG(state.data?.candles || [], chartState.timeframe)}
@@ -451,6 +458,7 @@ function openChartModal(code, name, opts = {}) {
   chartState.timeframe = opts.timeframe || 'day';
   chartState.data = null;
   chartState.cache = new Map();   // 모달 새로 열 때마다 캐시 reset
+  chartState.topHTML = opts.topHTML || '';
   modal.removeAttribute('hidden');
   document.body.style.overflow = 'hidden';
   loadChart('init');
@@ -464,6 +472,7 @@ function closeChartModal() {
   chartState.open = false;
   chartState.data = null;
   chartState.cache.clear();
+  chartState.topHTML = '';
   // body 비우기 — 다음 열림 때 깨끗하게
   const body = document.getElementById('stock-modal-body');
   if (body) body.innerHTML = '';
