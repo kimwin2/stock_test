@@ -511,31 +511,20 @@ function buildStep1Card(sentiment, cash) {
   const k = sentiment?.kospi || {};
   const q = sentiment?.kosdaq || {};
   const buySafety = sentiment?.buySafety || null;
-  const stages = buySafety?.stages || null;
   const kSafety = buySafety?.kospi || null;
   const qSafety = buySafety?.kosdaq || null;
-  const cashPct = cash?.cashPct ?? null;
-  const cashLevel = cash?.level || '';
-  const cashColor = cashPct == null ? '#999'
-                  : cashPct >= 30 ? '#E53935'
-                  : cashPct >= 15 ? '#FB8C00'
-                  : cashPct >= 5 ? '#FDD835'
-                  : '#43A047';
 
   return `
     <div class="flow-card flow-card-step1 flow-step1">
       <div class="card-header step-header">
         <span class="step-num">STEP 1</span>
-        <span class="card-theme-name">📊 오늘 매수해도 되나?</span>
-        ${cashPct != null ? `<span class="cash-pill" style="background:${cashColor}">현금 ${cashPct}%</span>` : ''}
+        <span class="card-theme-name">시장 상태</span>
       </div>
       <div class="step1-body">
-        ${cashLevel ? `<div class="step1-cash-line">${fEscape(cashLevel)}</div>` : ''}
         <div class="step1-row">
           <div class="step1-row-head">
             <strong>${fEscape(k.label || 'KOSPI')}</strong>
             ${renderBuySafetyPill(kSafety)}
-            <span class="sentiment-zone">${fEscape(k.zone || '-')}</span>
             <span class="sentiment-fg">F&G ${k.fearGreed?.toFixed(1) ?? '-'} · Osc ${k.oscillator?.toFixed(2) ?? '-'}</span>
             <span class="sentiment-close">종가 ${fmtNumber(k.close)}</span>
             ${renderMddMa3(k.history, k.close)}
@@ -546,7 +535,6 @@ function buildStep1Card(sentiment, cash) {
           <div class="step1-row-head">
             <strong>${fEscape(q.label || 'KOSDAQ')}</strong>
             ${renderBuySafetyPill(qSafety)}
-            <span class="sentiment-zone">${fEscape(q.zone || '-')}</span>
             <span class="sentiment-fg">F&G ${q.fearGreed?.toFixed(1) ?? '-'} · Osc ${q.oscillator?.toFixed(2) ?? '-'}</span>
             <span class="sentiment-close">종가 ${fmtNumber(q.close)}</span>
             ${renderMddMa3(q.history, q.close)}
@@ -586,7 +574,7 @@ function buildStep2Card(leading, crowding, leadingLabels) {
     <div class="flow-card flow-card-step2 flow-step2">
       <div class="card-header step-header">
         <span class="step-num">STEP 2</span>
-        <span class="card-theme-name">🔥 어떤 섹터가 강한가?</span>
+        <span class="card-theme-name">주도 업종</span>
         ${crowdLatest != null ? `<span class="crowd-pill" style="background:${sigColor}">쏠림 ${crowdLatest.toFixed(0)} ${fEscape(crowdSignal)}</span>` : ''}
       </div>
       <div class="step2-body">
@@ -601,7 +589,7 @@ function buildStep2Card(leading, crowding, leadingLabels) {
             </div>
           `).join('')}
         </div>
-        ${flowSectors ? `<div class="step2-flow">📈 자금 유입 섹터: <strong>${fEscape(flowSectors)}</strong></div>` : ''}
+        ${flowSectors ? `<div class="step2-flow">자금 유입 섹터: <strong>${fEscape(flowSectors)}</strong></div>` : ''}
       </div>
     </div>
   `;
@@ -630,23 +618,18 @@ function buyGradeBadge(score) {
 // ─────────────────────────────────────────┘
 function buildBuyCandidatesCard(candidates, leadingLabels) {
   if (!candidates || candidates.length === 0) {
-    return `<div class="flow-card flow-card-candidates flow-step3"><div class="card-header step-header"><span class="step-num">STEP 3</span><span class="card-theme-name">🎯 어떤 종목? — 매수 후보</span></div><div class="empty-msg">현재 후보 없음</div></div>`;
+    return `<div class="flow-card flow-card-candidates flow-step3"><div class="card-header step-header"><span class="step-num">STEP 3</span><span class="card-theme-name">매수 후보</span></div><div class="empty-msg">현재 후보 없음</div></div>`;
   }
   const sectorTag = leadingLabels?.length ? leadingLabels.slice(0, 5).join(', ') : '';
   // 참고 자료: 한 종목 4-5% × 20개. 5개보다 적으면 의미 없음.
   const SHOW_N = 20;
-  // 강한 섹터 1·2위 (STEP 2 의 leadingSectorLabels 첫 두 개)
-  const TOP_SECTORS = (leadingLabels || []).slice(0, 2);
 
   const rows = candidates.slice(0, SHOW_N).map((c, idx) => {
-    const bz = c.buyZone || {};
     const sectorLabel = c.sector || '-';
-    const isTopSector = TOP_SECTORS.includes(c.sector);
-
     const rankBadge = `<span class="rank-badge">#${idx + 1}</span>`;
 
     return `
-      <div class="cand-row clickable${isTopSector ? ' cand-row-top-sector' : ''}" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
+      <div class="cand-row clickable" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
         <div class="cand-top">
           <div class="cand-info">
             <div class="cand-name">${rankBadge} ${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small></div>
@@ -668,15 +651,14 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
     <div class="flow-card flow-card-candidates flow-step3">
       <div class="card-header step-header">
         <span class="step-num">STEP 3</span>
-        <span class="card-theme-name">🎯 어떤 종목? ${sectorTag ? `<small>(${fEscape(sectorTag)})</small>` : ''}</span>
-        <span class="card-volume">${Math.min(SHOW_N, candidates.length)} / ${candidates.length}</span>
+        <span class="card-theme-name">매수 후보 ${sectorTag ? `<small>(${fEscape(sectorTag)})</small>` : ''}</span>
       </div>
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">
         <span><span class="legend-line black"></span>시가총액(좌)</span>
         <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
         <span><span class="legend-line blue"></span>MA10</span>
-        <span class="legend-tip">참고 자료(.xlsm) 수급오실레이터 동일 — (외+기 5일누적/시총) 의 EMA12-EMA26 - Signal9 · 점선=상/하 10·25% percentile · ★ 강한섹터 1·2위 · 🔥 현재 매도 연속</span>
+        <span class="legend-tip">수급 오실레이터 = (외+기 5일누적 / 시총) 의 EMA12 − EMA26 − Signal9 (MACD Histogram) · 점선 = 상/하 10·25% percentile</span>
       </div>
     </div>
   `;
@@ -690,28 +672,16 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
 // ─────────────────────────────────────────┘
 function buildLeadingValueCard(items, leadingLabels) {
   if (!items || items.length === 0) return '';
-  const TOP_SECTORS = (leadingLabels || []).slice(0, 2);
 
   const rows = items.map(c => {
-    const bz = c.buyZone || {};
-    const isTopSector = TOP_SECTORS.includes(c.sector);
-    const inst5d = c.institutionNet5d ?? 0;
-    const flowClass = inst5d > 0 ? 'up' : inst5d < 0 ? 'down' : 'flat';
-    const flowLabel = inst5d > 0 ? '동행 매수' : inst5d < 0 ? '동행 매도' : '중립';
-
-    const topSectorBadge = isTopSector
-      ? `<span class="badge badge-gold">★ 강한섹터 ${TOP_SECTORS.indexOf(c.sector) + 1}위</span>`
-      : '';
-
     return `
-      <div class="cand-row clickable${isTopSector ? ' cand-row-top-sector' : ''}" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
+      <div class="cand-row clickable" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
         <div class="cand-top">
           <div class="cand-info">
             <div class="cand-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(c.sector || '-')}</small></div>
             <div class="cand-prices">
               <span class="cand-close">${fmtNumber(c.close)}</span>
               ${c.ret5d != null ? `<span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>` : ''}
-              ${topSectorBadge}
             </div>
           </div>
           <div class="cand-chart">
@@ -726,8 +696,7 @@ function buildLeadingValueCard(items, leadingLabels) {
   return `
     <div class="flow-card flow-card-candidates flow-card-leading-value">
       <div class="card-header">
-        <span class="card-theme-name">💰 주도섹터 거래대금 톱 10 — 외인·기관 동행 매수 주도주</span>
-        <span class="card-volume">${items.length}개</span>
+        <span class="card-theme-name">주도 섹터 거래대금 TOP 10</span>
       </div>
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">

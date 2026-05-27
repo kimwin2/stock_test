@@ -286,7 +286,11 @@ body {
   color: var(--text-primary);
 }
 .search-modal-top-meta small { color: var(--text-muted); font-size: 0.72rem; }
-.search-modal-osc-chart .mini-chart { height: 180px; }
+.search-modal-osc-chart .mini-chart {
+  height: auto;
+  /* 캔들차트(viewBox 800×420)와 같은 비율로 — 너비에 따라 자연 스케일 */
+  aspect-ratio: 800 / 420;
+}
 .search-modal-legend {
   display: flex;
   flex-wrap: wrap;
@@ -1427,10 +1431,6 @@ body {
 .badge-gray { background: #F5F5F5; color: #757575; }
 .badge-gold { background: #FFF8E1; color: #C77800; border: 1px solid #FFD54F; font-weight: 800; }
 .badge-purple { background: #F3E5F5; color: #7B1FA2; }
-.cand-row-top-sector {
-  background: linear-gradient(90deg, rgba(255,213,79,0.12), rgba(255,213,79,0.02));
-  border-left: 3px solid #FFB300; padding-left: 6px;
-}
 .vacancy-now {
   font-size: 0.74rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; margin-left: 6px;
 }
@@ -1574,4 +1574,36 @@ body {
 
 .error-state .retry-btn:hover {
   background: var(--teal-dark);
+}
+
+/* === Flow tab — mobile responsive (Galaxy Fold 7 외부화면 ~370px CSS px 등 좁은 폭) ===
+   cand-row / cand-top 의 grid `1fr 380px` 와 cand-chart `width:375px` 가
+   고정폭이라 좁은 화면에서 오른쪽이 잘림. 좁은 화면에선 정보 위 · 차트 아래로 stack. */
+@media (max-width: 700px) {
+  .cand-row,
+  .flow-step3 .cand-top,
+  .flow-card-leading-value .cand-top {
+    grid-template-columns: 1fr;
+  }
+  .cand-chart {
+    width: 100%;
+    min-width: 0;
+    justify-content: stretch;
+  }
+  .mini-chart-wrap {
+    width: 100%;
+  }
+  .ti-row {
+    grid-template-columns: 1fr;
+  }
+  .ti-chart {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .supply-gauge-row {
+    grid-template-columns: 1fr;
+  }
+  .sectorflow-body {
+    grid-template-columns: 1fr;
+  }
 }

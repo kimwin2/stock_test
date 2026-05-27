@@ -309,32 +309,34 @@ def build_flow_dashboard(
             enriched_candidates = candidate_dicts
 
     # ─────────────────────────────────────────
-    # 매수 후보 점수 — 텔레그램 dump 직접 인용 기반 가중치
+    # 매수 후보 점수 — 참고 자료 최근 20일(2026-05-07 ~ 05-27) 발언 빈도 기반 가중치
     #
-    # 핵심 명제:
-    #  · "주식투자는 교집합 게임입니다."
-    #  · "추정이익 상향 + 상대강도 상위 + 수급빈집 리스트 교집합" (2026-05-07T08:36)
-    #  · "시세 강도와 수급 교집합을 포트에 주력으로" (2026-05-07T19:31)
-    #  · "추세추종이면서 수급오실레이터 빈집은 추세 안에 눌림목 공략" (2026-05-07T15:25)
-    #  · "주도업종만 매수대상으로 삼아야 한다" / "반도체와 전력, 증권을 ... 최우선으로 구성"
-    #  · "거래대금 강도 과열권 거의 정리하는 중 ... 낮은 쪽으로 쭈욱 이동" (2026-05-06T23:16)
+    # 빈도 분석 결과 (텔레그램 dump 1,456개 메시지):
+    #   주도업종      220회  →  최우선 (1·2·3위 가중치 강화)
+    #   신고가        114회  →  "52주 신고가 + 주도업종 + 거래대금 강도 하단" 3교집합
+    #   오실레이터    130회  →  수급 빈집 (음수 osc) 깊이
+    #   10일선/추세    64회  →  "10일 이평선 이탈해서 정리" — 강한 매도 시그널
+    #   거래대금 강도  36회  →  하단(낮은 쪽) 진입을 선호. 과열 회피.
     #
-    # 우리가 가진 필드 → 매핑:
-    #   주도섹터 1·2·3위 가중      → leading_sectors index
-    #   수급 오실레이터 빈집(MACD)  → oscLast (음수=빈집), oscPercentile (자기 historical)
-    #   추세추종                     → aboveMA10, aboveMA20
-    #   시세강도/RS 대용             → newHigh250d, newHigh50d, max250d 근접도, ret5d
-    #   매수타점                     → buyZone.inBuyZone
-    #   거래대금 과열 회피           → tradingValueRatio (5d/20d, > 2 = 과열)
-    #   "지금" 비어있는 상태          → currentVacancyDays, currentlyVacant
-    #   외국인 5d 순매수 절대금액    → foreignerNet5d universe 랭킹 (신호 9)
+    # 가장 자주 반복된 매수 조건 (5/18~5/27 사이만 7회):
+    #   "52주 신고가 AND 주도업종 AND 거래대금 강도 하단"
+    #   "주도업종 + 컨센상향 + 수급 빈집"  ← 컨센상향은 무료 데이터 부재
+    #   "주도업종이면서 수급 빈집"
     #
-    # 참고: EPS/추정이익 상향은 무료 데이터 부재로 본 함수에 미반영 (FnGuide 컨센서스 필요).
+    # 가중치 조정 방향:
+    #   주도섹터 1·2·3위 +35/+28/+22 → +40/+32/+24 (강화: "주도업종만 한다")
+    #   수급 빈집 max +30 → +35 (강화)
+    #   신고가 (52주=250d 신고가) +22 → +28 (강화: "52주 신고가" 7회 반복)
+    #   10일선 이탈 -15 → -22 (강화: "10일선 이탈 = 정리"가 명시적 매도 규칙)
+    #   거래대금 강도 하단 (tvr<1.0) — 신규 가산 +12 ("거래대금 강도 하단" 7회 명시)
+    #   5d 모멘텀 ±15 → ±8 (축소: 모멘텀보다 신고가/거래대금 더 중요)
+    #   매수권 진입 +10 → +6 (축소)
+    #   외국인 5d 매수 universe 랭킹 — 유지
+    #
+    # 참고: 컨센서스 상향 / 추정이익 가속화는 FnGuide 유료 데이터 필요 — 본 함수 미반영.
     # ─────────────────────────────────────────
 
-    # 외국인 5일 순매수 절대금액 universe 랭킹 — 참고 자료의 "외국인 매수대금 순위"
-    # 추종. 우리 빈집 후보 중에서도 "외인은 들어오는데 국내기관이 빠진" 패턴을
-    # 가산해 카페라떼 TOP30 같은 외국인 매수 강세 종목 비중을 끌어올린다.
+    # 외국인 5일 순매수 절대금액 universe 랭킹 — "외국인 매수대금 순위" 추종.
     foreigner_buy_rank: dict[str, int] = {}
     if not vacancy_df.empty and "foreignerNet5d" in vacancy_df.columns:
         fn_pos = (
@@ -348,7 +350,7 @@ def build_flow_dashboard(
         score = 0.0
         reasons: list[str] = []
 
-        # 1) 주도섹터 — "최우선으로 구성" / "주도업종만 매수대상" (가장 큰 가중)
+        # 1) 주도섹터 — "주도업종만 매수대상" (220회 언급, 최우선)
         sector = c.get("sector")
         if leading_sectors and sector:
             try:
@@ -356,86 +358,89 @@ def build_flow_dashboard(
             except ValueError:
                 rank = -1
             if rank == 0:
-                score += 35; reasons.append(f"★주도섹터 1위({sector}) +35")
+                score += 40; reasons.append(f"★주도섹터 1위({sector}) +40")
             elif rank == 1:
-                score += 28; reasons.append(f"★주도섹터 2위({sector}) +28")
+                score += 32; reasons.append(f"★주도섹터 2위({sector}) +32")
             elif rank == 2:
-                score += 22; reasons.append(f"★주도섹터 3위({sector}) +22")
+                score += 24; reasons.append(f"★주도섹터 3위({sector}) +24")
             elif 0 <= rank < 5:
-                score += 12; reasons.append(f"주도섹터 {rank+1}위({sector}) +12")
+                score += 14; reasons.append(f"주도섹터 {rank+1}위({sector}) +14")
 
-        # 2) 수급 오실레이터 빈집 (참고 자료 정의의 핵심) — osc 부호 + 깊이
+        # 2) 수급 오실레이터 빈집 — "주도업종 + 수급 빈집" 7회 반복
         osc = c.get("oscLast")
         osc_pct = c.get("oscPercentile")
         if osc is not None and osc < 0:
             # historical percentile 낮을수록 (자기 분포 하위) 깊은 빈집.
-            # 50→0점, 0→30점 (선형). pct None 이면 50 으로 처리.
-            depth = max(0.0, min(30.0, (50 - (osc_pct if osc_pct is not None else 50)) * 0.6))
+            # 50→0점, 0→35점 (선형). pct None 이면 50 으로 처리.
+            depth = max(0.0, min(35.0, (50 - (osc_pct if osc_pct is not None else 50)) * 0.7))
             score += depth
-            tag = "🔥깊은 빈집" if depth >= 20 else "빈집"
+            tag = "깊은 빈집" if depth >= 25 else "빈집"
             reasons.append(f"{tag} osc={osc:.5f} pct={osc_pct} +{depth:.0f}")
         elif osc is None:
             # osc 없을 때 fallback: vacancyScore (시총표준화 모멘텀)
             v = c.get("vacancyScore") or 0
             if v < 0:
-                fb = max(0.0, min(20.0, -v * 12000))
+                fb = max(0.0, min(25.0, -v * 14000))
                 score += fb
                 reasons.append(f"빈집(모멘텀 fallback) +{fb:.0f}")
 
-        # 3) 추세추종 — 10일선/20일선 위
+        # 3) 추세추종 — 10일선 위/이탈. "10일선 이탈해서 정리"가 명시적 매도 규칙.
         if c.get("aboveMA10"):
             score += 18; reasons.append("↑10MA +18")
+        else:
+            score -= 22; reasons.append("10MA 이탈 -22")
         if c.get("aboveMA20"):
-            score += 8; reasons.append("↑20MA +8")
-        if not c.get("aboveMA10") and not c.get("aboveMA20"):
-            score -= 15; reasons.append("추세 깨짐 -15")
+            score += 6; reasons.append("↑20MA +6")
 
-        # 4) 신고가 / 시세강도 (RS 대용)
+        # 4) 신고가 — "52주 신고가" 7회 반복. 250일 신고가 ≈ 52주 신고가.
         if c.get("newHigh250d"):
-            score += 22; reasons.append("250d 신고가 +22")
+            score += 28; reasons.append("52주 신고가 +28")
         elif c.get("newHigh50d"):
-            score += 12; reasons.append("50d 신고가 +12")
+            score += 14; reasons.append("50d 신고가 +14")
 
-        # 250일 고점 근접도 — 0.85→0, 1.0→12 (선형)
+        # 250일 고점 근접도 — 신고가는 아니지만 근접한 종목도 가산.
+        # 0.90→0, 1.0→12 (선형, 0.85→0 보다 타이트하게)
         if c.get("max250d") and c.get("close"):
             ratio = c["close"] / c["max250d"]
-            near = min(12.0, max(0.0, (ratio - 0.85) / 0.15 * 12))
-            if near >= 1:
+            near = min(12.0, max(0.0, (ratio - 0.90) / 0.10 * 12))
+            if near >= 2:
                 score += near
-                reasons.append(f"고점근접 {ratio*100:.0f}% +{near:.0f}")
+                reasons.append(f"52주 고점근접 {ratio*100:.0f}% +{near:.0f}")
 
-        # 5) 단기 모멘텀 (5d 수익률) — 양수=강세, 음수=감점
+        # 5) 거래대금 강도 하단 (NEW) — "거래대금 강도 하단" 7회 명시.
+        # tradingValueRatio (5d평균/20d평균) < 1.0 = 관심 감소 = TI 하단.
+        # 신고가 근접인데 거래대금이 빠진 상태 = 바닥에서 매수 진입 (참고 자료 핵심 매수타점).
+        tvr = c.get("tradingValueRatio")
+        if tvr is not None:
+            if tvr < 0.7:
+                score += 14; reasons.append(f"거래대금 강도 깊은 하단 ×{tvr:.2f} +14")
+            elif tvr < 1.0:
+                score += 10; reasons.append(f"거래대금 강도 하단 ×{tvr:.2f} +10")
+            elif tvr > 2.5:
+                score -= 14; reasons.append(f"거래대금 과열 ×{tvr:.2f} -14")
+            elif tvr > 1.8:
+                score -= 7; reasons.append(f"거래대금 다소과열 ×{tvr:.2f} -7")
+
+        # 6) 단기 모멘텀 (5d 수익률) — 보조 시그널로 축소.
         ret5d = c.get("ret5d")
         if ret5d is not None:
-            mom = max(-15.0, min(15.0, ret5d * 1.2))
+            mom = max(-8.0, min(8.0, ret5d * 0.7))
             score += mom
             sign = "+" if mom >= 0 else ""
             reasons.append(f"5d {ret5d:+.1f}% {sign}{mom:.0f}")
 
-        # 6) 매수권 진입
+        # 7) 매수권 진입 — 보조.
         if c.get("buyZone", {}).get("inBuyZone"):
-            score += 10; reasons.append("매수권 진입 +10")
+            score += 6; reasons.append("매수권 진입 +6")
 
-        # 7) 거래대금 강도 — 과열 회피, 정상~약강 가산 없음
-        tvr = c.get("tradingValueRatio")
-        if tvr is not None:
-            if tvr > 2.5:
-                score -= 12; reasons.append(f"거래대금 과열 ×{tvr:.1f} -12")
-            elif tvr > 1.8:
-                score -= 6; reasons.append(f"거래대금 다소과열 ×{tvr:.1f} -6")
-            elif tvr < 0.6:
-                score -= 4; reasons.append(f"거래대금 빠짐 ×{tvr:.1f} -4")
-
-        # 8) "지금" 비어있는 상태 — 매도 연속 일수
+        # 8) "지금" 비어있는 상태 — 매도 연속 일수 (수급 빈집 지속 가산).
         streak = c.get("currentVacancyDays") or 0
         if streak >= 1:
             cv = min(8.0, streak * 3)
             score += cv
             reasons.append(f"매도 {streak}일 연속 +{cv:.0f}")
 
-        # 9) 외국인 5d 순매수 절대금액 universe 랭킹 (참고 자료 TOP30 추종)
-        # 외인이 양수 매수 + universe 상위면 가산. "외인 매수 + 국내기관 매도"
-        # 교집합 패턴을 부각.
+        # 9) 외국인 5d 순매수 universe 랭킹 — "외국인 매수대금 순위" 추종.
         fn5 = c.get("foreignerNet5d") or 0
         fn_rank = foreigner_buy_rank.get(c.get("code"))
         if fn5 > 0 and fn_rank is not None:
