@@ -19,6 +19,7 @@ from urllib.parse import parse_qs, urlparse
 
 # 로컬 dev 기본값
 os.environ.setdefault("CHART_CACHE_BACKEND", "memory")
+os.environ.setdefault("CHART_LOCAL_CORS", "1")  # Function URL CORS 부재 → 자체 부착
 
 from chart_handler import lambda_handler
 

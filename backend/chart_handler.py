@@ -27,24 +27,28 @@ from chart.service import get_chart
 from chart.naver import TIMEFRAMES
 
 # ── CORS ─────────────────────────────────────
-# GitHub Pages (https://*.github.io) 와 로컬 dev (http://localhost:*) 에서 호출.
-# 환경변수로 좁힐 수 있게 함. 기본은 *.
-ALLOWED_ORIGIN = os.environ.get("CHART_CORS_ORIGIN", "*")
-
-CORS_HEADERS = {
-    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+# 프로덕션 (Lambda Function URL) 에서는 Function URL 자체의 CORS 설정이 헤더를
+# 자동 부착. 여기서 같이 부착하면 access-control-allow-origin 가 두 번 나가
+# 브라우저가 "Failed to fetch" 로 거부함.
+# 로컬 dev 서버(chart_local_server.py) 에서만 자체 CORS 필요.
+CORS_HEADERS_FOR_LOCAL = {
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age": "3600",
 }
+
+# 환경변수 CHART_LOCAL_CORS=1 시에만 CORS 헤더 부착. Lambda 환경에서는 unset.
+_LOCAL_CORS = os.environ.get("CHART_LOCAL_CORS", "0") == "1"
 
 
 def _resp(status: int, body: Any, *, extra_headers: dict | None = None) -> dict:
     headers = {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "max-age=15",  # 브라우저 측 짧은 캐시 (분봉 30s TTL 보다 짧음)
-        **CORS_HEADERS,
     }
+    if _LOCAL_CORS:
+        headers.update(CORS_HEADERS_FOR_LOCAL)
     if extra_headers:
         headers.update(extra_headers)
     return {
