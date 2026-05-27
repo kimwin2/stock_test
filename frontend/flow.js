@@ -18,6 +18,8 @@ const flowIsProduction = window.location.hostname.includes('github.io')
 const FLOW_DATA_URL = flowIsProduction ? FLOW_S3_URL : FLOW_LOCAL_URL;
 
 let flowLoaded = false;
+let flowData = null;          // 로드된 flow_dashboard.json 전체 (검색 인덱스 소스)
+let flowLoadPromise = null;   // 동시 호출 방지
 
 // ─────────────────────────────────────────┐
 // Tab switching                             │
@@ -644,7 +646,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
     const rankBadge = `<span class="rank-badge">#${idx + 1}</span>`;
 
     return `
-      <div class="cand-row${isTopSector ? ' cand-row-top-sector' : ''}">
+      <div class="cand-row clickable${isTopSector ? ' cand-row-top-sector' : ''}" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
         <div class="cand-top">
           <div class="cand-info">
             <div class="cand-name">${rankBadge} ${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small></div>
@@ -702,7 +704,7 @@ function buildLeadingValueCard(items, leadingLabels) {
       : '';
 
     return `
-      <div class="cand-row${isTopSector ? ' cand-row-top-sector' : ''}">
+      <div class="cand-row clickable${isTopSector ? ' cand-row-top-sector' : ''}" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
         <div class="cand-top">
           <div class="cand-info">
             <div class="cand-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(c.sector || '-')}</small></div>
@@ -750,7 +752,7 @@ function buildTICard(items) {
         ${items.map(t => {
           const tiColor = t.ti >= 80 ? '#E53935' : t.ti >= 60 ? '#FB8C00' : t.ti >= 40 ? '#FDD835' : t.ti >= 20 ? '#43A047' : '#1E88E5';
           return `
-            <div class="ti-row">
+            <div class="ti-row clickable" data-stock-code="${fEscape(t.code)}" data-stock-name="${fEscape(t.name)}" title="${fEscape(t.name)} 차트 보기">
               <div class="ti-info">
                 <div class="ti-name">${fEscape(t.name)} <small>${fEscape(t.sector || '-')}</small></div>
                 <div class="ti-meta">TI <strong style="color:${tiColor}">${t.ti}</strong> <small>${fEscape(t.zone)}</small> · ${fmtNumber(t.close)}원</div>
@@ -854,12 +856,15 @@ function buildExitCard(exits) {
 // Main loader                               │
 // ─────────────────────────────────────────┘
 async function loadFlow() {
+  if (flowLoadPromise) return flowLoadPromise;
+  flowLoadPromise = (async () => {
   const container = document.getElementById('flow-content');
   const loading = document.getElementById('flow-loading');
   try {
     const resp = await fetch(FLOW_DATA_URL + '?t=' + Date.now());
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
+    flowData = data;
     if (loading) loading.remove();
 
     container.innerHTML = `
@@ -893,7 +898,184 @@ async function loadFlow() {
         <button class="retry-btn" onclick="loadFlow()">다시 시도</button>
       </div>
     `;
+    flowLoadPromise = null;  // 실패 시 재시도 허용
+  }
+  })();
+  return flowLoadPromise;
+}
+
+// ─────────────────────────────────────────┐
+// Stock search — 종목 검색 → 모달에서 STEP3 차트 표시
+//   소스: buyCandidates + leadingValueTop (capHistory60d + supplyOscHistory 보유분)
+// ─────────────────────────────────────────┘
+function buildSearchIndex() {
+  if (!flowData) return [];
+  const seen = new Set();
+  const items = [];
+  const pushAll = (arr) => {
+    if (!arr) return;
+    arr.forEach(c => {
+      if (!c || !c.code || seen.has(c.code)) return;
+      // 차트에 필요한 최소 데이터 (capHistory60d 또는 priceHistory60d) 가 있어야 함
+      const hasChart = (c.capHistory60d && c.capHistory60d.length >= 2)
+                    || (c.priceHistory60d && c.priceHistory60d.length >= 2);
+      if (!hasChart) return;
+      seen.add(c.code);
+      items.push(c);
+    });
+  };
+  pushAll(flowData.buyCandidates);
+  pushAll(flowData.leadingValueTop);
+  pushAll(flowData.universeCharts);  // KOSPI/KOSDAQ 전 유니버스 (osc 없음)
+  return items;
+}
+
+function searchStocks(query, max = 8) {
+  const q = (query || '').trim().toLowerCase();
+  if (!q) return [];
+  const idx = buildSearchIndex();
+  const out = [];
+  for (const c of idx) {
+    const name = (c.name || '').toLowerCase();
+    const code = (c.code || '').toLowerCase();
+    if (name.includes(q) || code.includes(q)) {
+      out.push(c);
+      if (out.length >= max) break;
+    }
+  }
+  return out;
+}
+
+function renderSuggestions(matches) {
+  const box = document.getElementById('search-suggestions');
+  if (!box) return;
+  if (!matches || matches.length === 0) {
+    box.innerHTML = '<div class="search-suggestion-empty">일치하는 종목이 없습니다 (KOSPI/KOSDAQ 시총 상위 ~600 종목 검색)</div>';
+    box.hidden = false;
+    return;
+  }
+  box.innerHTML = matches.map((c, i) => `
+    <div class="search-suggestion-item${i === 0 ? ' active' : ''}" data-code="${fEscape(c.code)}">
+      <span class="search-suggestion-name">${fEscape(c.name)}</span>
+      <span class="search-suggestion-code">${fEscape(c.code)}</span>
+      <span class="search-suggestion-sector">${fEscape(c.sector || '')}</span>
+    </div>
+  `).join('');
+  box.hidden = false;
+}
+
+function hideSuggestions() {
+  const box = document.getElementById('search-suggestions');
+  if (box) box.hidden = true;
+}
+
+function findStockByCode(code) {
+  return buildSearchIndex().find(c => c.code === code) || null;
+}
+
+// 검색 결과 → 캔들 차트 모달로 직접 라우팅.
+// 모달 생성/닫기/탭/SVG 렌더는 모두 chart.js 가 담당.
+function openStockModal(c) {
+  if (!c || !c.code) return;
+  if (typeof window.openStockChart === 'function') {
+    window.openStockChart(c.code, c.name);
   }
 }
 
-document.addEventListener('DOMContentLoaded', setupTabs);
+async function ensureFlowLoaded() {
+  if (flowData) return;
+  await loadFlow();
+}
+
+function setupStockSearch() {
+  const input = document.getElementById('search-input');
+  const btn = document.getElementById('search-btn');
+  const box = document.getElementById('search-suggestions');
+  const modal = document.getElementById('stock-modal');
+  if (!input || !box) return;
+
+  let currentMatches = [];
+  let activeIdx = 0;
+
+  const refresh = async () => {
+    if (!input.value.trim()) {
+      hideSuggestions();
+      currentMatches = [];
+      return;
+    }
+    await ensureFlowLoaded();
+    currentMatches = searchStocks(input.value);
+    activeIdx = 0;
+    renderSuggestions(currentMatches);
+  };
+
+  input.addEventListener('focus', refresh);
+  input.addEventListener('input', refresh);
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (currentMatches.length === 0) return;
+      activeIdx = (activeIdx + 1) % currentMatches.length;
+      updateActive();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (currentMatches.length === 0) return;
+      activeIdx = (activeIdx - 1 + currentMatches.length) % currentMatches.length;
+      updateActive();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const pick = currentMatches[activeIdx];
+      if (pick) {
+        openStockModal(pick);
+        hideSuggestions();
+        input.blur();
+      }
+    } else if (e.key === 'Escape') {
+      hideSuggestions();
+      input.blur();
+    }
+  });
+
+  function updateActive() {
+    const items = box.querySelectorAll('.search-suggestion-item');
+    items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+  }
+
+  box.addEventListener('mousedown', (e) => {
+    const item = e.target.closest('.search-suggestion-item');
+    if (!item) return;
+    e.preventDefault();
+    const code = item.dataset.code;
+    const c = findStockByCode(code);
+    if (c) {
+      openStockModal(c);
+      hideSuggestions();
+      input.blur();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-bar')) hideSuggestions();
+  });
+
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      await ensureFlowLoaded();
+      currentMatches = searchStocks(input.value);
+      if (currentMatches.length > 0) {
+        openStockModal(currentMatches[0]);
+        hideSuggestions();
+      } else {
+        renderSuggestions([]);
+      }
+    });
+  }
+
+  // 모달 닫기 / ESC / backdrop 처리는 chart.js 가 위임 핸들러로 모두 담당.
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupTabs();
+  setupStockSearch();
+});

@@ -150,6 +150,43 @@ Resources:
             Path: /run
             Method: post
 
+  # ── Lambda Function: 차트 데이터 REST API ──
+  # 종목 클릭 시 분/일/주봉 캔들 데이터를 Naver fchart 에서 fetch + S3 캐시.
+  # Function URL 로 노출 (API Gateway 불필요). CORS 는 함수 자체에서 처리.
+  #
+  # Phase 2 (수천 동접 시) 마이그레이션:
+  #  - 이 Lambda 는 그대로 두고 ECS Fargate 위에 WebSocket 서버 + Redis 추가.
+  #  - chart/cache.py 의 RedisCacheBackend 만 추가하고 환경변수로 swap.
+  ChartApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: stock-chart-api
+      CodeUri: backend/
+      Handler: chart_handler.lambda_handler
+      Description: Stock chart REST API (Phase 1 — Lambda + S3 cache)
+      MemorySize: 256
+      Timeout: 30
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref S3BucketName
+          CHART_CACHE_BACKEND: s3
+          CHART_CACHE_PREFIX: chart/
+          CHART_CORS_ORIGIN: '*'
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref S3BucketName
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - '*'
+          AllowMethods:
+            - GET
+            - OPTIONS
+          AllowHeaders:
+            - Content-Type
+          MaxAge: 3600
+
   TelegramSignalCollectorFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -215,3 +252,7 @@ Outputs:
   S3BucketName:
     Description: S3 버킷 이름
     Value: !Ref DashboardBucket
+
+  ChartApiUrl:
+    Description: 차트 API Function URL (프론트엔드 chart.js 가 여기로 GET)
+    Value: !GetAtt ChartApiFunctionUrl.FunctionUrl

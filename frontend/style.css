@@ -131,6 +131,330 @@ body {
   border-radius: 6px;
   padding: 0 4px;
   height: 38px;
+  position: relative;
+}
+
+.search-bar input { color: var(--text-primary); }
+
+/* Search suggestions dropdown */
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 200;
+}
+
+.search-suggestion-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f3f3;
+}
+
+.search-suggestion-item:last-child { border-bottom: none; }
+
+.search-suggestion-item:hover,
+.search-suggestion-item.active {
+  background: rgba(0, 137, 123, 0.08);
+}
+
+.search-suggestion-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.search-suggestion-code {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.search-suggestion-sector {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+.search-suggestion-empty {
+  padding: 14px 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* === Stock Detail Modal === */
+.stock-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 16px 16px;
+}
+
+.stock-modal[hidden] { display: none; }
+
+.stock-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.stock-modal-panel {
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 760px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  padding: 18px 18px 14px;
+}
+
+.stock-modal-close {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.stock-modal-close:hover { background: rgba(0, 0, 0, 0.06); }
+
+.stock-modal-body .cand-row {
+  display: block;
+  padding: 0;
+  border: none;
+}
+
+.stock-modal-body .cand-top {
+  display: block;
+}
+
+.stock-modal-body .cand-chart {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.stock-modal-body .mini-chart { height: 200px; }
+
+.stock-modal-loading,
+.stock-modal-empty {
+  padding: 40px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* === Clickable stock rows (chart 모달 트리거) === */
+.cand-row.clickable,
+.ti-row.clickable {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.cand-row.clickable:hover,
+.ti-row.clickable:hover {
+  background-color: rgba(0, 0, 0, 0.025);
+}
+
+/* === Chart modal — 새 캔들 차트 === */
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0 10px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 10px;
+}
+.chart-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.chart-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+.chart-code {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-family: ui-monospace, monospace;
+}
+.chart-tabs {
+  display: flex;
+  gap: 4px;
+  background: #F5F5F5;
+  padding: 3px;
+  border-radius: 6px;
+}
+.chart-tab {
+  border: none;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 5px 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.chart-tab:hover { color: #1A1A1A; }
+.chart-tab.active {
+  background: #fff;
+  color: #1A1A1A;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.chart-canvas {
+  position: relative;
+  width: 100%;
+  background: #FAFAFA;
+  border-radius: 6px;
+  padding: 4px;
+}
+.chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 480px;
+}
+.chart-hit { cursor: crosshair; }
+
+.chart-tooltip {
+  position: absolute;
+  background: rgba(33, 33, 33, 0.92);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  pointer-events: none;
+  z-index: 2;
+  min-width: 130px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.chart-tooltip[hidden] { display: none; }
+.chart-tooltip-time {
+  font-weight: 700;
+  margin-bottom: 4px;
+  font-family: ui-monospace, monospace;
+}
+.chart-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: ui-monospace, monospace;
+  line-height: 1.4;
+}
+.chart-tooltip-row span { opacity: 0.7; }
+.chart-tooltip-row b { font-weight: 600; }
+.chart-tooltip-row b.up { color: #FF6B6B; }
+.chart-tooltip-row b.down { color: #74B9FF; }
+
+.chart-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+  font-size: 0.85rem;
+}
+.chart-meta-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.chart-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+.chart-last {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+}
+.chart-period-chg {
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+}
+.chart-period-chg.up { color: #E53935; }
+.chart-period-chg.down { color: #1E88E5; }
+.chart-period-chg small { font-weight: 400; color: var(--text-muted); }
+
+.chart-cache-tag {
+  background: #EFEFEF;
+  color: #666;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+}
+.chart-updated {
+  font-family: ui-monospace, monospace;
+}
+
+.chart-loading,
+.chart-error,
+.chart-empty {
+  padding: 60px 12px 40px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.chart-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #eee;
+  border-top-color: #1A1A1A;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  animation: chart-spin 0.8s linear infinite;
+}
+@keyframes chart-spin {
+  to { transform: rotate(360deg); }
+}
+.chart-error-detail {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 8px;
+  word-break: break-word;
+}
+.chart-retry-btn {
+  margin-top: 14px;
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.chart-retry-btn:hover { background: #F5F5F5; }
+
+/* 모달 패널 폭 — 차트가 들어가니 좀 더 넓게 */
+.stock-modal-panel {
+  max-width: 880px;
 }
 
 .search-bar input {
