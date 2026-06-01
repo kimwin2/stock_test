@@ -994,6 +994,14 @@ function openStockModal(c) {
   window.openStockChart(c.code, c.name, { topHTML });
 }
 
+// chart.js 의 [data-stock-code] 클릭 위임에서 호출 — 카드/리스트 어디서 클릭해도
+// 검색 모달과 동일하게 수급 osc 차트 + supply gauge 가 상단에 함께 뜨도록.
+window.getStockTopHTML = function (code) {
+  const c = findStockByCode(code);
+  if (!c) return '';
+  return buildTopOscHTML(c);
+};
+
 async function ensureFlowLoaded() {
   if (flowData) return;
   await loadFlow();

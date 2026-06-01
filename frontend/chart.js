@@ -119,16 +119,16 @@ function renderCandlestickSVG(candles, timeframe) {
     return '<div class="chart-empty">데이터 없음</div>';
   }
 
-  // viewBox 좌표계
+  // viewBox 좌표계 — 높이 절반(420→220)으로 압축. 모달이 너무 길어 보이지 않도록.
   const W = 800;
-  const H = 420;
+  const H = 220;
   const padL = 56;
   const padR = 14;
-  const padT = 12;
-  const priceBottom = 300;
-  const volTop = 320;
-  const volBottom = 396;
-  const xAxisY = 410;
+  const padT = 8;
+  const priceBottom = 150;
+  const volTop = 164;
+  const volBottom = 204;
+  const xAxisY = 215;
 
   const innerW = W - padL - padR;
   const innerPriceH = priceBottom - padT;
@@ -499,7 +499,13 @@ function setupChartHandlers() {
     const code = trigger.dataset.stockCode;
     const name = trigger.dataset.stockName || '';
     e.preventDefault();
-    openChartModal(code, name);
+    // flow.js 가 종목별 상단 위젯(수급 osc 차트 + supply gauge)을 제공하면 함께 표시
+    const opts = {};
+    if (typeof window.getStockTopHTML === 'function') {
+      const html = window.getStockTopHTML(code);
+      if (html) opts.topHTML = html;
+    }
+    openChartModal(code, name, opts);
   });
 
   // ESC 로 닫기

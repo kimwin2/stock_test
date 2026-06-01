@@ -288,8 +288,8 @@ body {
 .search-modal-top-meta small { color: var(--text-muted); font-size: 0.72rem; }
 .search-modal-osc-chart .mini-chart {
   height: auto;
-  /* 캔들차트(viewBox 800×420)와 같은 비율로 — 너비에 따라 자연 스케일 */
-  aspect-ratio: 800 / 420;
+  /* 캔들차트(viewBox 800×220, 높이 절반 압축본)와 같은 비율로 — 너비에 따라 자연 스케일 */
+  aspect-ratio: 800 / 220;
 }
 .search-modal-legend {
   display: flex;
