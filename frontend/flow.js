@@ -311,50 +311,59 @@ function renderMiniPriceChart(c, opts = {}) {
   const ma10Series = computeMA(cap, 10);
   const ma10MiniPts = ma10Series.map((v, i) => projectCap(v, i)).filter(Boolean).join(' ');
 
-  // 수급 오실레이터 — xlsm '수급오실레이터' 시트의 LineChart 와 동일 형식
-  //   선   = osc 자체 (= MACD Histogram = MACD − Signal9), 보라색
-  //   점선 = historical osc 의 percentile 4개 (xlsm L7~L11):
-  //          상위 10/25%, 하위 25/10%
-  //   0선 = 실선 회색
-  //   현재값 = 마지막 osc 값 (xlsm L12 = '=H84') — 우측 라벨로 표시
+  // 수급 오실레이터 — 배경 zone 음영(5단계) + 주황선
+  //   zone 경계 = 종목 historical osc 의 percentile p10/p25/p75/p90
+  //   위(양수)부터: 🔴 과열 > 🟠 채움 > ⚪ 중립 > 🟢 비어감 > 🟢 빈집
+  //   이전 percentile 점선 4개 + 0선은 의미가 안 읽혀서 제거. zone 색이 위치를 직관 표현.
   let oscOverlay = '';
   let lastOscVal = null;
-  let oscMaxPct = null;
+  let zoneInfo = null;   // { key, label, badgeClass }
   if (oscSeries.length >= 2) {
     const oscVals = oscSeries.map(o => o.osc || 0);
     const oscMaxAbs = Math.max(...oscVals.map(v => Math.abs(v))) || 1;
     lastOscVal = oscVals[oscVals.length - 1];
-    oscMaxPct = oscMaxAbs * 100;
 
     const oscMid = chartH / 2;
     const oscHalf = chartH * 0.45;
     const yOf = (v) => oscMid - (v / oscMaxAbs) * oscHalf;
 
-    // 선 = osc — Bloomberg amber, 흰 배경에서 시인성 최대 + 빨강/파랑 percentile 과 영역 분리
-    const linePts = oscVals.map((v, i) => `${(i * stepX).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ');
-    const oscLine = `<polyline points="${linePts}" fill="none" stroke="#EF6C00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
-
-    // 0 라인 — 부호 기준선
-    const zeroLine = `<line x1="0" y1="${oscMid.toFixed(1)}" x2="${w}" y2="${oscMid.toFixed(1)}" stroke="#999" stroke-width="0.7"/>`;
-
-    // Percentile 점선 — xlsm L7~L11
+    // percentile 컷오프 (zone 경계)
     const sorted = [...oscVals].sort((a, b) => a - b);
     const p = (q) => {
       const idx = Math.max(0, Math.min(sorted.length - 1, Math.round(q * (sorted.length - 1))));
       return sorted[idx];
     };
-    const pcts = [
-      { v: p(0.90), color: '#C62828' },
-      { v: p(0.75), color: '#E57373' },
-      { v: p(0.25), color: '#64B5F6' },
-      { v: p(0.10), color: '#1565C0' },
-    ];
-    const pctLines = pcts.map(pc => {
-      const y = yOf(pc.v);
-      return `<line x1="0" y1="${y.toFixed(1)}" x2="${w}" y2="${y.toFixed(1)}" stroke="${pc.color}" stroke-width="0.6" stroke-dasharray="3,2" opacity="0.55"/>`;
-    }).join('');
+    const p10 = p(0.10), p25 = p(0.25), p75 = p(0.75), p90 = p(0.90);
 
-    oscOverlay = pctLines + zeroLine + oscLine;
+    // 배경 zone — 위(양수)부터 아래(음수)로. opacity 는 옅게 (주황선 가독 우선).
+    const yTop = 1, yBot = chartH - 1;
+    const y90 = yOf(p90), y75 = yOf(p75), y25 = yOf(p25), y10 = yOf(p10);
+    const band = (y1, y2, fill) => {
+      const top = Math.min(y1, y2), bot = Math.max(y1, y2);
+      const hh = Math.max(0, bot - top);
+      if (hh < 0.5) return '';
+      return `<rect x="0" y="${top.toFixed(1)}" width="${w}" height="${hh.toFixed(1)}" fill="${fill}"/>`;
+    };
+    const bands = [
+      band(yTop, y90, '#FFCDD2'),   // 강 과열   (>p90)
+      band(y90,  y75, '#FFEBEE'),   // 약 채움   (p75~p90)
+      band(y25,  y75, '#F5F5F5'),   // 중립     (p25~p75)
+      band(y10,  y25, '#E8F5E9'),   // 비어감   (p10~p25)
+      band(yBot, y10, '#A5D6A7'),   // 빈집     (<p10)
+    ].join('');
+
+    // osc 주황선
+    const linePts = oscVals.map((v, i) => `${(i * stepX).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ');
+    const oscLine = `<polyline points="${linePts}" fill="none" stroke="#EF6C00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    oscOverlay = bands + oscLine;
+
+    // 현재 zone 판정
+    if (lastOscVal >= p90)      zoneInfo = { key: 'hot',     label: '과열',   badgeClass: 'zone-hot' };
+    else if (lastOscVal >= p75) zoneInfo = { key: 'warm',    label: '채움',   badgeClass: 'zone-warm' };
+    else if (lastOscVal > p25)  zoneInfo = { key: 'neutral', label: '중립',   badgeClass: 'zone-neutral' };
+    else if (lastOscVal > p10)  zoneInfo = { key: 'cool',    label: '비어감', badgeClass: 'zone-cool' };
+    else                        zoneInfo = { key: 'empty',   label: '빈집',   badgeClass: 'zone-empty' };
   }
 
   // X축 날짜 라벨 — 5개 (좌끝 / 25% / 50% / 75% / 우끝). 'M/D' 짧은 형식.
@@ -381,15 +390,17 @@ function renderMiniPriceChart(c, opts = {}) {
     }).join('');
   }
 
-  // 라벨: 좌측 = 시가총액 (조), 우측 = osc 마지막값(%) + 위/아래 = ±max
+  // 라벨: 좌측 = 시가총액, 우측 = zone 배지 + osc 마지막값
   const lastCap = cap[cap.length - 1];
   const capLabel = lastCap >= 1e12 ? `${(lastCap / 1e12).toFixed(1)}조`
                   : lastCap >= 1e8 ? `${(lastCap / 1e8).toFixed(0)}억`
                   : `${lastCap}`;
-  const oscLastLabel = lastOscVal != null ? `${(lastOscVal * 100).toFixed(3)}%` : '';
+  const oscLastLabel = lastOscVal != null ? `${(lastOscVal * 100).toFixed(2)}%` : '';
   const oscColor = lastOscVal == null ? '#777'
                  : lastOscVal > 0 ? '#C62828' : '#1565C0';
-  const oscMaxLabel = oscMaxPct != null ? `±${oscMaxPct.toFixed(3)}%` : '';
+  const zoneBadge = zoneInfo
+    ? `<span class="zone-badge ${zoneInfo.badgeClass}">${zoneInfo.label}</span>`
+    : '';
 
   return `
     <div class="mini-chart-wrap">
@@ -401,7 +412,7 @@ function renderMiniPriceChart(c, opts = {}) {
         ${axisLabels}
       </svg>
       <span class="mini-chart-label-right">
-        <span class="mini-chart-osc-max">${oscMaxLabel}</span>
+        ${zoneBadge}
         <span class="mini-chart-osc-last" style="color:${oscColor}">${oscLastLabel}</span>
       </span>
     </div>
@@ -655,10 +666,18 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       </div>
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">
-        <span><span class="legend-line black"></span>시가총액(좌)</span>
-        <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
+        <span><span class="legend-line black"></span>시가총액</span>
         <span><span class="legend-line blue"></span>MA10</span>
-        <span class="legend-tip">수급 오실레이터 = (외+기 5일누적 / 시총) 의 EMA12 − EMA26 − Signal9 (MACD Histogram) · 점선 = 상/하 10·25% percentile</span>
+        <span><span class="legend-line amber"></span>수급 오실레이터</span>
+        <span class="legend-zones">
+          배경:
+          <span class="zone-chip zone-empty">빈집</span>
+          <span class="zone-chip zone-cool">비어감</span>
+          <span class="zone-chip zone-neutral">중립</span>
+          <span class="zone-chip zone-warm">채움</span>
+          <span class="zone-chip zone-hot">과열</span>
+        </span>
+        <span class="legend-tip">초록 = 외인·기관 빠진 직후(매수 검토) · 빨강 = 외인·기관 매수 정점(과열, 추격 자제)</span>
       </div>
     </div>
   `;
@@ -700,9 +719,17 @@ function buildLeadingValueCard(items, leadingLabels) {
       </div>
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">
-        <span><span class="legend-line black"></span>시가총액(좌)</span>
-        <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
+        <span><span class="legend-line black"></span>시가총액</span>
         <span><span class="legend-line blue"></span>MA10</span>
+        <span><span class="legend-line amber"></span>수급 오실레이터</span>
+        <span class="legend-zones">
+          배경:
+          <span class="zone-chip zone-empty">빈집</span>
+          <span class="zone-chip zone-cool">비어감</span>
+          <span class="zone-chip zone-neutral">중립</span>
+          <span class="zone-chip zone-warm">채움</span>
+          <span class="zone-chip zone-hot">과열</span>
+        </span>
         <span class="legend-tip">매수 후보(빈집 전략)에 안 잡히지만 외인+기관이 가장 큰 돈을 베팅 중인 주도주. 게이지 "찼음"=수급 채워짐.</span>
       </div>
     </div>
@@ -979,9 +1006,17 @@ function buildTopOscHTML(c) {
       <div class="search-modal-osc-chart">${renderMiniPriceChart(c)}</div>
       ${gauge}
       <div class="search-modal-legend">
-        <span><span class="legend-line black"></span>시가총액(좌)</span>
-        <span><span class="legend-line amber"></span>수급 오실레이터(MACD Histogram)</span>
+        <span><span class="legend-line black"></span>시가총액</span>
         <span><span class="legend-line blue"></span>MA10</span>
+        <span><span class="legend-line amber"></span>수급 오실레이터</span>
+        <span class="legend-zones">
+          배경:
+          <span class="zone-chip zone-empty">빈집</span>
+          <span class="zone-chip zone-cool">비어감</span>
+          <span class="zone-chip zone-neutral">중립</span>
+          <span class="zone-chip zone-warm">채움</span>
+          <span class="zone-chip zone-hot">과열</span>
+        </span>
       </div>
     </div>
   `;
