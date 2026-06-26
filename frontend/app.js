@@ -6,15 +6,16 @@
 // ─────────────────────────────────────────┐
 // Config                                    │
 // ─────────────────────────────────────────┘
-// ── 환경별 데이터 URL 자동 전환 ──
-// GitHub Pages(프로덕션): S3에서 fetch
-// 로컬 개발: 같은 디렉터리의 JSON 파일
-const S3_DATA_URL = 'https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com/dashboard_data.json';
+// ── 데이터 URL ──
+// 데이터는 공개(S3)라 웹/PWA/Tauri(exe)/Capacitor(앱) 어디서 실행되든 항상 원격에서 fetch.
+// (호스트명 추측 방식은 패키징 시 hostname 이 github.io 가 아니어서 깨졌음 — 기본을 원격으로 고정.)
+// 로컬 개발에서 번들 JSON 으로 보고 싶을 때만 ?local=1 또는 window.STOCK_USE_LOCAL=true.
+const S3_DATA_URL = (window.STOCK_DATA_BASE || 'https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com') + '/dashboard_data.json';
 const LOCAL_DATA_URL = './dashboard_data.json';
 
-const isProduction = window.location.hostname.includes('github.io') 
-                  || window.location.hostname.includes('stock');
-const DATA_URL = isProduction ? S3_DATA_URL : LOCAL_DATA_URL;
+const USE_LOCAL_DATA = window.STOCK_USE_LOCAL === true
+                    || new URLSearchParams(window.location.search).has('local');
+const DATA_URL = USE_LOCAL_DATA ? LOCAL_DATA_URL : S3_DATA_URL;
 
 // ─────────────────────────────────────────┐
 // Utils                                     │

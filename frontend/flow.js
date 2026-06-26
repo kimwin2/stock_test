@@ -10,12 +10,13 @@
  *  6) 매도 시그널 / 신고가 / 주도 ETF / 쏠림지수 (보조 카드)
  */
 
-const FLOW_S3_URL = 'https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com/flow_dashboard.json';
+// 데이터 URL — app.js 와 동일 정책: 기본 원격(S3), 로컬 개발만 ?local=1.
+const FLOW_S3_URL = (window.STOCK_DATA_BASE || 'https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com') + '/flow_dashboard.json';
 const FLOW_LOCAL_URL = './flow_dashboard.json';
 
-const flowIsProduction = window.location.hostname.includes('github.io')
-                       || window.location.hostname.includes('stock');
-const FLOW_DATA_URL = flowIsProduction ? FLOW_S3_URL : FLOW_LOCAL_URL;
+const FLOW_USE_LOCAL = window.STOCK_USE_LOCAL === true
+                    || new URLSearchParams(window.location.search).has('local');
+const FLOW_DATA_URL = FLOW_USE_LOCAL ? FLOW_LOCAL_URL : FLOW_S3_URL;
 
 let flowLoaded = false;
 let flowData = null;          // 로드된 flow_dashboard.json 전체 (검색 인덱스 소스)
