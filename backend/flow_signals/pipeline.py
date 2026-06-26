@@ -628,6 +628,12 @@ def save_flow_dashboard(payload: dict, output_path: str | None = None) -> str:
 
 
 if __name__ == "__main__":
+    # 로컬 실행 시 .env 로드 (KRX_ID/KRX_PW → F&G 실데이터). Lambda 는 환경변수 직접 주입.
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
+    except ImportError:
+        pass
     # KOSDAQ 시총 200~300위에 텔레그램·외부 분석에서 자주 다루는 종목 (오이솔루션,
     # 인텍플러스, 네패스아크, 알멕, 브이엠, 한선엔지니어링, 와이지원, 아스플로,
     # 세미파이브, 싸이맥스, 나노, 세아메카닉스 등) 이 있어 300까지 확대.

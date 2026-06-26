@@ -21,6 +21,18 @@ Parameters:
     Default: stock-dashboard-data
     Description: S3 bucket name for storing dashboard JSON
 
+  KrxId:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: KRX 정보데이터시스템(data.krx.co.kr) 회원 ID — F&G 실데이터(VKOSPI/옵션/국채선물)용
+
+  KrxPw:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: KRX 회원 비밀번호
+
   TelegramApiId:
     Type: String
     Default: ''
@@ -113,6 +125,11 @@ Resources:
           PRICE_SIGNAL_S3_KEY: signals/price_theme_signals_latest.json
           TELEGRAM_SIGNAL_S3_KEY: signals/telegram_faststocknews_latest.json
           TELEGRAM_STATE_S3_KEY: signals/telegram_faststocknews_state.json
+          # F&G 오실레이터 실데이터(KRX). 자격증명 없으면 proxy 자동 폴백.
+          KRX_ID: !Ref KrxId
+          KRX_PW: !Ref KrxPw
+          FG_KRX_CACHE: !Sub 's3://${S3BucketName}/signals/fg_krx_cache.json'
+          FG_KRX_MAX_FETCH: '5'   # 콜드 백필(15분) 방지 — 매 실행 최근 결측일만
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref S3BucketName
