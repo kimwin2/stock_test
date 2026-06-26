@@ -78,6 +78,16 @@
     </div>
   </div>
 
+  <!-- ===== 면책고지 모달 (최초 1회) ===== -->
+  <div id="disclaimer-modal" hidden>
+    <div class="disclaimer-panel" role="dialog" aria-modal="true" aria-labelledby="disclaimer-title">
+      <h2 id="disclaimer-title">투자 유의사항</h2>
+      <p>본 서비스(<strong>Stock Premium</strong>)가 제공하는 테마·종목·시그널은 정보 제공 목적의 참고 자료이며, <strong>투자자문 또는 매매 권유가 아닙니다.</strong></p>
+      <p>모든 투자 판단과 그 결과(손실 포함)에 대한 책임은 전적으로 이용자 본인에게 있습니다. 데이터는 외부 출처 기반이며 지연·오류가 있을 수 있습니다.</p>
+      <button id="disclaimer-accept">확인했습니다</button>
+    </div>
+  </div>
+
   <!-- ===== Bottom Ticker ===== -->
   <footer id="news-ticker">
     <div class="ticker-label">TODAY</div>
@@ -88,6 +98,26 @@
     </div>
   </footer>
 
+  <!-- ===== 면책고지 상시 한 줄 ===== -->
+  <div id="disclaimer-bar">
+    투자 정보 제공일 뿐 투자자문이 아니며, 모든 투자 판단·손실 책임은 이용자 본인에게 있습니다.
+  </div>
+
+  <script>
+    // 면책고지: 최초 1회 동의 모달 (localStorage 기록)
+    (function () {
+      var KEY = 'sp_disclaimer_ack_v1';
+      var modal = document.getElementById('disclaimer-modal');
+      var accept = document.getElementById('disclaimer-accept');
+      try {
+        if (!localStorage.getItem(KEY)) modal.removeAttribute('hidden');
+      } catch (e) { modal.removeAttribute('hidden'); }
+      accept.addEventListener('click', function () {
+        try { localStorage.setItem(KEY, '1'); } catch (e) {}
+        modal.setAttribute('hidden', '');
+      });
+    })();
+  </script>
   <script>
     // 차트 API endpoint — sam deploy 출력의 ChartApiUrl.
     // 변경 시 이 한 줄만 수정.

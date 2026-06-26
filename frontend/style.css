@@ -1664,3 +1664,61 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* === 면책고지 === */
+#disclaimer-bar {
+  flex-shrink: 0;
+  background: #1c2226;
+  color: #9aa6ad;
+  font-size: 0.66rem;
+  line-height: 1.3;
+  text-align: center;
+  padding: 5px 12px;
+  border-top: 1px solid #2f3a40;
+}
+
+#disclaimer-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 20px;
+}
+#disclaimer-modal[hidden] { display: none; }
+
+.disclaimer-panel {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 380px;
+  width: 100%;
+  padding: 22px 20px 18px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+.disclaimer-panel h2 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin: 0 0 12px;
+  color: var(--text-primary);
+}
+.disclaimer-panel p {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #444;
+  margin: 0 0 10px;
+}
+.disclaimer-panel strong { color: var(--red); }
+#disclaimer-accept {
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px;
+  border: none;
+  border-radius: 8px;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
