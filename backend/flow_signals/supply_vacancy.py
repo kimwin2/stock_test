@@ -265,8 +265,22 @@ def enrich_with_chart_and_buyzone(
         date_hist = [d.strftime("%Y-%m-%d") for d in recent.index]
 
         # 이동평균
-        ma10 = float(df["Close"].rolling(10).mean().iloc[-1]) if len(df) >= 10 else None
-        ma20 = float(df["Close"].rolling(20).mean().iloc[-1]) if len(df) >= 20 else None
+        ma10_series = df["Close"].rolling(10).mean() if len(df) >= 10 else None
+        ma20_series = df["Close"].rolling(20).mean() if len(df) >= 20 else None
+        ma50_series = df["Close"].rolling(50).mean() if len(df) >= 50 else None
+        ma10 = float(ma10_series.iloc[-1]) if ma10_series is not None else None
+        ma20 = float(ma20_series.iloc[-1]) if ma20_series is not None else None
+        ma50 = float(ma50_series.iloc[-1]) if ma50_series is not None else None
+
+        # 추세 살아있음 판정용 — MA10 기울기(우상향) + 정배열(MA10>MA20>MA50)
+        ma10_rising = (
+            ma10_series is not None and len(ma10_series.dropna()) >= 6
+            and float(ma10_series.iloc[-1]) > float(ma10_series.iloc[-6])
+        )
+        aligned_ma = (
+            ma10 is not None and ma20 is not None and ma50 is not None
+            and ma10 > ma20 > ma50
+        )
 
         last_close = float(df["Close"].iloc[-1])
         last_high = float(df["High"].iloc[-1])
@@ -276,6 +290,9 @@ def enrich_with_chart_and_buyzone(
         ret5d = None
         if len(df) > 6:
             ret5d = round((last_close / float(df["Close"].iloc[-6]) - 1) * 100, 2)
+        ret20d = None
+        if len(df) > 21:
+            ret20d = round((last_close / float(df["Close"].iloc[-21]) - 1) * 100, 2)
 
         buy_zone = compute_buy_zone(df)
 
@@ -370,13 +387,18 @@ def enrich_with_chart_and_buyzone(
             "ratioLast": ratio_last,
             "ma10": round(ma10, 0) if ma10 is not None else None,
             "ma20": round(ma20, 0) if ma20 is not None else None,
+            "ma50": round(ma50, 0) if ma50 is not None else None,
             "newHigh50d": bool(last_high >= max_50 * 0.999),
             "newHigh250d": bool(last_high >= max_250 * 0.999),
             "ret5d": ret5d,
+            "ret20d": ret20d,
             "max250d": round(max_250, 0),
             "buyZone": buy_zone,
             "aboveMA10": bool(ma10 is not None and last_close >= ma10),
             "aboveMA20": bool(ma20 is not None and last_close >= ma20),
+            "aboveMA50": bool(ma50 is not None and last_close >= ma50),
+            "ma10Rising": bool(ma10_rising),
+            "alignedMA": bool(aligned_ma),
             "vacancyPercentile": percentile,
             "vacancyZone": zone,
         }

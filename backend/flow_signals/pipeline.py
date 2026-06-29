@@ -327,11 +327,15 @@ def build_flow_dashboard(
     #   주도섹터 1·2·3위 +35/+28/+22 → +40/+32/+24 (강화: "주도업종만 한다")
     #   수급 빈집 max +30 → +35 (강화)
     #   신고가 (52주=250d 신고가) +22 → +28 (강화: "52주 신고가" 7회 반복)
-    #   10일선 이탈 -15 → -22 (강화: "10일선 이탈 = 정리"가 명시적 매도 규칙)
     #   거래대금 강도 하단 (tvr<1.0) — 신규 가산 +12 ("거래대금 강도 하단" 7회 명시)
-    #   5d 모멘텀 ±15 → ±8 (축소: 모멘텀보다 신고가/거래대금 더 중요)
     #   매수권 진입 +10 → +6 (축소)
     #   외국인 5d 매수 universe 랭킹 — 유지
+    #
+    # [추세 살아있음 보정] — "추세 살아있는 종목 더 넣고싶다" 요청 반영.
+    #   추세추종 강화: ↑10MA +18→+24, ↑20MA +6→+10
+    #   신규: ↑50MA +8, 정배열(MA10>20>50) +12, MA10 우상향 +8
+    #   모멘텀 복원: 5d ±8 → ±14, 신규 20d 추세 +14/-8 (상승은 크게, 하락은 작게 감점)
+    #   10일선 이탈 -22 유지 (추세 깨진 종목은 강하게 배제)
     #
     # 참고: 컨센서스 상향 / 추정이익 가속화는 FnGuide 유료 데이터 필요 — 본 함수 미반영.
     # ─────────────────────────────────────────
@@ -384,13 +388,21 @@ def build_flow_dashboard(
                 score += fb
                 reasons.append(f"빈집(모멘텀 fallback) +{fb:.0f}")
 
-        # 3) 추세추종 — 10일선 위/이탈. "10일선 이탈해서 정리"가 명시적 매도 규칙.
+        # 3) 추세추종 — "추세가 살아있는" 종목 우대 (강화).
+        #    10일선 위/이탈 + 20·50일선 정배열 + MA10 우상향 기울기.
+        #    빈집(수급 일시 이탈)이라도 가격 추세가 살아있는 종목 = 이상적 매수타점.
         if c.get("aboveMA10"):
-            score += 18; reasons.append("↑10MA +18")
+            score += 24; reasons.append("↑10MA +24")
         else:
             score -= 22; reasons.append("10MA 이탈 -22")
         if c.get("aboveMA20"):
-            score += 6; reasons.append("↑20MA +6")
+            score += 10; reasons.append("↑20MA +10")
+        if c.get("aboveMA50"):
+            score += 8; reasons.append("↑50MA +8")
+        if c.get("alignedMA"):
+            score += 12; reasons.append("정배열(10>20>50) +12")
+        if c.get("ma10Rising"):
+            score += 8; reasons.append("10MA 우상향 +8")
 
         # 4) 신고가 — "52주 신고가" 7회 반복. 250일 신고가 ≈ 52주 신고가.
         if c.get("newHigh250d"):
@@ -421,13 +433,23 @@ def build_flow_dashboard(
             elif tvr > 1.8:
                 score -= 7; reasons.append(f"거래대금 다소과열 ×{tvr:.2f} -7")
 
-        # 6) 단기 모멘텀 (5d 수익률) — 보조 시그널로 축소.
+        # 6) 모멘텀 — 추세 살아있음 우대로 가중치 복원/확대.
+        #    5d(단기) ±14 + 20d(추세 방향) +14/-8 (상승 추세는 크게, 하락은 작게 감점).
         ret5d = c.get("ret5d")
         if ret5d is not None:
-            mom = max(-8.0, min(8.0, ret5d * 0.7))
+            mom = max(-14.0, min(14.0, ret5d * 1.2))
             score += mom
             sign = "+" if mom >= 0 else ""
             reasons.append(f"5d {ret5d:+.1f}% {sign}{mom:.0f}")
+        ret20d = c.get("ret20d")
+        if ret20d is not None:
+            if ret20d > 0:
+                mom20 = min(14.0, ret20d * 0.6)
+            else:
+                mom20 = max(-8.0, ret20d * 0.4)
+            score += mom20
+            sign = "+" if mom20 >= 0 else ""
+            reasons.append(f"20d 추세 {ret20d:+.1f}% {sign}{mom20:.0f}")
 
         # 7) 매수권 진입 — 보조.
         if c.get("buyZone", {}).get("inBuyZone"):
