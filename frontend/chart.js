@@ -36,8 +36,11 @@ function getChartApiUrl() {
 // ─────────────────────────────────────────┘
 // count = 화면에 그릴 캔들 개수. 알파스퀘어처럼 "통통한" 캔들을 위해
 //   일/주/월은 60~80개 수준으로 제한 (220개는 너무 빽빽해 줌아웃처럼 보임).
+// 네이버 fchart 는 1분봉만 제공 → minute 는 프론트에서 3분봉으로 집계해 표시.
+// count 는 1분봉 기준 요청량(하루 정규장 ≈ 390분) → 집계 후 ~130개 3분봉.
+const MINUTE_AGG_UNIT = 3;
 const TIMEFRAMES = [
-  { key: 'minute', label: '1분', count: 140 },
+  { key: 'minute', label: '3분', count: 400 },
   { key: 'day',    label: '일',  count: 70 },
   { key: 'week',   label: '주',  count: 70 },
   { key: 'month',  label: '월',  count: 60 },
@@ -89,6 +92,36 @@ function chartFmtTime(t, timeframe) {
   return t;
 }
 
+// 1분봉 → N분봉 집계. 시계 기준 버킷(09:00,09:03,…)으로 묶어 OHLCV 합성.
+//   o=버킷 첫봉 시가, h=최고, l=최저, c=버킷 막봉 종가, v=합, t=첫봉 시각.
+function aggregateMinuteCandles(candles, unit = MINUTE_AGG_UNIT) {
+  if (!Array.isArray(candles) || candles.length === 0 || unit <= 1) return candles;
+  const out = [];
+  let bucket = null, key = null;
+  for (const c of candles) {
+    const t = c.t || '';
+    let k;
+    if (t.length >= 12) {
+      const mm = parseInt(t.slice(10, 12), 10);
+      k = t.slice(0, 10) + String(Math.floor(mm / unit) * unit).padStart(2, '0');
+    } else {
+      k = t;
+    }
+    if (k !== key) {
+      if (bucket) out.push(bucket);
+      key = k;
+      bucket = { t: c.t, o: c.o, h: c.h, l: c.l, c: c.c, v: c.v || 0 };
+    } else {
+      if (c.h != null && (bucket.h == null || c.h > bucket.h)) bucket.h = c.h;
+      if (c.l != null && (bucket.l == null || c.l < bucket.l)) bucket.l = c.l;
+      bucket.c = c.c;
+      bucket.v += c.v || 0;
+    }
+  }
+  if (bucket) out.push(bucket);
+  return out;
+}
+
 // ─────────────────────────────────────────┐
 // API fetch                                 │
 // ─────────────────────────────────────────┘
@@ -110,7 +143,12 @@ async function fetchChart(code, timeframe, count) {
     }
     throw new Error(`HTTP ${resp.status}: ${detail || resp.statusText}`);
   }
-  return await resp.json();
+  const json = await resp.json();
+  // 분봉은 1분봉으로 받아 3분봉으로 집계 (네이버가 1분봉만 주므로).
+  if (timeframe === 'minute' && json && Array.isArray(json.candles)) {
+    json.candles = aggregateMinuteCandles(json.candles, MINUTE_AGG_UNIT);
+  }
+  return json;
 }
 
 // ─────────────────────────────────────────┐

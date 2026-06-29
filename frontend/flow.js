@@ -270,10 +270,7 @@ function renderDualAxisChart(history, opts = {}) {
 //   이동평균선(MA10/MA20) 점선은 그리지 않는다.
 // ─────────────────────────────────────────┘
 function renderMiniPriceChart(c, opts = {}) {
-  const w = opts.width || 263;       // 175 × 1.5
-  const chartH = opts.height || 96;  // 64 × 1.5
-  const axisH = 17;                  // 11 × 1.5 — 하단 X축 날짜 라벨
-  const h = chartH + axisH;    // SVG 전체 높이
+  // 형상 상수는 렌더 직전에 정의 (kick_mockup_light 레시피)
 
   // cap (시가총액, 60일) 과 osc (수급, ~76일) 길이가 다르면 둘 중 짧은 쪽
   // 길이로 우측 끝부터 trim. 둘 다 마지막 거래일이 같으므로 우측 정렬됨.
@@ -296,125 +293,87 @@ function renderMiniPriceChart(c, opts = {}) {
   const validCap = cap.filter(v => v != null);
   if (validCap.length < 2) return '<div class="sparkline-empty"></div>';
 
-  const capMin = Math.min(...validCap);
-  const capMax = Math.max(...validCap);
-  const capSpan = capMax - capMin || 1;
-  const stepX = w / (cap.length - 1);
+  // ── 차트 형상 (kick_mockup_light 레시피) ──────────────────
+  const W = opts.width || 360, H = opts.height || 120;
+  const padL = 6, padR = 6, padT = 9, padB = 16;
+  const x0 = padL, x1 = W - padR, y0 = padT, y1 = H - padB;
+  const n = cap.length;
+  const X = (i) => x0 + (n <= 1 ? 0 : (i / (n - 1)) * (x1 - x0));
 
-  const projectCap = (v, i) => {
-    if (v == null) return null;
-    const x = i * stepX;
-    const y = 1 + (1 - (v - capMin) / capSpan) * (chartH - 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  };
-  const capPts = cap.map((v, i) => projectCap(v, i)).filter(Boolean).join(' ');
+  // 가격(시총)·MA10 — 검정/파랑, 전체 높이 스케일
   const ma10Series = computeMA(cap, 10);
-  const ma10MiniPts = ma10Series.map((v, i) => projectCap(v, i)).filter(Boolean).join(' ');
+  const pAll = validCap.concat(ma10Series.filter(v => v != null));
+  let pMin = Math.min(...pAll), pMax = Math.max(...pAll);
+  const pPad = (pMax - pMin) * 0.08 || 1; pMin -= pPad; pMax += pPad;
+  const yP = (v) => y0 + (1 - (v - pMin) / (pMax - pMin)) * (y1 - y0);
+  const capPts = cap.map((v, i) => v == null ? null : `${X(i).toFixed(1)},${yP(v).toFixed(1)}`).filter(Boolean).join(' ');
+  const maPts = ma10Series.map((v, i) => v == null ? null : `${X(i).toFixed(1)},${yP(v).toFixed(1)}`).filter(Boolean).join(' ');
 
-  // 수급 오실레이터 — 배경 zone 음영(5단계) + 주황선
-  //   zone 경계 = 종목 historical osc 의 percentile p10/p25/p75/p90
-  //   위(양수)부터: 🔴 과열 > 🟠 채움 > ⚪ 중립 > 🟢 비어감 > 🟢 빈집
-  //   이전 percentile 점선 4개 + 0선은 의미가 안 읽혀서 제거. zone 색이 위치를 직관 표현.
-  let oscOverlay = '';
+  // 수급 오실레이터 — 옅은 파스텔 zone 음영 + 빨강/파랑 분위 점선 + 주황선
+  let oscBg = '', oscFg = '';
   let lastOscVal = null;
-  let zoneInfo = null;   // { key, label, badgeClass }
   if (oscSeries.length >= 2) {
-    const oscVals = oscSeries.map(o => o.osc || 0);
-    const oscMaxAbs = Math.max(...oscVals.map(v => Math.abs(v))) || 1;
+    const oscVals = oscSeries.map(o => (o && o.osc != null) ? o.osc : 0);
+    let oMin = Math.min(...oscVals), oMax = Math.max(...oscVals);
+    const oPad = (oMax - oMin) * 0.12 || 0.001; oMin -= oPad; oMax += oPad;
+    const yO = (v) => y0 + (1 - (v - oMin) / (oMax - oMin)) * (y1 - y0);
     lastOscVal = oscVals[oscVals.length - 1];
 
-    const oscMid = chartH / 2;
-    const oscHalf = chartH * 0.45;
-    const yOf = (v) => oscMid - (v / oscMaxAbs) * oscHalf;
-
-    // percentile 컷오프 (zone 경계)
     const sorted = [...oscVals].sort((a, b) => a - b);
-    const p = (q) => {
-      const idx = Math.max(0, Math.min(sorted.length - 1, Math.round(q * (sorted.length - 1))));
-      return sorted[idx];
+    const pq = (q) => sorted[Math.max(0, Math.min(sorted.length - 1, Math.round(q * (sorted.length - 1))))];
+    const p90 = pq(0.90), p75 = pq(0.75), p50 = pq(0.50), p25 = pq(0.25), p10 = pq(0.10);
+
+    const band = (a, b, fill) => {
+      const t = Math.min(a, b), bt = Math.max(a, b), hh = bt - t;
+      return hh < 0.5 ? '' : `<rect x="${x0}" y="${t.toFixed(1)}" width="${(x1 - x0).toFixed(1)}" height="${hh.toFixed(1)}" fill="${fill}"/>`;
     };
-    const p10 = p(0.10), p25 = p(0.25), p75 = p(0.75), p90 = p(0.90);
+    const bands =
+      band(y0, yO(p90), '#fdecee') +
+      band(yO(p90), yO(p75), '#fcf4f5') +
+      band(yO(p75), yO(p25), '#f7f8fa') +
+      band(yO(p25), yO(p10), '#eef6f1') +
+      band(yO(p10), y1, '#e6f4ec');
+    const dl = (y, color, dash) =>
+      `<line x1="${x0}" y1="${y.toFixed(1)}" x2="${x1}" y2="${y.toFixed(1)}" stroke="${color}" stroke-width="0.9"${dash ? ` stroke-dasharray="${dash}"` : ''} opacity="0.6"/>`;
+    const dashed = dl(yO(p90), '#E53935', '3 3') + dl(yO(p10), '#1E88E5', '3 3') + dl(yO(p50), '#cbb8bb', '');
+    const oscPts = oscVals.map((v, i) => `${X(i).toFixed(1)},${yO(v).toFixed(1)}`).join(' ');
+    const oscLine = `<polyline points="${oscPts}" fill="none" stroke="#FB8C00" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`;
 
-    // 배경 zone — 위(양수)부터 아래(음수)로. opacity 는 옅게 (주황선 가독 우선).
-    const yTop = 1, yBot = chartH - 1;
-    const y90 = yOf(p90), y75 = yOf(p75), y25 = yOf(p25), y10 = yOf(p10);
-    const band = (y1, y2, fill) => {
-      const top = Math.min(y1, y2), bot = Math.max(y1, y2);
-      const hh = Math.max(0, bot - top);
-      if (hh < 0.5) return '';
-      return `<rect x="0" y="${top.toFixed(1)}" width="${w}" height="${hh.toFixed(1)}" fill="${fill}"/>`;
-    };
-    const bands = [
-      band(yTop, y90, '#FFCDD2'),   // 강 과열   (>p90)
-      band(y90,  y75, '#FFEBEE'),   // 약 채움   (p75~p90)
-      band(y25,  y75, '#F5F5F5'),   // 중립     (p25~p75)
-      band(y10,  y25, '#E8F5E9'),   // 비어감   (p10~p25)
-      band(yBot, y10, '#A5D6A7'),   // 빈집     (<p10)
-    ].join('');
-
-    // osc 주황선
-    const linePts = oscVals.map((v, i) => `${(i * stepX).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ');
-    const oscLine = `<polyline points="${linePts}" fill="none" stroke="#EF6C00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
-
-    oscOverlay = bands + oscLine;
-
-    // 현재 zone 판정
-    if (lastOscVal >= p90)      zoneInfo = { key: 'hot',     label: '과열',   badgeClass: 'zone-hot' };
-    else if (lastOscVal >= p75) zoneInfo = { key: 'warm',    label: '채움',   badgeClass: 'zone-warm' };
-    else if (lastOscVal > p25)  zoneInfo = { key: 'neutral', label: '중립',   badgeClass: 'zone-neutral' };
-    else if (lastOscVal > p10)  zoneInfo = { key: 'cool',    label: '비어감', badgeClass: 'zone-cool' };
-    else                        zoneInfo = { key: 'empty',   label: '빈집',   badgeClass: 'zone-empty' };
+    oscBg = bands + dashed + oscLine;
+    oscFg =
+      `<circle cx="${X(n - 1).toFixed(1)}" cy="${yO(lastOscVal).toFixed(1)}" r="2.2" fill="#FB8C00"/>` +
+      `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(p90) - 3).toFixed(1)}" font-size="8.5" font-weight="700" fill="#E53935" text-anchor="end">상위</text>` +
+      `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(lastOscVal) + (lastOscVal >= p50 ? 11 : 3)).toFixed(1)}" font-size="9.5" font-weight="900" fill="#E65100" text-anchor="end">${(lastOscVal * 100).toFixed(2)}%</text>`;
   }
 
-  // X축 날짜 라벨 — 5개 (좌끝 / 25% / 50% / 75% / 우끝). 'M/D' 짧은 형식.
+  // 가격(시총) 끝점 + 좌측 시총 라벨
+  const lastCapVal = [...cap].reverse().find(v => v != null);
+  const capLabel = lastCapVal >= 1e12 ? `${(lastCapVal / 1e12).toFixed(1)}조`
+                  : lastCapVal >= 1e8 ? `${(lastCapVal / 1e8).toFixed(0)}억`
+                  : `${lastCapVal}`;
+  const capDot = `<circle cx="${X(n - 1).toFixed(1)}" cy="${yP(lastCapVal).toFixed(1)}" r="2" fill="#1A1A1A"/>`;
+  const capLabelSvg = `<text x="${x0 + 3}" y="${yP((pMin + pMax) / 2).toFixed(1)}" font-size="9.5" font-weight="800" fill="#5a6675">${fEscape(capLabel)}</text>`;
+
+  // X축 날짜 라벨 — 5개 (좌끝 / 25% / 50% / 75% / 우끝). 'M/D'.
   let axisLabels = '';
   if (dates.length >= 2) {
-    const fmt = (s) => {
-      // 'YYYY-MM-DD' → 'M/D'
-      const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(s);
-      if (!m) return s;
-      return `${parseInt(m[1], 10)}/${parseInt(m[2], 10)}`;
-    };
+    const fmt = (s) => { const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(s); return m ? `${parseInt(m[1], 10)}/${parseInt(m[2], 10)}` : s; };
     const last = dates.length - 1;
-    const ticks = [
-      { i: 0, anchor: 'start' },
-      { i: Math.round(last * 0.25), anchor: 'middle' },
-      { i: Math.round(last * 0.5),  anchor: 'middle' },
-      { i: Math.round(last * 0.75), anchor: 'middle' },
-      { i: last, anchor: 'end' },
-    ];
-    axisLabels = ticks.map(t => {
-      const x = t.i * stepX;
-      const y = chartH + axisH - 1;
-      return `<text x="${x.toFixed(1)}" y="${y}" font-size="11" fill="#888" text-anchor="${t.anchor}">${fmt(dates[t.i])}</text>`;
-    }).join('');
+    const ticks = [[0, 'start'], [Math.round(last * 0.25), 'middle'], [Math.round(last * 0.5), 'middle'], [Math.round(last * 0.75), 'middle'], [last, 'end']];
+    axisLabels = ticks.map(([i, a]) => `<text x="${X(i).toFixed(1)}" y="${H - 4}" font-size="9" fill="#9aa49c" text-anchor="${a}">${fmt(dates[i])}</text>`).join('');
   }
-
-  // 라벨: 좌측 = 시가총액, 우측 = zone 배지 + osc 마지막값
-  const lastCap = cap[cap.length - 1];
-  const capLabel = lastCap >= 1e12 ? `${(lastCap / 1e12).toFixed(1)}조`
-                  : lastCap >= 1e8 ? `${(lastCap / 1e8).toFixed(0)}억`
-                  : `${lastCap}`;
-  const oscLastLabel = lastOscVal != null ? `${(lastOscVal * 100).toFixed(2)}%` : '';
-  const oscColor = lastOscVal == null ? '#777'
-                 : lastOscVal > 0 ? '#C62828' : '#1565C0';
-  const zoneBadge = zoneInfo
-    ? `<span class="zone-badge ${zoneInfo.badgeClass}">${zoneInfo.label}</span>`
-    : '';
 
   return `
     <div class="mini-chart-wrap">
-      <span class="mini-chart-label-left">${capLabel}</span>
-      <svg viewBox="0 0 ${w} ${h}" class="mini-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-        ${oscOverlay}
-        <polyline points="${capPts}" fill="none" stroke="#1A1A1A" stroke-width="1.5"/>
-        ${ma10MiniPts ? `<polyline points="${ma10MiniPts}" fill="none" stroke="#1E88E5" stroke-width="1.2" vector-effect="non-scaling-stroke"/>` : ''}
+      <svg viewBox="0 0 ${W} ${H}" class="mini-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+        ${oscBg}
+        <polyline points="${maPts}" fill="none" stroke="#1E88E5" stroke-width="1"/>
+        <polyline points="${capPts}" fill="none" stroke="#1A1A1A" stroke-width="1.3"/>
+        ${capDot}
+        ${oscFg}
+        ${capLabelSvg}
         ${axisLabels}
       </svg>
-      <span class="mini-chart-label-right">
-        ${zoneBadge}
-        <span class="mini-chart-osc-last" style="color:${oscColor}">${oscLastLabel}</span>
-      </span>
     </div>
   `;
 }
@@ -671,6 +630,48 @@ function buyGradeBadge(score) {
 }
 
 // ─────────────────────────────────────────┐
+// 차트 선 범례 (각 차트 하단 — 선/음영 설명)  │
+// ─────────────────────────────────────────┘
+function renderChartLegend() {
+  return `
+    <div class="chart-legend">
+      <span><i class="ln ln-black"></i>시가총액</span>
+      <span><i class="ln ln-blue"></i>MA10</span>
+      <span><i class="ln ln-orange"></i>수급 오실레이터</span>
+      <span><i class="ln ln-dash-red"></i>상위<i class="ln ln-dash-blue"></i>하위 분위</span>
+      <span class="cl-zone">음영: 빈집·비어감·중립·채움·과열</span>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────┐
+// 공용 종목 카드 (STEP3 = 빈집, 주도섹터 거래대금 공용) │
+//   헤더行 + 풀폭 차트박스 + 선 범례 + 빈집 태그行 + 분위 바
+// ─────────────────────────────────────────┘
+function renderCandCardV2(c, idx) {
+  const sectorLabel = c.sector || '-';
+  const rankBadge = `<span class="rank-badge${idx === 0 ? ' rank-badge-top' : ''}">#${idx + 1}</span>`;
+  return `
+    <div class="cand-row cand-v2 clickable" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
+      <div class="cand-v2-head">
+        ${rankBadge}
+        <div class="cand-v2-name">
+          <div class="cand-name">${fEscape(c.name)}</div>
+          <div class="cand-v2-sub">${fEscape(c.code)} · ${fEscape(sectorLabel)}</div>
+        </div>
+        <div class="cand-v2-px">
+          <span class="cand-close">${fmtNumber(c.close)}</span>
+          ${c.ret5d != null ? `<span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>` : ''}
+        </div>
+      </div>
+      <div class="cand-v2-chartbox">${renderMiniPriceChart(c)}</div>
+      ${renderChartLegend()}
+      ${renderVacancyTags(c)}
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────┐
 // CARD: Buy candidates (STEP 3 — main hero) │
 // ─────────────────────────────────────────┘
 function buildBuyCandidatesCard(candidates, leadingLabels) {
@@ -682,28 +683,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
   const SHOW_N = 20;
   const shown = Math.min(SHOW_N, candidates.length);
 
-  const rows = candidates.slice(0, SHOW_N).map((c, idx) => {
-    const sectorLabel = c.sector || '-';
-    const rankBadge = `<span class="rank-badge${idx === 0 ? ' rank-badge-top' : ''}">#${idx + 1}</span>`;
-
-    return `
-      <div class="cand-row cand-v2 clickable" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
-        <div class="cand-v2-head">
-          ${rankBadge}
-          <div class="cand-v2-name">
-            <div class="cand-name">${fEscape(c.name)}</div>
-            <div class="cand-v2-sub">${fEscape(c.code)} · ${fEscape(sectorLabel)}</div>
-          </div>
-          <div class="cand-v2-px">
-            <span class="cand-close">${fmtNumber(c.close)}</span>
-            <span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>
-          </div>
-        </div>
-        <div class="cand-v2-chartbox">${renderMiniPriceChart(c)}</div>
-        ${renderVacancyTags(c)}
-      </div>
-    `;
-  }).join('');
+  const rows = candidates.slice(0, SHOW_N).map((c, idx) => renderCandCardV2(c, idx)).join('');
 
   return `
     <div class="flow-card flow-card-candidates flow-step3">
@@ -713,24 +693,9 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
       </div>
       <div class="cand-submeta">${shown}종목 · 외인·기관 순매수 빠진 자리(빈집) ∩ 추세 생존(MA10 위)</div>
       <div class="cand-body">${rows}</div>
-      <div class="cand-legend">
-        <span><span class="legend-line black"></span>시가총액</span>
-        <span><span class="legend-line blue"></span>MA10</span>
-        <span><span class="legend-line amber"></span>수급 오실레이터</span>
-        <span class="legend-zones">
-          배경:
-          <span class="zone-chip zone-empty">빈집</span>
-          <span class="zone-chip zone-cool">비어감</span>
-          <span class="zone-chip zone-neutral">중립</span>
-          <span class="zone-chip zone-warm">채움</span>
-          <span class="zone-chip zone-hot">과열</span>
-        </span>
-        <span class="legend-tip">초록 = 외인·기관 순매수 약화(빈집) · 빨강 = 외인·기관 순매수 정점(과열)</span>
-      </div>
     </div>
   `;
 }
-// (위 cand-legend 가 buyCandidatesCard 와 leadingValueCard 양쪽에 동일하게 적용)
 
 // ─────────────────────────────────────────┐
 // CARD: 주도섹터 거래대금 톱10               │
@@ -740,46 +705,16 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
 function buildLeadingValueCard(items, leadingLabels) {
   if (!items || items.length === 0) return '';
 
-  const rows = items.map(c => {
-    return `
-      <div class="cand-row clickable" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
-        <div class="cand-top">
-          <div class="cand-info">
-            <div class="cand-name">${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(c.sector || '-')}</small></div>
-            <div class="cand-prices">
-              <span class="cand-close">${fmtNumber(c.close)}</span>
-              ${c.ret5d != null ? `<span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>` : ''}
-            </div>
-          </div>
-          <div class="cand-chart">
-            ${renderMiniPriceChart(c)}
-          </div>
-        </div>
-        ${renderSupplyGauge(c.vacancyPercentile, c.vacancyZone, c.institutionNet5d)}
-      </div>
-    `;
-  }).join('');
+  const rows = items.map((c, idx) => renderCandCardV2(c, idx)).join('');
 
   return `
     <div class="flow-card flow-card-candidates flow-card-leading-value">
-      <div class="card-header">
-        <span class="card-theme-name">주도 섹터 거래대금 TOP 10</span>
+      <div class="card-header step-header">
+        <span class="step-num">TOP 10</span>
+        <span class="card-theme-name">주도 섹터 <b class="ct-accent">거래대금</b> 상위</span>
       </div>
+      <div class="cand-submeta">외인+기관이 가장 큰 돈을 베팅 중인 주도주 · 거래대금순 (수급 채워진 종목 포함)</div>
       <div class="cand-body">${rows}</div>
-      <div class="cand-legend">
-        <span><span class="legend-line black"></span>시가총액</span>
-        <span><span class="legend-line blue"></span>MA10</span>
-        <span><span class="legend-line amber"></span>수급 오실레이터</span>
-        <span class="legend-zones">
-          배경:
-          <span class="zone-chip zone-empty">빈집</span>
-          <span class="zone-chip zone-cool">비어감</span>
-          <span class="zone-chip zone-neutral">중립</span>
-          <span class="zone-chip zone-warm">채움</span>
-          <span class="zone-chip zone-hot">과열</span>
-        </span>
-        <span class="legend-tip">매수 후보(빈집 전략)에 안 잡히지만 외인+기관이 가장 큰 돈을 베팅 중인 주도주. 게이지 "찼음"=수급 채워짐.</span>
-      </div>
     </div>
   `;
 }
