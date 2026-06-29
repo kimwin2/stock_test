@@ -34,11 +34,13 @@ function getChartApiUrl() {
 // ─────────────────────────────────────────┐
 // 모달 상태                                 │
 // ─────────────────────────────────────────┘
+// count = 화면에 그릴 캔들 개수. 알파스퀘어처럼 "통통한" 캔들을 위해
+//   일/주/월은 60~80개 수준으로 제한 (220개는 너무 빽빽해 줌아웃처럼 보임).
 const TIMEFRAMES = [
-  { key: 'minute', label: '1분', count: 390 },
-  { key: 'day',    label: '일',  count: 220 },
-  { key: 'week',   label: '주',  count: 156 },
-  { key: 'month',  label: '월',  count: 120 },
+  { key: 'minute', label: '1분', count: 140 },
+  { key: 'day',    label: '일',  count: 70 },
+  { key: 'week',   label: '주',  count: 70 },
+  { key: 'month',  label: '월',  count: 60 },
 ];
 
 const chartState = {
@@ -114,22 +116,46 @@ async function fetchChart(code, timeframe, count) {
 // ─────────────────────────────────────────┐
 // SVG 캔들스틱 렌더                          │
 // ─────────────────────────────────────────┘
+// viewBox 기하 — 알파스퀘어처럼 세로가 넉넉한 ~2:1 비율.
+//   가격 패널이 화면 대부분을, 거래량은 하단 좁은 띠. 가격축은 우측(업계 표준).
+const GEO = {
+  W: 720, H: 400,
+  padL: 8, padR: 58, padT: 14,
+  priceBottom: 312,
+  volTop: 330, volBottom: 386,
+  xAxisY: 398,
+};
+
+// 색상: 한국 관행 (빨강=상승, 파랑=하락)
+const C_UP = '#E12B2B';
+const C_DOWN = '#1763D4';
+const C_FLAT = '#9AA0A6';
+
+// 이동평균선 (알파스퀘어 단순이동평균과 동일 컨셉)
+const MA_LINES = [
+  { p: 5,  color: '#8E5BE8' },
+  { p: 20, color: '#EE9A1E' },
+  { p: 60, color: '#16B39A' },
+];
+
+// 종가 배열에 대한 단순이동평균 (null = 데이터 부족 구간)
+function smaSeries(values, period) {
+  const out = new Array(values.length).fill(null);
+  let sum = 0;
+  for (let i = 0; i < values.length; i++) {
+    sum += values[i];
+    if (i >= period) sum -= values[i - period];
+    if (i >= period - 1) out[i] = sum / period;
+  }
+  return out;
+}
+
 function renderCandlestickSVG(candles, timeframe) {
   if (!candles || candles.length === 0) {
     return '<div class="chart-empty">데이터 없음</div>';
   }
 
-  // viewBox 좌표계 — 높이 절반(420→220)으로 압축. 모달이 너무 길어 보이지 않도록.
-  const W = 800;
-  const H = 220;
-  const padL = 56;
-  const padR = 14;
-  const padT = 8;
-  const priceBottom = 150;
-  const volTop = 164;
-  const volBottom = 204;
-  const xAxisY = 215;
-
+  const { W, H, padL, padR, padT, priceBottom, volTop, volBottom, xAxisY } = GEO;
   const innerW = W - padL - padR;
   const innerPriceH = priceBottom - padT;
   const innerVolH = volBottom - volTop;
@@ -148,22 +174,18 @@ function renderCandlestickSVG(candles, timeframe) {
     minP = minP * 0.99;
     maxP = maxP * 1.01;
   }
-  const pad = (maxP - minP) * 0.05;
+  // 위/아래 약간의 여백만 (꽉 채워 캔들을 크게 — 알파스퀘어 느낌)
+  const pad = (maxP - minP) * 0.06;
   minP = minP - pad;
   maxP = maxP + pad;
 
   const N = candles.length;
   const slot = innerW / N;
-  const bodyW = Math.max(1, slot * 0.7);
+  const bodyW = Math.max(1.5, slot * 0.68);
 
   function xCenter(i) { return padL + slot * (i + 0.5); }
   function yPrice(p) { return padT + (1 - (p - minP) / (maxP - minP)) * innerPriceH; }
   function yVol(v) { return volTop + (1 - (maxV > 0 ? v / maxV : 0)) * innerVolH; }
-
-  // 색상: 한국 관행 (빨강=상승, 파랑=하락)
-  const UP = '#E53935';
-  const DOWN = '#1E88E5';
-  const FLAT = '#888';
 
   // 캔들 + 거래량
   // 분봉(minute) 은 Naver 가 close 만 보내서 o==h==l==c 인 경우가 많음 →
@@ -182,18 +204,18 @@ function renderCandlestickSVG(candles, timeframe) {
       up = c.c > c.o;
       down = c.c < c.o;
     }
-    const color = up ? UP : down ? DOWN : FLAT;
+    const color = up ? C_UP : down ? C_DOWN : C_FLAT;
     const cx = xCenter(i);
     const yH = yPrice(c.h);
     const yL = yPrice(c.l);
     const yO = yPrice(c.o);
     const yC = yPrice(c.c);
     const bodyTop = Math.min(yO, yC);
-    const bodyH = Math.max(0.5, Math.abs(yC - yO));
+    const bodyH = Math.max(0.6, Math.abs(yC - yO));
 
     // 심지
     candleSvg.push(
-      `<line x1="${cx.toFixed(1)}" y1="${yH.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yL.toFixed(1)}" stroke="${color}" stroke-width="0.8"/>`
+      `<line x1="${cx.toFixed(1)}" y1="${yH.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yL.toFixed(1)}" stroke="${color}" stroke-width="1"/>`
     );
     // 몸통
     candleSvg.push(
@@ -202,20 +224,53 @@ function renderCandlestickSVG(candles, timeframe) {
     // 거래량 바
     const vy = yVol(c.v || 0);
     volSvg.push(
-      `<rect x="${(cx - bodyW / 2).toFixed(1)}" y="${vy.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${(volBottom - vy).toFixed(1)}" fill="${color}" opacity="0.7"/>`
+      `<rect x="${(cx - bodyW / 2).toFixed(1)}" y="${vy.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${(volBottom - vy).toFixed(1)}" fill="${color}" opacity="0.55"/>`
     );
   }
 
-  // Y축 가격 눈금 (5단계)
+  // 이동평균선 — 부드러운 곡선 (알파스퀘어 핵심 미감)
+  const closes = candles.map(c => c.c);
+  const maSvg = [];
+  const maLegend = [];
+  let legendX = padL + 2;
+  for (const ma of MA_LINES) {
+    if (N <= ma.p) continue;
+    const series = smaSeries(closes, ma.p);
+    const pts = [];
+    for (let i = 0; i < N; i++) {
+      if (series[i] == null) continue;
+      pts.push(`${xCenter(i).toFixed(1)},${yPrice(series[i]).toFixed(1)}`);
+    }
+    if (pts.length < 2) continue;
+    maSvg.push(
+      `<polyline points="${pts.join(' ')}" fill="none" stroke="${ma.color}" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>`
+    );
+    maLegend.push(
+      `<text x="${legendX.toFixed(1)}" y="${(padT - 3).toFixed(1)}" font-size="9.5" font-weight="600" fill="${ma.color}">MA${ma.p}</text>`
+    );
+    legendX += 34;
+  }
+
+  // Y축 가격 눈금 (우측, 5단계) + 옅은 가로 그리드
   const yTicks = [];
   for (let k = 0; k <= 4; k++) {
     const p = minP + (maxP - minP) * (k / 4);
     const y = yPrice(p);
     yTicks.push(
-      `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#EEE" stroke-width="0.5"/>`,
-      `<text x="${padL - 4}" y="${(y + 3).toFixed(1)}" font-size="10" text-anchor="end" fill="#666">${chartFmtNum(Math.round(p))}</text>`
+      `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#EDEFF2" stroke-width="1"/>`,
+      `<text x="${(W - padR + 5).toFixed(1)}" y="${(y + 3).toFixed(1)}" font-size="10" text-anchor="start" fill="#8A9099">${chartFmtNum(Math.round(p))}</text>`
     );
   }
+
+  // 현재가(마지막 종가) 강조 — 우측 가격축에 컬러 태그 + 점선
+  const lastC = candles[N - 1].c;
+  const prevC = N > 1 ? candles[N - 2].c : lastC;
+  const lastColor = lastC > prevC ? C_UP : lastC < prevC ? C_DOWN : C_FLAT;
+  const ly = yPrice(lastC);
+  const priceTag =
+    `<line x1="${padL}" y1="${ly.toFixed(1)}" x2="${W - padR}" y2="${ly.toFixed(1)}" stroke="${lastColor}" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.55"/>` +
+    `<rect x="${(W - padR).toFixed(1)}" y="${(ly - 8).toFixed(1)}" width="${(padR - 3).toFixed(1)}" height="16" rx="2.5" fill="${lastColor}"/>` +
+    `<text x="${(W - padR + (padR - 3) / 2).toFixed(1)}" y="${(ly + 3.5).toFixed(1)}" font-size="10" font-weight="700" text-anchor="middle" fill="#fff">${chartFmtNum(Math.round(lastC))}</text>`;
 
   // X축 시간 눈금 (최대 6개)
   const xTicks = [];
@@ -223,12 +278,12 @@ function renderCandlestickSVG(candles, timeframe) {
   for (let i = 0; i < N; i += tickStep) {
     const cx = xCenter(i);
     xTicks.push(
-      `<text x="${cx.toFixed(1)}" y="${xAxisY}" font-size="10" text-anchor="middle" fill="#666">${chartEscape(chartFmtTime(candles[i].t, timeframe))}</text>`
+      `<text x="${cx.toFixed(1)}" y="${xAxisY}" font-size="10" text-anchor="middle" fill="#8A9099">${chartEscape(chartFmtTime(candles[i].t, timeframe))}</text>`
     );
   }
 
   // 거래량 panel 구분선
-  const separator = `<line x1="${padL}" y1="${priceBottom}" x2="${W - padR}" y2="${priceBottom}" stroke="#DDD" stroke-width="0.5"/>`;
+  const separator = `<line x1="${padL}" y1="${priceBottom}" x2="${W - padR}" y2="${priceBottom}" stroke="#E3E6EA" stroke-width="1"/>`;
 
   // hover hit areas (투명 rect, 각 캔들별로 — JS 가 이벤트로 처리)
   const hitAreas = [];
@@ -241,16 +296,19 @@ function renderCandlestickSVG(candles, timeframe) {
 
   // crosshair (JS 가 위치 업데이트)
   const crosshair = `
-    <line class="chart-crosshair-x" x1="0" y1="0" x2="0" y2="${volBottom}" stroke="#999" stroke-width="0.5" stroke-dasharray="2 2" visibility="hidden"/>
-    <line class="chart-crosshair-y" x1="${padL}" y1="0" x2="${W - padR}" y2="0" stroke="#999" stroke-width="0.5" stroke-dasharray="2 2" visibility="hidden"/>
+    <line class="chart-crosshair-x" x1="0" y1="${padT}" x2="0" y2="${volBottom}" stroke="#A8AEB6" stroke-width="0.7" stroke-dasharray="3 3" visibility="hidden"/>
+    <line class="chart-crosshair-y" x1="${padL}" y1="0" x2="${W - padR}" y2="0" stroke="#A8AEB6" stroke-width="0.7" stroke-dasharray="3 3" visibility="hidden"/>
   `;
 
   return `
-    <svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <svg class="chart-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
       ${yTicks.join('')}
       ${separator}
+      ${maSvg.join('')}
       ${candleSvg.join('')}
       ${volSvg.join('')}
+      ${priceTag}
+      ${maLegend.join('')}
       ${xTicks.join('')}
       ${crosshair}
       ${hitAreas.join('')}
@@ -356,7 +414,7 @@ function attachCrosshair(body) {
   function showAt(i, clientX, clientY) {
     if (!candles[i]) return;
     const rect = svg.getBoundingClientRect();
-    const vbW = 800, vbH = 420;
+    const vbH = GEO.H;
     // 클릭/호버 위치 → viewBox 좌표 (cx)
     const hit = hitAreas[i];
     const cx = parseFloat(hit.getAttribute('x')) + parseFloat(hit.getAttribute('width')) / 2;
