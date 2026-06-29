@@ -420,40 +420,86 @@ function renderMiniPriceChart(c, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
-// Supply Gauge — percentile + zone          │
+// Supply Gauge — 5단계 percentile 시각화     │
 //   percentile: 0-100 (0=가장 빈집)         │
-//   zone: "빈집" | "정상" | "찼음"          │
+//   5단계: 강한 빈집 / 빈집 / 중간 /         │
+//          찼음 / 강한 찼음                  │
+//   직관: 외인·기관이 얼마나 채웠나          │
 // ─────────────────────────────────────────┘
-function renderSupplyGauge(percentile, zone, amount) {
+const SUPPLY_LEVELS = [
+  { key: 'strong-empty', label: '강한 빈집', desc: '외인·기관 거의 없음 — 매수 강한 자리' },
+  { key: 'empty',        label: '빈집',      desc: '외인·기관 아직 안 들어옴 — 매수 자리' },
+  { key: 'mid',          label: '중간',      desc: '매수세 들어오는 중 — 관망권' },
+  { key: 'full',         label: '찼음',      desc: '외인·기관 들어옴 — 추격 주의' },
+  { key: 'strong-full',  label: '강한 찼음', desc: '외인·기관 다 채워짐 — 추격 위험' },
+];
+
+function supplyLevelIdx(pct) {
+  if (pct < 20) return 0;
+  if (pct < 40) return 1;
+  if (pct < 60) return 2;
+  if (pct < 80) return 3;
+  return 4;
+}
+
+function renderSupplyGauge(percentile, _zone, amount) {
   if (percentile == null) return '';
-  const w = 263, h = 21;  // mini chart 1.5배 스케일과 정렬
-  const cx = Math.max(4, Math.min(w - 4, (percentile / 100) * w));
 
-  // 색상은 zone 라벨 우선 (osc 부호 기반). zone 없으면 percentile fallback.
-  const zoneColor = zone === '빈집' ? '#1E88E5'
-                  : zone === '찼음' ? '#E53935'
-                  : zone === '정상' ? '#666'
-                  : (percentile < 25 ? '#1E88E5'
-                   : percentile > 75 ? '#E53935'
-                   : '#666');
-  const dotColor = zoneColor;
-  const zoneTextColor = zoneColor;
+  const pct = Math.max(0, Math.min(100, percentile));
+  const idx = supplyLevelIdx(pct);
+  const lv = SUPPLY_LEVELS[idx];
 
-  // 3 zone bands: blue / gray / red
+  const amt = amount != null ? fmtBillion(amount) : '-';
+  const amtCls = amount == null ? '' : (amount < 0 ? 'amt-neg' : 'amt-pos');
+
+  const segHtml = SUPPLY_LEVELS.map((s, i) => `
+    <div class="supply-seg supply-seg-${s.key} ${i === idx ? 'is-on' : ''}"><span>${s.label}</span></div>
+  `).join('');
+
   return `
-    <div class="supply-gauge-row">
-      <svg viewBox="0 0 ${w} ${h}" class="supply-gauge" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-        <rect x="0" y="4" width="${w * 0.25}" height="6" fill="rgba(30,136,229,0.40)"/>
-        <rect x="${w * 0.25}" y="4" width="${w * 0.5}" height="6" fill="rgba(158,158,158,0.22)"/>
-        <rect x="${w * 0.75}" y="4" width="${w * 0.25}" height="6" fill="rgba(229,57,53,0.40)"/>
-        <line x1="${w * 0.25}" y1="2" x2="${w * 0.25}" y2="12" stroke="#bbb" stroke-width="0.5"/>
-        <line x1="${w * 0.75}" y1="2" x2="${w * 0.75}" y2="12" stroke="#bbb" stroke-width="0.5"/>
-        <circle cx="${cx.toFixed(1)}" cy="7" r="4.5" fill="${dotColor}" stroke="#fff" stroke-width="1"/>
-      </svg>
-      <div class="supply-label">
-        <span class="supply-zone" style="color:${zoneTextColor}">${fEscape(zone || '-')}</span>
-        <span class="supply-meta">하위 ${percentile.toFixed(0)}% · 외인+기관 5d ${fmtBillion(amount)}</span>
+    <div class="supply-gauge supply-${lv.key}">
+      <div class="supply-track">
+        ${segHtml}
+        <div class="supply-pointer" style="left:${pct.toFixed(1)}%" title="채워진 정도 ${pct.toFixed(0)}/100">
+          <svg viewBox="0 0 14 10" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M7 10 L0 0 L14 0 Z" fill="currentColor"/>
+          </svg>
+        </div>
       </div>
+      <div class="supply-caption">
+        <span class="supply-tag">${fEscape(lv.label)}</span>
+        <span class="supply-desc">${lv.desc}</span>
+        <span class="supply-amount">5일 외+기 <strong class="${amtCls}">${amt}</strong></span>
+      </div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────┐
+// 수급 빈집 태그 + 분위 바 (STEP 3 — kick_mockup_light 레이아웃)
+//   사실 기반 서술만: 빈집 zone · 하위 percentile · 외인+기관 5일 순매수액 ·
+//   빈집 연속일 · 추세(MA10 위) ON. 추천/매수 언어 없음.
+// ─────────────────────────────────────────┘
+function renderVacancyTags(c) {
+  const pct = c.vacancyPercentile;
+  const amt = c.institutionNet5d;          // 외인+기관 5일 합산 순매수액
+  const zone = c.vacancyZone || '빈집';
+  const days = c.currentVacancyDays;
+  const alive = c.aboveMA10;
+  const pos = pct == null ? 50 : Math.max(2, Math.min(98, pct));  // 0=빈집(좌) → 100=포화(우)
+  const amtStr = amt != null ? fmtBillion(amt) : null;
+  return `
+    <div class="vac-tags">
+      <span class="vac-badge">${fEscape(zone)}</span>
+      ${pct != null ? `<span class="vac-kv">하위 <b>${Math.round(pct)}%</b></span>` : ''}
+      ${amtStr ? `<span class="vac-kv neg">외인+기관 5d <b>${amtStr}</b></span>` : ''}
+      ${days ? `<span class="vac-kv">빈집 <b>${days}일</b></span>` : ''}
+      ${alive ? `<span class="vac-on">추세 ON</span>` : ''}
+    </div>
+    <div class="vac-posbar">
+      <span class="vac-poslab">수급 분위</span>
+      <div class="vac-postrack"><div class="vac-posknob" style="left:${pos}%"></div></div>
+      <span class="vac-poslab">빈집 ◀▶ 포화</span>
     </div>
   `;
 }
@@ -629,31 +675,32 @@ function buyGradeBadge(score) {
 // ─────────────────────────────────────────┘
 function buildBuyCandidatesCard(candidates, leadingLabels) {
   if (!candidates || candidates.length === 0) {
-    return `<div class="flow-card flow-card-candidates flow-step3"><div class="card-header step-header"><span class="step-num">STEP 3</span><span class="card-theme-name">매수 후보</span></div><div class="empty-msg">현재 후보 없음</div></div>`;
+    return `<div class="flow-card flow-card-candidates flow-step3"><div class="card-header step-header"><span class="step-num">STEP 3</span><span class="card-theme-name">수급 <b class="ct-accent">빈집</b> · 추세 생존</span></div><div class="empty-msg">현재 조건을 통과한 종목 없음</div></div>`;
   }
   const sectorTag = leadingLabels?.length ? leadingLabels.slice(0, 5).join(', ') : '';
   // 참고 자료: 한 종목 4-5% × 20개. 5개보다 적으면 의미 없음.
   const SHOW_N = 20;
+  const shown = Math.min(SHOW_N, candidates.length);
 
   const rows = candidates.slice(0, SHOW_N).map((c, idx) => {
     const sectorLabel = c.sector || '-';
-    const rankBadge = `<span class="rank-badge">#${idx + 1}</span>`;
+    const rankBadge = `<span class="rank-badge${idx === 0 ? ' rank-badge-top' : ''}">#${idx + 1}</span>`;
 
     return `
-      <div class="cand-row clickable" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
-        <div class="cand-top">
-          <div class="cand-info">
-            <div class="cand-name">${rankBadge} ${fEscape(c.name)} <small>${fEscape(c.code)} · ${fEscape(sectorLabel)}</small></div>
-            <div class="cand-prices">
-              <span class="cand-close">${fmtNumber(c.close)}</span>
-              <span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>
-            </div>
+      <div class="cand-row cand-v2 clickable" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
+        <div class="cand-v2-head">
+          ${rankBadge}
+          <div class="cand-v2-name">
+            <div class="cand-name">${fEscape(c.name)}</div>
+            <div class="cand-v2-sub">${fEscape(c.code)} · ${fEscape(sectorLabel)}</div>
           </div>
-          <div class="cand-chart">
-            ${renderMiniPriceChart(c)}
+          <div class="cand-v2-px">
+            <span class="cand-close">${fmtNumber(c.close)}</span>
+            <span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>
           </div>
         </div>
-        ${renderSupplyGauge(c.vacancyPercentile, c.vacancyZone, c.institutionNet5d)}
+        <div class="cand-v2-chartbox">${renderMiniPriceChart(c)}</div>
+        ${renderVacancyTags(c)}
       </div>
     `;
   }).join('');
@@ -662,8 +709,9 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
     <div class="flow-card flow-card-candidates flow-step3">
       <div class="card-header step-header">
         <span class="step-num">STEP 3</span>
-        <span class="card-theme-name">매수 후보 ${sectorTag ? `<small>(${fEscape(sectorTag)})</small>` : ''}</span>
+        <span class="card-theme-name">수급 <b class="ct-accent">빈집</b> · 추세 생존 ${sectorTag ? `<small>(${fEscape(sectorTag)})</small>` : ''}</span>
       </div>
+      <div class="cand-submeta">${shown}종목 · 외인·기관 순매수 빠진 자리(빈집) ∩ 추세 생존(MA10 위)</div>
       <div class="cand-body">${rows}</div>
       <div class="cand-legend">
         <span><span class="legend-line black"></span>시가총액</span>
@@ -677,7 +725,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
           <span class="zone-chip zone-warm">채움</span>
           <span class="zone-chip zone-hot">과열</span>
         </span>
-        <span class="legend-tip">초록 = 외인·기관 빠진 직후(매수 검토) · 빨강 = 외인·기관 매수 정점(과열, 추격 자제)</span>
+        <span class="legend-tip">초록 = 외인·기관 순매수 약화(빈집) · 빨강 = 외인·기관 순매수 정점(과열)</span>
       </div>
     </div>
   `;

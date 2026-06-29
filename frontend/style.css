@@ -1093,19 +1093,109 @@ body {
   display: grid; grid-template-columns: 1fr 380px; gap: 10px; align-items: center;
 }
 
-/* === Supply gauge === */
-.supply-gauge-row {
-  margin-top: 6px;
-  padding: 4px 4px 2px;
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) auto;
-  gap: 10px;
-  align-items: center;
+/* === Supply gauge (수급 빈집 게이지 — 5단계) =====================
+   percentile 0-20-40-60-80-100 균등 분할.
+   강한 빈집 / 빈집 / 중간 / 찼음 / 강한 찼음.
+   활성 구간만 진한 그라데이션, 비활성은 흐리게.
+   ▼ 포인터가 정확한 percentile 위치를 가리킨다. */
+.supply-gauge {
+  margin-top: 8px;
+  padding: 12px 10px 8px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #FAFBFD 0%, #F3F5F8 100%);
+  border: 1px solid #E6E9EE;
 }
-.supply-gauge { width: 100%; height: 21px; }
-.supply-label { font-size: 0.74rem; line-height: 1.3; }
-.supply-zone { font-weight: 800; font-size: 0.82rem; margin-right: 4px; }
-.supply-meta { color: var(--text-secondary); }
+.supply-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  height: 28px;
+}
+.supply-seg {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #9AA3AF;
+  background: #ECEEF2;
+  white-space: nowrap;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+.supply-seg > span { position: relative; z-index: 1; }
+
+.supply-seg-strong-empty.is-on {
+  background: linear-gradient(135deg, #1976D2 0%, #0D47A1 100%);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), 0 1px 7px rgba(13,71,161,0.45);
+}
+.supply-seg-empty.is-on {
+  background: linear-gradient(135deg, #64B5F6 0%, #1E88E5 100%);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), 0 1px 6px rgba(30,136,229,0.35);
+}
+.supply-seg-mid.is-on {
+  background: linear-gradient(135deg, #9098A4 0%, #6B7280 100%);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 1px 6px rgba(107,114,128,0.30);
+}
+.supply-seg-full.is-on {
+  background: linear-gradient(135deg, #EF5350 0%, #D23B36 100%);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), 0 1px 6px rgba(210,59,54,0.35);
+}
+.supply-seg-strong-full.is-on {
+  background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), 0 1px 7px rgba(183,28,28,0.50);
+}
+
+.supply-pointer {
+  position: absolute;
+  top: -8px;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 10px;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.18));
+}
+.supply-pointer svg { display: block; width: 100%; height: 100%; }
+.supply-strong-empty .supply-pointer { color: #0D47A1; }
+.supply-empty        .supply-pointer { color: #1E88E5; }
+.supply-mid          .supply-pointer { color: #6B7280; }
+.supply-full         .supply-pointer { color: #D23B36; }
+.supply-strong-full  .supply-pointer { color: #B71C1C; }
+
+.supply-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 8px;
+  font-size: 0.80rem;
+  line-height: 1.35;
+}
+.supply-tag {
+  padding: 2px 9px;
+  border-radius: 11px;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: -0.02em;
+}
+.supply-strong-empty .supply-tag { background: rgba(13,71,161,0.16);  color: #0D47A1; }
+.supply-empty        .supply-tag { background: rgba(30,136,229,0.13); color: #1565C0; }
+.supply-mid          .supply-tag { background: rgba(107,114,128,0.13);color: #4B5563; }
+.supply-full         .supply-tag { background: rgba(210,59,54,0.13);  color: #C62828; }
+.supply-strong-full  .supply-tag { background: rgba(183,28,28,0.18);  color: #B71C1C; }
+
+.supply-desc { color: var(--text-secondary); flex: 1; min-width: 140px; }
+.supply-amount { color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.supply-amount .amt-neg { color: #1E88E5; }
+.supply-amount .amt-pos { color: #D23B36; }
 
 .flow-card {
   background: var(--bg-card);
@@ -1657,10 +1747,198 @@ body {
     justify-content: flex-start;
     flex-wrap: wrap;
   }
-  .supply-gauge-row {
-    grid-template-columns: 1fr;
-  }
+  .supply-gauge { padding: 10px 6px 6px; }
+  .supply-track { height: 26px; gap: 2px; }
+  .supply-seg { font-size: 0.64rem; letter-spacing: -0.05em; }
+  .supply-caption { font-size: 0.76rem; gap: 4px 8px; }
+  .supply-desc { flex-basis: 100%; min-width: 0; }
   .sectorflow-body {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============================================================
+   PREMIUM LIGHT TONE — Flow 탭 (STEP 1/2/3 + 보조 카드)
+   2026-06 디자인 격상: 흰 리서치 카드 + teal 좌측 레일 + 큰 글자.
+   구조/반응형은 그대로 두고 '스킨'만 덮어쓴다 (테마 탭·모달 영향 없음).
+   ============================================================ */
+
+/* 그리드 여백 — 카드가 숨 쉬도록 */
+.flow-grid-v2 { gap: 12px; padding: 12px; }
+.flow-meta { font-size: 0.82rem; border-radius: 10px; margin: 10px 12px 0; border: 1px solid #d8e4d6; }
+
+/* --- 카드 외형: 흰 카드 + 라운드 + 그림자 + 좌측 컬러 레일 --- */
+.flow-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #d8e4d6;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px -10px rgba(20, 40, 18, 0.28);
+}
+.flow-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; background: var(--teal); z-index: 3;
+}
+.flow-card-step1::before      { background: #FB8C00; }  /* 시장 온도(공포·탐욕) */
+.flow-card-step2::before      { background: #1E88E5; }  /* 주도 업종 */
+.flow-card-candidates::before { background: var(--teal); }
+
+/* --- 헤더: 흰 바탕 + 진한 굵은 제목 + 컬러 STEP 배지 --- */
+.flow-card .card-header,
+.flow-card .step-header,
+.flow-card-leading-value .card-header {
+  background: #fff !important;
+  border-bottom: 1px solid #eef2ee;
+  padding: 14px 16px 12px !important;
+  gap: 9px;
+}
+.flow-card .card-theme-name {
+  color: #1A1A1A;
+  font-size: 1.14rem;
+  font-weight: 900;
+  letter-spacing: -0.4px;
+}
+.flow-card .card-theme-name small { color: #7d877f; font-weight: 600; font-size: 0.78rem; }
+.flow-card .step-num {
+  background: var(--teal); color: #fff;
+  font-size: 0.66rem; letter-spacing: 1px;
+  padding: 4px 9px; border-radius: 6px;
+}
+.flow-card-step1 .step-num { background: #FB8C00; }
+.flow-card-step2 .step-num { background: #1E88E5; }
+.flow-card .card-volume {
+  color: var(--teal-dark); background: rgba(0, 137, 123, 0.10); font-weight: 800;
+}
+.flow-card .crowd-pill, .flow-card .cash-pill { box-shadow: 0 1px 5px rgba(0, 0, 0, 0.14); }
+
+/* --- STEP 1: Fear & Greed 행 → 흰 미니카드 --- */
+.step1-body { padding: 12px 14px 14px; gap: 12px; }
+.step1-row {
+  background: #fbfdfb;
+  border: 1px solid #e6efe5;
+  border-radius: 11px;
+  padding: 11px 12px;
+}
+.step1-row-head { font-size: 0.85rem; gap: 8px 10px; margin-bottom: 6px; }
+.step1-row-head strong { font-size: 1.05rem; font-weight: 900; }
+.sentiment-fg, .sentiment-close, .sentiment-mdd, .sentiment-ma3 { font-size: 0.83rem; }
+.dual-legend { font-size: 0.75rem; gap: 14px; margin-top: 6px; }
+
+/* --- STEP 2: 주도 ETF 행 가독성 --- */
+.step2-body { padding: 12px 14px 14px; }
+.step2-label { font-size: 0.84rem; margin-bottom: 8px; color: var(--text-secondary); }
+.step2-rs-row { font-size: 0.92rem; padding: 6px 0; }
+.step2-rs-name { font-weight: 700; }
+.step2-rs-row .rs-bar { height: 8px; border-radius: 5px; background: #eef2ee; overflow: hidden; }
+.step2-rs-row .rs-bar-fill { height: 100%; border-radius: 5px; }
+.step2-flow { font-size: 0.9rem; }
+
+/* --- STEP 3 / 보조 카드: 종목 = 흰 리서치 카드 --- */
+.flow-card .cand-body { padding: 10px 12px 12px; }
+.flow-card .cand-row {
+  background: #fff;
+  border: 1px solid #e3ece1 !important;
+  border-radius: 13px;
+  box-shadow: 0 3px 10px -7px rgba(20, 40, 18, 0.30);
+  padding: 12px 13px !important;
+  margin-bottom: 10px;
+}
+.flow-card .cand-row:last-child { margin-bottom: 0; border-bottom: 1px solid #e3ece1 !important; }
+.flow-card .cand-row::after {
+  content: ''; position: absolute; left: 0; top: 13px; bottom: 13px;
+  width: 4px; border-radius: 0 4px 4px 0; background: var(--teal);
+}
+.flow-card .cand-row { position: relative; }
+.flow-card .cand-name { font-size: 1.06rem; font-weight: 900; }
+.flow-card .cand-name small { font-size: 0.78rem; }
+.flow-card .cand-close { font-size: 0.98rem; font-weight: 900; }
+.flow-card .cand-ret { font-size: 0.87rem; font-weight: 800; padding: 2px 8px; border-radius: 7px; }
+.flow-card .cand-ret.up   { color: #E53935; background: #fdeaea; }
+.flow-card .cand-ret.down { color: #1565C0; background: #e8f1fb; }
+
+/* 차트 박스 — '리포트 차트' 느낌의 옅은 박스 */
+.flow-card .cand-chart .mini-chart-wrap {
+  background: #fbfdfb;
+  border: 1px solid #e6efe5;
+  border-radius: 10px;
+  padding: 5px 7px;
+}
+
+/* 랭크 배지 — teal 필 (1위만 골드 강조) */
+.flow-card .rank-badge {
+  background: var(--teal); color: #fff;
+  border-radius: 7px; padding: 2px 7px; min-width: 26px;
+  font-size: 0.74rem;
+}
+.flow-card .rank-badge.rank-badge-top { background: #FB8C00; color: #fff; }
+
+/* supply gauge — 간격/모서리만 정리 (5단계 구조 유지) */
+.supply-gauge { margin-top: 10px; border-radius: 11px; }
+.supply-caption { font-size: 0.84rem; }
+
+/* 보조(접힘) 카드도 같은 톤 자동 적용 — 헤더 이모지 제목 그대로 */
+.flow-collapsible > summary {
+  border-radius: 12px; font-size: 0.9rem; padding: 12px 16px;
+}
+
+/* ============================================================
+   STEP 3 — kick_mockup_light 레이아웃
+   헤더行(랭크+종목+가격) → 풀폭 차트박스 → 태그行 → 수급 분위 바
+   ============================================================ */
+.flow-card .card-theme-name .ct-accent { color: var(--teal); font-weight: 900; }
+.cand-submeta { padding: 9px 16px 0; font-size: 0.82rem; color: #6b766f; }
+
+/* 카드 내부는 세로 스택 (기존 1fr 380px grid 무시) */
+.flow-card .cand-row.cand-v2 { display: block; }
+
+/* 헤더行 */
+.cand-v2-head { display: flex; align-items: center; gap: 11px; }
+.cand-v2-name { flex: 1; min-width: 0; }
+.cand-v2-name .cand-name { font-size: 1.08rem; font-weight: 900; letter-spacing: -0.4px; }
+.cand-v2-sub { font-size: 0.78rem; color: #7d877f; margin-top: 1px; }
+.cand-v2-px { text-align: right; white-space: nowrap; }
+.cand-v2-px .cand-close { display: block; font-size: 1.02rem; font-weight: 900; }
+.cand-v2-px .cand-ret {
+  display: inline-block; margin-top: 3px;
+  font-size: 0.84rem; font-weight: 800; padding: 2px 8px; border-radius: 7px;
+}
+.cand-v2-px .cand-ret.up   { color: #E53935; background: #fdeaea; }
+.cand-v2-px .cand-ret.down { color: #1565C0; background: #e8f1fb; }
+
+/* 풀폭 차트박스 — '리포트 차트' 느낌, 더 크게 */
+.cand-v2-chartbox {
+  margin: 11px 0 10px;
+  background: #fbfdfb; border: 1px solid #e6efe5; border-radius: 10px; padding: 6px 8px;
+}
+.cand-v2-chartbox .mini-chart-wrap { width: 100%; gap: 7px; }
+.cand-v2-chartbox .mini-chart { height: 134px; }
+.cand-v2-chartbox .mini-chart-label-left { font-size: 0.72rem; }
+.cand-v2-chartbox .mini-chart-osc-last { font-size: 0.74rem; }
+
+/* 태그行 */
+.vac-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 0.87rem; }
+.vac-badge {
+  font-size: 0.82rem; font-weight: 900; color: #fff;
+  background: var(--teal); padding: 2px 10px; border-radius: 8px;
+}
+.vac-kv { color: #6b766f; }
+.vac-kv b { color: #2b332c; font-weight: 800; }
+.vac-kv.neg b { color: #1565C0; }
+.vac-on {
+  font-size: 0.78rem; font-weight: 900; color: #00795c;
+  border: 1.5px solid #9bd3c8; background: #eafaf6; padding: 2px 9px; border-radius: 8px;
+}
+
+/* 수급 분위 그라데이션 바 */
+.vac-posbar { margin-top: 11px; display: flex; align-items: center; gap: 9px; }
+.vac-poslab { font-size: 0.72rem; color: #8a948c; font-weight: 800; white-space: nowrap; }
+.vac-postrack {
+  flex: 1; height: 8px; border-radius: 5px; position: relative;
+  background: linear-gradient(90deg, #57c4b0 0%, #e9eee9 42%, #e9eee9 58%, #ef9aa2 100%);
+}
+.vac-posknob {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--teal); border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(0, 105, 92, 0.45);
 }
