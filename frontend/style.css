@@ -10,34 +10,34 @@
 }
 
 :root {
-  /* Primary Colors */
-  --teal: #00897B;
-  --teal-dark: #00695C;
-  --teal-light: #4DB6AC;
-  --orange: #FF9800;
-  
-  /* Accent Colors */
+  /* Primary — Bronze (brand). 색 정체성: 아이보리 종이 + 잉크 + 브론즈 (탈-티마) */
+  --teal: #B07A1C;         /* brand primary (구 teal 자리) */
+  --teal-dark: #8A5A12;    /* deep bronze */
+  --teal-light: #D8AE5E;   /* light bronze */
+  --orange: #C4622A;       /* 보조 웜 액센트 (terracotta) */
+
+  /* Accent Colors — 등락/수급 의미색 (한국장 관례 유지) */
   --red: #E53935;
   --red-bright: #FF1744;
   --blue: #1E88E5;
   --blue-dark: #1565C0;
-  
-  /* UI Colors */
-  --bg-app: #D5E8D4;
-  --bg-card: #FFFFFF;
-  --bg-top-highlight: #FFF9C4;
-  --bg-header: #F5F5F5;
-  
-  /* Text */
-  --text-primary: #1A1A1A;
-  --text-secondary: #555;
-  --text-muted: #999;
-  
+
+  /* UI Colors — warm ivory paper */
+  --bg-app: #F2EDE4;
+  --bg-card: #FFFDF8;
+  --bg-top-highlight: #FBF3DD;
+  --bg-header: #FFFDF9;
+
+  /* Text — warm ink */
+  --text-primary: #211F1A;
+  --text-secondary: #6b6459;
+  --text-muted: #9a9384;
+
   /* Bar */
-  --bar-bg: #E0E0E0;
+  --bar-bg: #E7DFD1;
   --bar-red: #E53935;
   --bar-blue: #1E88E5;
-  --bar-tick: #333;
+  --bar-tick: #3B372F;
   
   /* Layout */
   --header-height: 110px;
@@ -585,10 +585,70 @@ body {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--card-gap);
-  padding: var(--card-gap);
+  gap: 12px;
+  padding: 12px;
   align-content: start;
 }
+
+/* ============================================================
+   THEME 탭 — 매거진 브리핑 카드 (C안, 2026-07)
+   테마 = 뉴스 브리핑: 세리프 타이틀 + 뉴스 한 줄 + 대표종목 + 종목 칩
+   ============================================================ */
+.brief {
+  background: var(--bg-card);
+  border: 1px solid #eae0cd;
+  border-radius: 16px;
+  padding: 16px 16px 8px;
+  box-shadow: 0 6px 20px -13px rgba(59, 47, 26, 0.5);
+}
+.brief-kick {
+  font-size: 0.68rem; font-weight: 900; letter-spacing: 1.4px;
+  color: var(--teal); text-transform: uppercase;
+}
+.brief-row1 {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 10px; margin-top: 5px;
+}
+.brief-title {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 1.45rem; font-weight: 900; letter-spacing: -0.6px; line-height: 1.14;
+  color: var(--text-primary);
+}
+.brief-vol {
+  flex: none; font-size: 0.74rem; font-weight: 900; color: var(--teal-dark);
+  background: #f3e7cc; padding: 4px 10px; border-radius: 20px; white-space: nowrap;
+}
+.brief-why {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 0.92rem; color: #4c4639; line-height: 1.5; margin-top: 9px;
+}
+.brief-why a { color: #4c4639; text-decoration: none; -webkit-tap-highlight-color: rgba(176,122,28,0.15); }
+.brief-why a:hover { color: var(--teal-dark); text-decoration: underline; }
+/* 종목 행 — 아크 게이지 + 이름/가격 + 정확한 등락% (전 종목 리치) */
+.brief-stocks { margin-top: 12px; }
+.brief-stock {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 2px; border-top: 1px solid #f2ead9;
+}
+.brief-stock:first-child { border-top-color: #eadfca; }
+.bs-arc { flex: none; }
+.bs-info { flex: 1; min-width: 0; }
+.bs-name {
+  font-size: 1rem; font-weight: 900; letter-spacing: -0.3px; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bs-top {
+  font-size: 0.6rem; font-weight: 900; color: var(--teal-dark);
+  background: #f3e7cc; border-radius: 5px; padding: 1px 5px; margin-left: 6px; vertical-align: middle;
+}
+.bs-sub {
+  font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bs-chg { flex: none; font-size: 1.02rem; font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bs-chg.up { color: var(--red); }
+.bs-chg.down { color: var(--blue-dark); }
+.bs-chg.flat { color: var(--text-secondary); }
 
 /* Loading */
 .loading-state {
@@ -1765,31 +1825,25 @@ body {
 
 /* 그리드 여백 — 카드가 숨 쉬도록 */
 .flow-grid-v2 { gap: 12px; padding: 12px; }
-.flow-meta { font-size: 0.82rem; border-radius: 10px; margin: 10px 12px 0; border: 1px solid #d8e4d6; }
+.flow-meta { font-size: 0.82rem; border-radius: 10px; margin: 10px 12px 0; border: 1px solid #e7ddca; }
 
 /* --- 카드 외형: 흰 카드 + 라운드 + 그림자 + 좌측 컬러 레일 --- */
 .flow-card {
   position: relative;
-  background: #fff;
-  border: 1px solid #d8e4d6;
+  background: var(--bg-card);
+  border: 1px solid #eae0cd;
   border-radius: 14px;
-  box-shadow: 0 6px 18px -10px rgba(20, 40, 18, 0.28);
+  box-shadow: 0 6px 18px -10px rgba(59, 47, 26, 0.30);
 }
-.flow-card::before {
-  content: '';
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 4px; background: var(--teal); z-index: 3;
-}
-.flow-card-step1::before      { background: #FB8C00; }  /* 시장 온도(공포·탐욕) */
-.flow-card-step2::before      { background: #1E88E5; }  /* 주도 업종 */
-.flow-card-candidates::before { background: var(--teal); }
+/* 좌측 컬러 레일 제거 (2026-07 요청) — 카드/종목 왼쪽 색깔선 없앰 */
+.flow-card::before { display: none; }
 
 /* --- 헤더: 흰 바탕 + 진한 굵은 제목 + 컬러 STEP 배지 --- */
 .flow-card .card-header,
 .flow-card .step-header,
 .flow-card-leading-value .card-header {
-  background: #fff !important;
-  border-bottom: 1px solid #eef2ee;
+  background: var(--bg-card) !important;
+  border-bottom: 1px solid #efe7d8;
   padding: 14px 16px 12px !important;
   gap: 9px;
 }
@@ -1805,18 +1859,18 @@ body {
   font-size: 0.66rem; letter-spacing: 1px;
   padding: 4px 9px; border-radius: 6px;
 }
-.flow-card-step1 .step-num { background: #FB8C00; }
+.flow-card-step1 .step-num { background: #C4622A; }
 .flow-card-step2 .step-num { background: #1E88E5; }
 .flow-card .card-volume {
-  color: var(--teal-dark); background: rgba(0, 137, 123, 0.10); font-weight: 800;
+  color: var(--teal-dark); background: rgba(176, 122, 28, 0.12); font-weight: 800;
 }
 .flow-card .crowd-pill, .flow-card .cash-pill { box-shadow: 0 1px 5px rgba(0, 0, 0, 0.14); }
 
 /* --- STEP 1: Fear & Greed 행 → 흰 미니카드 --- */
 .step1-body { padding: 12px 14px 14px; gap: 12px; }
 .step1-row {
-  background: #fbfdfb;
-  border: 1px solid #e6efe5;
+  background: #fdfbf6;
+  border: 1px solid #efe7d8;
   border-radius: 11px;
   padding: 11px 12px;
 }
@@ -1830,25 +1884,22 @@ body {
 .step2-label { font-size: 0.84rem; margin-bottom: 8px; color: var(--text-secondary); }
 .step2-rs-row { font-size: 0.92rem; padding: 6px 0; }
 .step2-rs-name { font-weight: 700; }
-.step2-rs-row .rs-bar { height: 8px; border-radius: 5px; background: #eef2ee; overflow: hidden; }
+.step2-rs-row .rs-bar { height: 8px; border-radius: 5px; background: #ece4d5; overflow: hidden; }
 .step2-rs-row .rs-bar-fill { height: 100%; border-radius: 5px; }
 .step2-flow { font-size: 0.9rem; }
 
 /* --- STEP 3 / 보조 카드: 종목 = 흰 리서치 카드 --- */
 .flow-card .cand-body { padding: 10px 12px 12px; }
 .flow-card .cand-row {
-  background: #fff;
-  border: 1px solid #e3ece1 !important;
+  background: var(--bg-card);
+  border: 1px solid #ece2d0 !important;
   border-radius: 13px;
-  box-shadow: 0 3px 10px -7px rgba(20, 40, 18, 0.30);
+  box-shadow: 0 3px 10px -7px rgba(59, 47, 26, 0.30);
   padding: 12px 13px !important;
   margin-bottom: 10px;
 }
-.flow-card .cand-row:last-child { margin-bottom: 0; border-bottom: 1px solid #e3ece1 !important; }
-.flow-card .cand-row::after {
-  content: ''; position: absolute; left: 0; top: 13px; bottom: 13px;
-  width: 4px; border-radius: 0 4px 4px 0; background: var(--teal);
-}
+.flow-card .cand-row:last-child { margin-bottom: 0; border-bottom: 1px solid #ece2d0 !important; }
+.flow-card .cand-row::after { display: none; }
 .flow-card .cand-row { position: relative; }
 .flow-card .cand-name { font-size: 1.06rem; font-weight: 900; }
 .flow-card .cand-name small { font-size: 0.78rem; }
@@ -1859,19 +1910,19 @@ body {
 
 /* 차트 박스 — '리포트 차트' 느낌의 옅은 박스 */
 .flow-card .cand-chart .mini-chart-wrap {
-  background: #fbfdfb;
-  border: 1px solid #e6efe5;
+  background: #fdfbf6;
+  border: 1px solid #efe7d8;
   border-radius: 10px;
   padding: 5px 7px;
 }
 
-/* 랭크 배지 — teal 필 (1위만 골드 강조) */
+/* 랭크 배지 — 잉크 칩(기본) + 브론즈(1위 강조) */
 .flow-card .rank-badge {
-  background: var(--teal); color: #fff;
+  background: #33302A; color: #f3ece0;
   border-radius: 7px; padding: 2px 7px; min-width: 26px;
   font-size: 0.74rem;
 }
-.flow-card .rank-badge.rank-badge-top { background: #FB8C00; color: #fff; }
+.flow-card .rank-badge.rank-badge-top { background: var(--teal); color: #fff; }
 
 /* supply gauge — 간격/모서리만 정리 (5단계 구조 유지) */
 .supply-gauge { margin-top: 10px; border-radius: 11px; }
@@ -1909,7 +1960,7 @@ body {
 /* 풀폭 차트박스 — '리포트 차트' 느낌, 더 크게 */
 .cand-v2-chartbox {
   margin: 11px 0 10px;
-  background: #fbfdfb; border: 1px solid #e6efe5; border-radius: 10px; padding: 6px 8px;
+  background: #fdfbf6; border: 1px solid #efe7d8; border-radius: 10px; padding: 6px 8px;
 }
 .cand-v2-chartbox .mini-chart-wrap { width: 100%; display: block; }
 .cand-v2-chartbox .mini-chart { width: 100%; height: auto; display: block; }
@@ -1923,7 +1974,7 @@ body {
 .chart-legend .ln { display: inline-block; width: 13px; height: 0; border-top: 2px solid; vertical-align: middle; }
 .chart-legend .ln-black { border-color: #1A1A1A; }
 .chart-legend .ln-blue { border-color: #1E88E5; }
-.chart-legend .ln-orange { border-color: #FB8C00; }
+.chart-legend .ln-orange { border-color: #B4791E; }
 .chart-legend .ln-dash-red { border-top: 0; border-bottom: 1.5px dashed #E53935; height: 4px; }
 .chart-legend .ln-dash-blue { border-top: 0; border-bottom: 1.5px dashed #1E88E5; height: 4px; margin-left: 5px; }
 .chart-legend .cl-zone { color: #9aa49c; }
@@ -1931,15 +1982,15 @@ body {
 /* 태그行 */
 .vac-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 0.87rem; }
 .vac-badge {
-  font-size: 0.82rem; font-weight: 900; color: #fff;
-  background: var(--teal); padding: 2px 10px; border-radius: 8px;
+  font-size: 0.82rem; font-weight: 900; color: #f3ece0;
+  background: #33302A; padding: 2px 10px; border-radius: 8px;
 }
-.vac-kv { color: #6b766f; }
-.vac-kv b { color: #2b332c; font-weight: 800; }
+.vac-kv { color: #6b6459; }
+.vac-kv b { color: #2b2822; font-weight: 800; }
 .vac-kv.neg b { color: #1565C0; }
 .vac-on {
-  font-size: 0.78rem; font-weight: 900; color: #00795c;
-  border: 1.5px solid #9bd3c8; background: #eafaf6; padding: 2px 9px; border-radius: 8px;
+  font-size: 0.78rem; font-weight: 900; color: #8A5A12;
+  border: 1.5px solid #e0cfa8; background: #faf4e6; padding: 2px 9px; border-radius: 8px;
 }
 
 /* 수급 분위 그라데이션 바 */
@@ -1947,10 +1998,10 @@ body {
 .vac-poslab { font-size: 0.72rem; color: #8a948c; font-weight: 800; white-space: nowrap; }
 .vac-postrack {
   flex: 1; height: 8px; border-radius: 5px; position: relative;
-  background: linear-gradient(90deg, #57c4b0 0%, #e9eee9 42%, #e9eee9 58%, #ef9aa2 100%);
+  background: linear-gradient(90deg, #d8c39a 0%, #efe9dd 42%, #efe9dd 58%, #e6b6a0 100%);
 }
 .vac-posknob {
   position: absolute; top: 50%; transform: translate(-50%, -50%);
   width: 14px; height: 14px; border-radius: 50%;
-  background: var(--teal); border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(0, 105, 92, 0.45);
+  background: var(--teal); border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(120, 80, 20, 0.45);
 }

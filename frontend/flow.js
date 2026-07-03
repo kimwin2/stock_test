@@ -329,21 +329,21 @@ function renderMiniPriceChart(c, opts = {}) {
     };
     const bands =
       band(y0, yO(p90), '#fdecee') +
-      band(yO(p90), yO(p75), '#fcf4f5') +
-      band(yO(p75), yO(p25), '#f7f8fa') +
-      band(yO(p25), yO(p10), '#eef6f1') +
-      band(yO(p10), y1, '#e6f4ec');
+      band(yO(p90), yO(p75), '#faf1f0') +
+      band(yO(p75), yO(p25), '#f6f3ee') +
+      band(yO(p25), yO(p10), '#eef1f5') +
+      band(yO(p10), y1, '#e8edf4');
     const dl = (y, color, dash) =>
       `<line x1="${x0}" y1="${y.toFixed(1)}" x2="${x1}" y2="${y.toFixed(1)}" stroke="${color}" stroke-width="0.9"${dash ? ` stroke-dasharray="${dash}"` : ''} opacity="0.6"/>`;
     const dashed = dl(yO(p90), '#E53935', '3 3') + dl(yO(p10), '#1E88E5', '3 3') + dl(yO(p50), '#cbb8bb', '');
     const oscPts = oscVals.map((v, i) => `${X(i).toFixed(1)},${yO(v).toFixed(1)}`).join(' ');
-    const oscLine = `<polyline points="${oscPts}" fill="none" stroke="#FB8C00" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const oscLine = `<polyline points="${oscPts}" fill="none" stroke="#B4791E" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`;
 
     oscBg = bands + dashed + oscLine;
     oscFg =
-      `<circle cx="${X(n - 1).toFixed(1)}" cy="${yO(lastOscVal).toFixed(1)}" r="2.2" fill="#FB8C00"/>` +
+      `<circle cx="${X(n - 1).toFixed(1)}" cy="${yO(lastOscVal).toFixed(1)}" r="2.2" fill="#B4791E"/>` +
       `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(p90) - 3).toFixed(1)}" font-size="8.5" font-weight="700" fill="#E53935" text-anchor="end">상위</text>` +
-      `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(lastOscVal) + (lastOscVal >= p50 ? 11 : 3)).toFixed(1)}" font-size="9.5" font-weight="900" fill="#E65100" text-anchor="end">${(lastOscVal * 100).toFixed(2)}%</text>`;
+      `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(lastOscVal) + (lastOscVal >= p50 ? 11 : 3)).toFixed(1)}" font-size="9.5" font-weight="900" fill="#B4560F" text-anchor="end">${(lastOscVal * 100).toFixed(2)}%</text>`;
   }
 
   // 가격(시총) 끝점 + 좌측 시총 라벨
@@ -469,7 +469,7 @@ function renderVacancyTags(c) {
 function renderSparkline(values, opts = {}) {
   const w = opts.width || 240;
   const h = opts.height || 50;
-  const stroke = opts.stroke || '#00897B';
+  const stroke = opts.stroke || '#B07A1C';
   const valid = values.filter(v => v != null && !isNaN(v));
   if (valid.length < 2) return '<div class="sparkline-empty">데이터 부족</div>';
   const min = Math.min(...valid), max = Math.max(...valid);

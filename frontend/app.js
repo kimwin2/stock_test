@@ -134,28 +134,67 @@ function createStockItem(stock) {
 }
 
 /**
- * Theme Card 렌더링
+ * 등락률 → "+30.00%" / "-1.20%" (칩·대표종목용, 화살표 없이 부호로)
  */
-function createThemeCard(theme) {
+function formatPct(rate) {
+  const r = rate || 0;
+  return `${r >= 0 ? '+' : ''}${r.toFixed(2)}%`;
+}
+
+/**
+ * 아크 게이지 (반원 스피도미터) — 등락률 강도/방향 시각화.
+ * 한국장 상·하한 ±30%를 반원 꽉 참으로 매핑 (상한가 = 풀 아크).
+ * 정확한 % 는 행 우측에 별도 표기하므로 아크엔 텍스트 없음.
+ */
+function arcGauge(rate) {
+  const r = rate || 0;
+  const cx = 27, cy = 30, R = 21;
+  const f = Math.max(0.03, Math.min(1, Math.abs(r) / 30));
+  const color = r >= 0 ? '#E53935' : '#1565C0';
+  const polar = (a) => {
+    const rad = (a * Math.PI) / 180;
+    return [cx + R * Math.cos(rad), cy - R * Math.sin(rad)];
+  };
+  const [ax, ay] = polar(180);
+  const [bx, by] = polar(0);
+  const [ex, ey] = polar(180 - f * 180);
+  return `<svg class="bs-arc" width="54" height="40" viewBox="0 0 54 40" aria-hidden="true">
+    <path d="M${ax.toFixed(1)} ${ay.toFixed(1)} A${R} ${R} 0 0 1 ${bx.toFixed(1)} ${by.toFixed(1)}" fill="none" stroke="#efe6d5" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M${ax.toFixed(1)} ${ay.toFixed(1)} A${R} ${R} 0 0 1 ${ex.toFixed(1)} ${ey.toFixed(1)}" fill="none" stroke="${color}" stroke-width="4.5" stroke-linecap="round"/>
+  </svg>`;
+}
+
+/**
+ * Theme Card 렌더링 — 매거진 브리핑 (C안)
+ * 큰 세리프 타이틀 + 뉴스 한 줄 + 대표종목(레인지 바) + 종목 칩
+ */
+function createThemeCard(theme, index = 0) {
   const card = document.createElement('div');
-  card.className = 'theme-card';
+  card.className = 'brief';
+
   const primaryHeadlineLink = theme.headlineUrl
     || theme.headlineLink?.url
     || (Array.isArray(theme.headlineLinks) ? theme.headlineLinks[0]?.url : '')
     || '';
 
-  // Header
-  const header = document.createElement('div');
-  header.className = 'card-header';
-  header.innerHTML = `
-    <span class="card-theme-name">${escapeHTML(theme.themeName)}</span>
-    <span class="card-volume">${escapeHTML(theme.totalVolume)}</span>
-  `;
-  card.appendChild(header);
+  // 상장·시세 있는 종목만 (미상장 skip)
+  const stocks = (theme.stocks || []).filter(s => !(s.price === 0 && s.changeRate === 0));
+  const kicker = index === 0 ? 'TODAY · 오늘의 주도 테마' : '급등 테마';
 
-  // Headline
-  const headlineDiv = document.createElement('div');
-  headlineDiv.className = 'card-headline';
+  // 상단(키커 + 타이틀/거래대금 + 뉴스 한 줄)
+  const head = document.createElement('div');
+  head.innerHTML = `
+    <div class="brief-kick">${escapeHTML(kicker)}</div>
+    <div class="brief-row1">
+      <div class="brief-title">${escapeHTML(theme.themeName)}</div>
+      <div class="brief-vol">${escapeHTML(theme.totalVolume || '')}</div>
+    </div>
+  `;
+  card.appendChild(head);
+
+  // 뉴스 한 줄 (근거) — 링크 유지
+  const why = document.createElement('div');
+  why.className = 'brief-why';
   if (primaryHeadlineLink) {
     const a = document.createElement('a');
     a.href = primaryHeadlineLink;
@@ -163,20 +202,34 @@ function createThemeCard(theme) {
     a.rel = 'noopener noreferrer';
     a.textContent = theme.headline || '';
     a.title = '관련 뉴스 보기';
-    headlineDiv.appendChild(a);
+    why.appendChild(a);
   } else {
-    headlineDiv.textContent = theme.headline || '';
+    why.textContent = theme.headline || '';
   }
-  card.appendChild(headlineDiv);
+  if (theme.headline) card.appendChild(why);
 
-  // Stock list
-  const stocks = theme.stocks || [];
-  stocks.forEach(stock => {
-    const stockEl = createStockItem(stock);
-    if (stockEl) {
-      card.appendChild(stockEl);
-    }
-  });
+  // 종목 행 — 전 종목 리치 표현 (아크 게이지 + 이름 + 가격·거래대금 + 정확한 등락%)
+  if (stocks.length) {
+    const list = document.createElement('div');
+    list.className = 'brief-stocks';
+    list.innerHTML = stocks.map(s => {
+      const cls = getChangeClass(s.changeRate);
+      const sub = [
+        `${formatPrice(s.price)}원`,
+        s.time ? escapeHTML(s.time) : '',
+        s.volume ? `거래대금 ${escapeHTML(s.volume)}` : '',
+      ].filter(Boolean).join(' · ');
+      return `<div class="brief-stock">
+        ${arcGauge(s.changeRate)}
+        <div class="bs-info">
+          <div class="bs-name">${escapeHTML(s.name)}${s.isTop ? '<span class="bs-top">대표</span>' : ''}</div>
+          <div class="bs-sub">${sub}</div>
+        </div>
+        <div class="bs-chg ${cls}">${formatPct(s.changeRate)}</div>
+      </div>`;
+    }).join('');
+    card.appendChild(list);
+  }
 
   return card;
 }
@@ -230,8 +283,8 @@ async function loadAndRender() {
 
     // Render theme cards
     const themes = data.themes || [];
-    themes.forEach(theme => {
-      grid.appendChild(createThemeCard(theme));
+    themes.forEach((theme, i) => {
+      grid.appendChild(createThemeCard(theme, i));
     });
 
     // Render ticker
