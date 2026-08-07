@@ -1,0 +1,198 @@
+{
+  "generatedAt": "2026-08-07T12:27:10.532079+09:00",
+  "date": "2026-08-07",
+  "source": "sample",
+  "model": null,
+  "headline": "주도 섹터 반도체 중심의 수급 지속",
+  "sections": [
+    {
+      "title": "시장 온도",
+      "body": "KOSPI Fear&Greed 는 67.2 입니다. KOSDAQ 은 52.5 입니다. 권고 현금 비중은 20% (리스크 보통 · 쏠림가산) 입니다."
+    },
+    {
+      "title": "수급 흐름",
+      "body": "현재 주도 섹터는 반도체, 게임/IT, 증권, 조선, 2차전지 입니다. 외국인 5일 순매수 1위 섹터는 로봇(4,722억) 입니다. 기관 1위는 반도체(31,214억) 입니다."
+    },
+    {
+      "title": "빈집 시그널",
+      "body": "빈집 스크리닝 상위는 삼성증권(증권), 현대차증권(증권), 삼성SDI(2차전지) 입니다. 신고가 후 음전+10일선 이탈 매도 시그널은 15건입니다."
+    },
+    {
+      "title": "공시 체크",
+      "body": "후보 종목 한화오션은 '수주·공급계약' 공시를 냈습니다. HD현대중공업에는 '5% 대량보유 보고' 가 접수됐습니다. 위메이드는 '전환사채(CB) 발행 결정' 을 공시했습니다. 유니버스에서는 삼성전자의 자사주 취득 결정, 에코프로비엠의 잠정 실적 공시가 있었습니다."
+    }
+  ],
+  "signalFacts": {
+    "date": "2026-08-07",
+    "fearGreed": {
+      "kospi": 67.2,
+      "kospiPrev": null,
+      "kospiDelta": null,
+      "kosdaq": 52.5
+    },
+    "cashRecommendation": {
+      "nowPct": 20,
+      "prevPct": null,
+      "level": "리스크 보통 · 쏠림가산"
+    },
+    "crowdingSignal": "쏠림",
+    "leadingSectors": {
+      "now": [
+        "반도체",
+        "게임/IT",
+        "증권",
+        "조선",
+        "2차전지",
+        "방산",
+        "로봇"
+      ],
+      "added": [],
+      "removed": []
+    },
+    "sectorFlows5d": {
+      "foreignerTop": [
+        {
+          "sector": "로봇",
+          "amountEok": 4722
+        },
+        {
+          "sector": "반도체장비",
+          "amountEok": 3329
+        },
+        {
+          "sector": "AI/반도체팹리스",
+          "amountEok": 1292
+        },
+        {
+          "sector": "자동차",
+          "amountEok": 1250
+        },
+        {
+          "sector": "방산",
+          "amountEok": 1205
+        }
+      ],
+      "organTop": [
+        {
+          "sector": "반도체",
+          "amountEok": 31214
+        },
+        {
+          "sector": "전력기기",
+          "amountEok": 5921
+        },
+        {
+          "sector": "반도체장비",
+          "amountEok": 2638
+        },
+        {
+          "sector": "자동차",
+          "amountEok": 2410
+        },
+        {
+          "sector": "금융",
+          "amountEok": 89
+        }
+      ]
+    },
+    "buyCandidatesTop": [
+      {
+        "name": "삼성증권",
+        "sector": "증권",
+        "score": 96.0,
+        "vacancyZone": "빈집",
+        "newHigh250d": false
+      },
+      {
+        "name": "현대차증권",
+        "sector": "증권",
+        "score": 91.5,
+        "vacancyZone": "빈집",
+        "newHigh250d": false
+      },
+      {
+        "name": "삼성SDI",
+        "sector": "2차전지",
+        "score": 89.5,
+        "vacancyZone": "빈집",
+        "newHigh250d": false
+      },
+      {
+        "name": "SK하이닉스",
+        "sector": "반도체",
+        "score": 89.3,
+        "vacancyZone": "빈집",
+        "newHigh250d": true
+      },
+      {
+        "name": "SK스퀘어",
+        "sector": "반도체",
+        "score": 87.4,
+        "vacancyZone": "빈집",
+        "newHigh250d": false
+      }
+    ],
+    "vacancyZoneTransitions": [],
+    "exitSignalCount": 15,
+    "vacancyAnalyzed": 600
+  },
+  "disclosures": {
+    "available": true,
+    "error": null,
+    "candidateEvents": [
+      {
+        "code": "042660",
+        "name": "한화오션",
+        "category": "수주·공급계약",
+        "tone": "positive",
+        "title": "단일판매ㆍ공급계약체결",
+        "date": "20260506",
+        "url": "https://dart.fss.or.kr/",
+        "isCandidate": true
+      },
+      {
+        "code": "329180",
+        "name": "HD현대중공업",
+        "category": "5% 대량보유 보고",
+        "tone": "watch",
+        "title": "주식등의대량보유상황보고서(일반)",
+        "date": "20260506",
+        "url": "https://dart.fss.or.kr/",
+        "isCandidate": true
+      },
+      {
+        "code": "112040",
+        "name": "위메이드",
+        "category": "전환사채(CB)",
+        "tone": "negative",
+        "title": "주요사항보고서(전환사채권발행결정)",
+        "date": "20260505",
+        "url": "https://dart.fss.or.kr/",
+        "isCandidate": true
+      }
+    ],
+    "universeEvents": [
+      {
+        "code": "005930",
+        "name": "삼성전자",
+        "category": "자사주 취득",
+        "tone": "positive",
+        "title": "주요사항보고서(자기주식취득결정)",
+        "date": "20260506",
+        "url": "https://dart.fss.or.kr/",
+        "isCandidate": false
+      },
+      {
+        "code": "247540",
+        "name": "에코프로비엠",
+        "category": "잠정 실적",
+        "tone": "watch",
+        "title": "연결재무제표기준영업(잠정)실적(공정공시)",
+        "date": "20260505",
+        "url": "https://dart.fss.or.kr/",
+        "isCandidate": false
+      }
+    ]
+  },
+  "disclaimer": "본 브리핑은 공개 데이터(자체 산출 시그널·금감원 DART 공시)의 요약이며, 특정 종목의 매수·매도 추천이나 투자 조언이 아닙니다. 투자 판단과 책임은 이용자 본인에게 있습니다."
+}

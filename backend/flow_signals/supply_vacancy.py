@@ -320,7 +320,9 @@ def enrich_with_chart_and_buyzone(
         #   MACD    = EMA12 − EMA26
         #   Signal  = EMA9 of MACD (α = 2/10)
         #   Osc     = MACD − Signal   (= MACD Histogram)
-        # 60일치 수급 시계열은 Naver PC frgn 페이지에서 받음 (페이지당 ~10일).
+        # 수급 시계열은 Naver PC frgn 페이지에서 받음 (페이지당 ~20 거래일).
+        # pages=4 → ~80 거래일, 5일 rolling 후 ~76 포인트. EMA26(α=2/27) 의
+        # 초기값 시딩 영향은 (25/27)^76 ≈ 0.3% 로 충분히 수렴한다.
         supply_osc_series: list[dict] = []
         long_flow: pd.DataFrame | None = None
         try:
