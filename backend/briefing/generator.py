@@ -212,6 +212,8 @@ def _fallback_sections(facts: dict, disclosures: dict) -> tuple[str, list[dict]]
     if not parts:
         if disclosures.get("available"):
             parts.append("후보·유니버스 종목에 특이 공시가 없습니다.")
+        elif disclosures.get("reason") == "fetch_failed":
+            parts.append("이번 회차에는 공시 데이터를 가져오지 못했습니다 (다음 갱신 때 재시도).")
         else:
             parts.append("공시 데이터 미연결 상태입니다 (DART API 키 설정 시 표시).")
     dart_body = " ".join(parts)

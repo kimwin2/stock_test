@@ -87,10 +87,14 @@ function toneBadge(tone) {
 function buildDisclosureCard(disclosures) {
   if (!disclosures) return '';
   if (!disclosures.available) {
+    // 수집 실패와 키 미설정을 구분 — 키가 이미 설정된 사용자에게 잘못된 안내를 하지 않는다.
+    const msg = disclosures.reason === 'fetch_failed'
+      ? '이번 회차에는 공시 데이터를 가져오지 못했습니다. 다음 갱신 때 다시 시도합니다.'
+      : '공시 데이터 미연결 — DART API 키 설정 후 표시됩니다.';
     return `
       <div class="flow-card brief-card-dart">
         <div class="card-header"><span class="card-theme-name">📋 DART 공시 이벤트</span></div>
-        <div class="brief-dart-empty">공시 데이터 미연결 — DART API 키 설정 후 표시됩니다.</div>
+        <div class="brief-dart-empty">${bEscape(msg)}</div>
       </div>
     `;
   }
