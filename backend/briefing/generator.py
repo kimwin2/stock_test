@@ -239,14 +239,17 @@ def _fallback_sections(facts: dict, disclosures: dict) -> tuple[str, list[dict]]
 # ─────────────────────────────────────────
 # LLM 생성
 # ─────────────────────────────────────────
-def _generate_with_llm(facts: dict, disclosures: dict, model: str) -> tuple[str, list[dict]] | None:
+def _generate_with_llm(
+    facts: dict, disclosures: dict, model: str
+) -> tuple[tuple[str, list[dict]] | None, str | None]:
+    """Returns (result, error). error 는 payload 에 실어 CloudWatch 없이도 원인을 본다."""
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
-        return None
+        return (None, "GEMINI_API_KEY 미설정")
     try:
         from openai import OpenAI
     except ImportError:
-        return None
+        return (None, "openai 패키지 없음")
 
     dart_slim = {
         "available": disclosures.get("available"),
@@ -286,11 +289,11 @@ def _generate_with_llm(facts: dict, disclosures: dict, model: str) -> tuple[str,
             if s.get("body")
         ]
         if not headline or not sections:
-            return None
-        return headline, sections
+            return (None, f"LLM 응답에 headline/sections 없음 (raw {content[:120]!r})")
+        return ((headline, sections), None)
     except Exception as e:
         print(f"  [!] 브리핑 LLM 생성 실패 — fallback 사용: {e}")
-        return None
+        return (None, f"{type(e).__name__}: {str(e)[:300]}")
 
 
 # ─────────────────────────────────────────
@@ -323,19 +326,26 @@ def build_briefing(
         print(f"  [i] DART 공시 스킵: {disclosures.get('error')}")
 
     model = (os.environ.get("BRIEFING_MODEL") or DEFAULT_BRIEFING_MODEL).strip()
-    llm_result = _generate_with_llm(facts, disclosures, model) if use_llm else None
+    if use_llm:
+        llm_result, llm_error = _generate_with_llm(facts, disclosures, model)
+    else:
+        llm_result, llm_error = None, "use_llm=False"
+
     if llm_result:
         headline, sections = llm_result
         source = "llm"
     else:
         headline, sections = _fallback_sections(facts, disclosures)
         source = "fallback"
+        print(f"  [i] 브리핑 fallback 사용 — 사유: {llm_error}")
 
     return {
         "generatedAt": datetime.now(KST).isoformat(),
         "date": facts.get("date"),
         "source": source,
         "model": model if source == "llm" else None,
+        # fallback 으로 떨어진 이유를 payload 에 남긴다 — CloudWatch 없이 원인 파악.
+        "llmError": llm_error,
         "headline": headline,
         "sections": sections,
         "signalFacts": facts,
