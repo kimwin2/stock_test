@@ -45,6 +45,7 @@
     <nav class="tabs" id="tab-nav">
       <button class="tab-btn active" data-tab="themes">급등·테마</button>
       <button class="tab-btn" data-tab="flow">수급·주도</button>
+      <button class="tab-btn" data-tab="briefing">AI 브리핑</button>
     </nav>
   </header>
 
@@ -64,6 +65,15 @@
         <div class="loading-state" id="flow-loading">
           <div class="spinner"></div>
           <p>수급/주도 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-briefing" class="tab-panel" hidden>
+      <div id="briefing-content">
+        <div class="loading-state" id="briefing-loading">
+          <div class="spinner"></div>
+          <p>브리핑을 불러오는 중...</p>
         </div>
       </div>
     </section>
@@ -95,6 +105,7 @@
   </script>
   <script src="app.js"></script>
   <script src="flow.js"></script>
+  <script src="briefing.js"></script>
   <script src="chart.js"></script>
 </body>
 </html>

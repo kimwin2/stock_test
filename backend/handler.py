@@ -142,8 +142,20 @@ def _run_flow_pipeline(bucket: str) -> dict:
     top_kospi = int(os.environ.get("FLOW_TOP_KOSPI", "300"))
     top_kosdaq = int(os.environ.get("FLOW_TOP_KOSDAQ", "250"))
 
+    # 직전 실행분 — 브리핑의 "변화" 서술(F&G 델타, 주도섹터 진입/이탈, 존 전환)에 사용
+    previous_payload = _fetch_existing_dashboard(bucket, flow_key)
+
     build_flow_dashboard = _import_flow_pipeline()
     payload = build_flow_dashboard(top_n_kospi=top_kospi, top_n_kosdaq=top_kosdaq)
+
+    # AI 데이터 브리핑 (자체 시그널 해설 + DART 공시). 실패해도 파이프라인은 계속.
+    print("\n[Step 12] AI 데이터 브리핑 생성")
+    try:
+        from briefing.generator import attach_briefing
+    except ModuleNotFoundError:
+        from .briefing.generator import attach_briefing
+    attach_briefing(payload, previous_payload=previous_payload)
+
     flow_url = upload_to_s3(payload, bucket, flow_key)
 
     return {

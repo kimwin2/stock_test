@@ -660,4 +660,21 @@ if __name__ == "__main__":
     # 인텍플러스, 네패스아크, 알멕, 브이엠, 한선엔지니어링, 와이지원, 아스플로,
     # 세미파이브, 싸이맥스, 나노, 세아메카닉스 등) 이 있어 300까지 확대.
     payload = build_flow_dashboard(top_n_kospi=300, top_n_kosdaq=300)
+
+    # AI 데이터 브리핑 — 로컬 실행 시 직전 결과는 기존 로컬 JSON 사용
+    try:
+        try:
+            from briefing.generator import attach_briefing
+        except ModuleNotFoundError:
+            from ..briefing.generator import attach_briefing
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        prev_path = os.path.join(os.path.dirname(backend_dir), "frontend", "flow_dashboard.json")
+        previous = None
+        if os.path.exists(prev_path):
+            with open(prev_path, encoding="utf-8") as f:
+                previous = json.load(f)
+        attach_briefing(payload, previous_payload=previous)
+    except Exception as e:
+        print(f"  [!] briefing 스킵: {e}")
+
     save_flow_dashboard(payload)

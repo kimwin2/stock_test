@@ -37,6 +37,7 @@ function setupTabs() {
         else p.setAttribute('hidden', '');
       });
       if (target === 'flow' && !flowLoaded) loadFlow();
+      if (target === 'briefing' && typeof loadBriefing === 'function') loadBriefing();
     });
   });
 }

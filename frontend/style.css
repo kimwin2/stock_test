@@ -1954,3 +1954,96 @@ body {
   width: 14px; height: 14px; border-radius: 50%;
   background: var(--teal); border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(0, 105, 92, 0.45);
 }
+
+/* ============================================
+   AI 브리핑 탭 (briefing.js)
+   ============================================ */
+.brief-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.brief-card-main { position: relative; padding: 18px 18px 14px; }
+.brief-card-main::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, #7B1FA2, #1E88E5);
+}
+
+.brief-headline {
+  font-size: 1.22rem; font-weight: 900; color: #1f2a22;
+  line-height: 1.45; letter-spacing: -0.01em;
+}
+
+.brief-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+.brief-chip {
+  display: flex; flex-direction: column; gap: 1px;
+  background: #f2f7f1; border: 1px solid #dde8db;
+  border-radius: 10px; padding: 6px 12px; min-width: 86px;
+}
+.brief-chip-label { font-size: 0.68rem; font-weight: 800; color: #7d877f; letter-spacing: 0.02em; }
+.brief-chip-value { font-size: 1.02rem; font-weight: 900; color: #253028; }
+.brief-chip-value small { font-size: 0.72rem; font-weight: 900; margin-left: 4px; }
+.brief-chip-value small.up { color: var(--red); }
+.brief-chip-value small.down { color: var(--blue); }
+
+.brief-section { margin-top: 15px; }
+.brief-section-title {
+  font-size: 0.86rem; font-weight: 900; color: #00695C;
+  margin-bottom: 5px; letter-spacing: 0.01em;
+}
+.brief-section-body {
+  font-size: 0.93rem; color: #37413a; line-height: 1.7;
+  word-break: keep-all;
+}
+
+/* 배지 */
+.brief-badge {
+  font-size: 0.72rem; font-weight: 900; padding: 2px 9px; border-radius: 8px;
+  white-space: nowrap;
+}
+.brief-badge-ai { color: #fff; background: linear-gradient(90deg, #7B1FA2, #AB47BC); }
+.brief-badge-rule { color: #00695C; background: #eafaf6; border: 1px solid #9bd3c8; }
+.brief-badge-sample { color: #8a5a00; background: #fff6e0; border: 1px solid #eecf8a; }
+
+/* 공시 카드 — 헤더는 앱 공통(흰 바탕 + 진한 제목) 그대로 사용 */
+.brief-dart-body { padding: 8px 12px 12px; }
+.brief-dart-empty { padding: 16px 14px; font-size: 0.88rem; color: #7d877f; }
+.brief-dart-group {
+  font-size: 0.74rem; font-weight: 900; color: #7d877f;
+  margin: 10px 2px 5px; letter-spacing: 0.03em;
+}
+.brief-dart-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 8px; border-radius: 9px; text-decoration: none;
+  border-bottom: 1px solid #eef3ed;
+}
+.brief-dart-row:hover { background: #f4f8f3; }
+.brief-dart-date { font-size: 0.76rem; font-weight: 800; color: #98a29a; white-space: nowrap; }
+.brief-dart-name { font-size: 0.9rem; font-weight: 800; color: #253028; flex: 1; min-width: 0; }
+.brief-cand-chip {
+  font-size: 0.66rem; font-weight: 900; color: #00695C;
+  background: #eafaf6; border: 1px solid #9bd3c8;
+  padding: 1px 6px; border-radius: 6px; vertical-align: 1px;
+}
+.brief-dart-cat { font-size: 0.8rem; font-weight: 800; color: #4b564e; white-space: nowrap; }
+.brief-tone {
+  font-size: 0.7rem; font-weight: 900; padding: 2px 8px; border-radius: 7px; white-space: nowrap;
+}
+.brief-tone-pos { color: #b71c1c; background: #ffebee; }
+.brief-tone-neg { color: #0d47a1; background: #e3f2fd; }
+.brief-tone-watch { color: #8a5a00; background: #fff6e0; }
+
+.brief-disclaimer {
+  font-size: 0.74rem; color: #8a948c; line-height: 1.6;
+  padding: 0 6px 20px; word-break: keep-all;
+}
+
+@media (max-width: 640px) {
+  .brief-wrap { padding: 10px; }
+  .brief-headline { font-size: 1.08rem; }
+  .brief-dart-cat { display: none; }
+}
