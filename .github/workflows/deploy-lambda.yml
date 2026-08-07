@@ -90,24 +90,46 @@ jobs:
         env:
           GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DART_KEY: ${{ secrets.DART_API_KEY }}
+          KRX_ID_SECRET: ${{ secrets.KRX_ID }}
+          KRX_PW_SECRET: ${{ secrets.KRX_PW }}
         run: |
+          # 시크릿이 비어 있으면 빈 문자열로 덮어쓰지 말고 CFN UsePreviousValue 로
+          # 기존 stack 값을 보존한다. (과거 DartApiKey 를 아예 넘기지 않아 template 기본값 ''
+          # 이 그대로 들어가 브리핑 공시 수집이 조용히 스킵되던 사고를 막기 위함.)
+          preserve_or_set() {  # $1=파라미터명, $2=값
+            if [ -n "$2" ]; then
+              printf '%s=%s' "$1" "$2"
+            else
+              echo "::warning::No $1 in GH secrets — preserving existing CFN stack value." >&2
+              printf 'ParameterKey=%s,UsePreviousValue=true' "$1"
+            fi
+          }
+
           # GeminiApiKey 결정 우선순위:
           #   1) GEMINI_API_KEY 시크릿이 있으면 그 값 사용
           #   2) 아니면 OPENAI_API_KEY 시크릿이 Gemini 형식(AIza...) 이면 그 값 사용
-          #   3) 둘 다 아니면 CFN UsePreviousValue 로 기존 stack 값 보존 (Lambda 가 console/CLI 로
-          #      직접 갱신된 키를 잃지 않게 함)
+          #   3) 둘 다 아니면 기존 stack 값 보존
           if [ -n "$GEMINI_KEY" ]; then
-            KEY_PARAM=("GeminiApiKey=$GEMINI_KEY")
+            GEMINI_PARAM="GeminiApiKey=$GEMINI_KEY"
           elif [ -n "$OPENAI_KEY" ] && [[ "$OPENAI_KEY" == AIza* ]]; then
-            KEY_PARAM=("GeminiApiKey=$OPENAI_KEY")
+            GEMINI_PARAM="GeminiApiKey=$OPENAI_KEY"
           else
             echo "::warning::No Gemini API key in GH secrets — preserving existing CFN stack value."
-            KEY_PARAM=("ParameterKey=GeminiApiKey,UsePreviousValue=true")
+            GEMINI_PARAM="ParameterKey=GeminiApiKey,UsePreviousValue=true"
           fi
+
+          DART_PARAM="$(preserve_or_set DartApiKey "$DART_KEY")"
+          KRX_ID_PARAM="$(preserve_or_set KrxId "$KRX_ID_SECRET")"
+          KRX_PW_PARAM="$(preserve_or_set KrxPw "$KRX_PW_SECRET")"
+
           sam deploy \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
-              "${KEY_PARAM[@]}" \
+              "$GEMINI_PARAM" \
+              "$DART_PARAM" \
+              "$KRX_ID_PARAM" \
+              "$KRX_PW_PARAM" \
               "S3BucketName=${{ secrets.S3_BUCKET_NAME || 'stock-dashboard-data' }}" \
               "TelegramApiId=${{ secrets.TG_API_ID || '' }}" \
               "TelegramApiHash=${{ secrets.TG_API_HASH || '' }}" \
