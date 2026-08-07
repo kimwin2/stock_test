@@ -1753,6 +1753,32 @@ body {
 .down { color: var(--blue); }
 .flat { color: var(--text-muted); }
 
+/* === Stale Notice === */
+/* 테마 갱신이 멈췄을 때 카드 위에 띄우는 경고. 카드를 가리지 않으면서
+   "지금 보는 테마가 최신이 아니다"를 놓치지 않게 한다. */
+.stale-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid #D8B26A;
+  border-left: 4px solid #B4791E;
+  border-radius: 6px;
+  background: #FBF3DD;
+}
+
+.stale-notice strong {
+  font-size: 0.9rem;
+  color: #7A5310;
+}
+
+.stale-notice span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
 /* === Error State === */
 .error-state {
   grid-column: 1 / -1;

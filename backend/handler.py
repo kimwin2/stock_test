@@ -85,7 +85,10 @@ def _is_llm_unavailable_error(exc: BaseException) -> bool:
         return False
     if isinstance(exc, (RateLimitError, AuthenticationError)):
         return True
-    if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) in (400, 401, 402, 403, 429):
+    # 5xx 는 provider 과부하(503 UNAVAILABLE 등). analyzer 가 재시도를 모두 소진한
+    # 뒤에도 남으면 fatal 로 죽이지 말고 기존 dashboard 를 보존해야 한다.
+    # (이게 빠져 있어서 503 한 번에 파이프라인이 통째로 죽고 S3 업로드조차 못 했다.)
+    if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) in (400, 401, 402, 403, 429, 500, 502, 503, 504):
         msg = str(exc).lower()
         # 400 은 'API key not valid'/'invalid argument' 같은 인증·한도 사례만 graceful 처리
         if getattr(exc, "status_code", None) == 400:
@@ -237,7 +240,7 @@ def lambda_handler(event, context):
                 existing = _fetch_existing_dashboard(bucket, s3_key) or {}
                 degraded = dict(existing)
                 degraded["updatedAt"] = datetime.now(KST).isoformat()
-                degraded["themesError"] = "LLM 호출 불가 — themes 갱신 실패 (Gemini API 키/한도 확인 필요)"
+                degraded["themesError"] = "테마 분석 실패 — 아래 테마는 마지막 성공 시점의 데이터입니다"
                 degraded["themesErrorDetail"] = str(e)[:500]
                 upload_to_s3(degraded, bucket, s3_key)
                 return {
@@ -266,6 +269,9 @@ def lambda_handler(event, context):
         print("\n[Step 5] JSON 조립 및 S3 업로드")
         dashboard_data = {
             "updatedAt": datetime.now(KST).isoformat(),
+            # themes 가 실제로 갱신된 시각. 분석 실패 회차에는 updatedAt 만 오르고
+            # 이 값은 그대로 남아, 프론트가 "언제 기준 테마인지" 표시할 수 있다.
+            "themesGeneratedAt": datetime.now(KST).isoformat(),
             "antwinnerSignals": analysis.get("antwinnerSignals", []),
             "infostockSignals": analysis.get("infostockSignals", []),
             "youtubeSignals": analysis.get("youtubeSignals", []),

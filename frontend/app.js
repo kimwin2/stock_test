@@ -36,6 +36,24 @@ function formatDatetime(isoStr) {
   return `${mm}-${dd}(${day}) ${hh}:${mi}`;
 }
 
+// 테마 분석이 실패한 회차에는 서버가 기존 themes 를 그대로 두고 updatedAt 만 갱신한다.
+// 그 사실을 화면에 드러내지 않으면 "갱신: 방금" 표시 때문에 낡은 테마를 최신으로 오인한다.
+function renderThemeStaleNotice(grid, data) {
+  const prev = document.getElementById('theme-stale-notice');
+  if (prev) prev.remove();
+  if (!data || !data.themesError) return;
+
+  const since = data.themesGeneratedAt ? formatDatetime(data.themesGeneratedAt) : null;
+  const el = document.createElement('div');
+  el.id = 'theme-stale-notice';
+  el.className = 'stale-notice';
+  el.innerHTML = `
+    <strong>테마 갱신이 멈춰 있습니다</strong>
+    <span>${escapeHTML(data.themesError)}${since ? ` · 마지막 성공 ${escapeHTML(since)}` : ''}</span>
+  `;
+  grid.parentNode.insertBefore(el, grid);
+}
+
 function getChangeClass(rate) {
   if (rate > 0) return 'up';
   if (rate < 0) return 'down';
@@ -280,6 +298,10 @@ async function loadAndRender() {
 
     // Clear loading
     if (loading) loading.remove();
+
+    // 테마 분석이 실패하면 updatedAt 만 갱신되고 테마는 마지막 성공분이 그대로 남는다.
+    // 이걸 표시하지 않으면 "갱신: 방금"으로 보여 몇 달 지난 데이터를 최신으로 오인한다.
+    renderThemeStaleNotice(grid, data);
 
     // Render theme cards
     const themes = data.themes || [];
