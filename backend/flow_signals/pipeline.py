@@ -84,6 +84,16 @@ def build_cash_recommendation(market_sentiment: dict, crowding: dict) -> dict:
     }
 
 
+# 주도 "테마" 로 취급하지 않는 섹터.
+# 이 프로그램의 전략은 "당일 가장 강한 테마 + 추세 생존 + 수급 빈집" 인데,
+# 보험·은행은 금리·밸류업 재료로 장기 RS 는 올라와도 단타 테마처럼 움직이지 않는다.
+# 실제로 KODEX 보험(rsNorm 76.5)이 주도섹터가 되면서 롯데손해보험·동양생명·
+# DB손해보험·서울보증보험이 매수 후보 11개 중 4개를 차지했다 — 사용자가 처음부터
+# 지적한 바로 그 종목들이다. RS 규칙상 '틀린' 건 아니지만 전략의 의도와 어긋나므로
+# 주도 섹터 후보에서 제외한다. (증권은 거래대금 테마로 움직여 유지)
+NON_THEME_SECTORS = {"보험", "은행"}
+
+
 def _resolve_leading_sectors_from_etfs(leading_etfs: list[dict]) -> list[str]:
     """주도 ETF 라벨에서 우리 sector taxonomy 라벨 추출."""
     # 매핑은 ETF 명에 키워드가 등장하는 순서대로 매칭. 더 specific 한 키워드를 위에 둔다.
@@ -164,11 +174,23 @@ def _resolve_leading_sectors_from_etfs(leading_etfs: list[dict]) -> list[str]:
             rs = float(etf.get("rsNorm") or 0)
         except (TypeError, ValueError):
             rs = 0.0
+        # [중요] 첫 매칭에서 멈춘다. break 가 없으면 ETF 하나가 여러 섹터를 만든다.
+        #   실제 사고: "TIGER 글로벌AI인프라" 가 "AI"→AI/반도체팹리스 와
+        #   "인프라"→건설/인프라 에 동시 매칭되어, 건설/인프라 가 RS 78.9 짜리
+        #   3위 주도섹터로 둔갑 → 포스코인터내셔널·대우건설·동원시스템즈가
+        #   매수 후보 1·2·3위를 차지했다.
+        # sector_map 은 specific → general 순으로 정렬돼 있으므로 첫 매칭이 정답이다.
         for kw, sector in sector_map:
-            if kw in name and sector != "기타":
-                if rs > sector_rs.get(sector, float("-inf")):
+            if kw in name:
+                if sector != "기타" and rs > sector_rs.get(sector, float("-inf")):
                     sector_rs[sector] = rs
-    return [s for s, _ in sorted(sector_rs.items(), key=lambda kv: kv[1], reverse=True)]
+                break
+
+    # 방어적 섹터는 주도 테마에서 제외 — 아래 NON_THEME_SECTORS 주석 참고.
+    return [
+        s for s, _ in sorted(sector_rs.items(), key=lambda kv: kv[1], reverse=True)
+        if s not in NON_THEME_SECTORS
+    ]
 
 
 def build_flow_dashboard(
@@ -276,14 +298,26 @@ def build_flow_dashboard(
     #   3) 정규화 강도 상위 FLOW_SECTOR_TOP_N 개만 채택
     #   4) ETF RS 기반 섹터를 우선하고, 최종 개수를 MAX_LEADING_SECTORS 로 제한
     FLOW_STRENGTH_MIN = 5.0      # 만분율. 섹터 시총의 0.05% 이상 순매수
+    FLOW_AMOUNT_MIN = 300 * 1e8  # 300억. 정규화만 쓰면 초소형 섹터가 상위를 독식한다.
     FLOW_SECTOR_TOP_N = 4
     MAX_LEADING_SECTORS = 7
 
+    # [주의] 절대금액만 보면 시총 큰 섹터가, 정규화 강도만 보면 시총 작은 섹터가
+    # 독식한다. 두 조건을 모두 요구해 양쪽 편향을 막는다.
+    # 금액 하한은 초소형 섹터의 미미한 유입이 큰 강도로 증폭되는 것을 막는 안전장치다
+    # (예: 시총 1천억 섹터에 20억만 들어와도 강도 200이 나온다).
+    # 참고로 정상 신호는 이 하한을 문제없이 통과한다 — 실측(2026-08-07):
+    #   연료전지/수소 353억(시총 1.9조, 강도 181), 원전 400억(4.4조, 90),
+    #   신재생 484억(6.7조, 72), 반도체장비 5,185억(75.7조, 68).
+    # 즉 소형 테마 섹터가 상위에 오는 것 자체는 과대평가가 아니라 실제 수급 집중이다.
     flow_ranked: dict[str, float] = {}
     for kind in ("organ", "foreigner"):
         for entry in (sector_flows.get(kind) or []):
             strength = entry.get("strength")
+            amount = entry.get("amount") or 0
             if strength is None or strength < FLOW_STRENGTH_MIN:
+                continue
+            if amount < FLOW_AMOUNT_MIN:
                 continue
             sector = entry["sector"]
             # 외인/기관 중 더 강한 쪽 값을 그 섹터의 대표 강도로 사용
@@ -292,6 +326,7 @@ def build_flow_dashboard(
 
     leading_sectors_flow = [
         s for s, _ in sorted(flow_ranked.items(), key=lambda kv: kv[1], reverse=True)
+        if s not in NON_THEME_SECTORS
     ][:FLOW_SECTOR_TOP_N]
     print(
         f"   수급 강도 기반 섹터(정규화 {FLOW_STRENGTH_MIN}+ 상위 {FLOW_SECTOR_TOP_N}): "
