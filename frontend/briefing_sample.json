@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-07T11:01:40.679576+09:00",
+  "generatedAt": "2026-08-07T12:27:10.532079+09:00",
   "date": "2026-08-07",
   "source": "sample",
   "model": null,
-  "headline": "주도 섹터 2차전지 중심의 수급 지속",
+  "headline": "주도 섹터 반도체 중심의 수급 지속",
   "sections": [
     {
       "title": "시장 온도",
@@ -11,11 +11,11 @@
     },
     {
       "title": "수급 흐름",
-      "body": "현재 주도 섹터는 2차전지, AI/반도체팹리스, 게임/IT, 금융, 로봇 입니다. 외국인 5일 순매수 1위 섹터는 로봇(4,722억) 입니다. 기관 1위는 반도체(31,214억) 입니다."
+      "body": "현재 주도 섹터는 반도체, 게임/IT, 증권, 조선, 2차전지 입니다. 외국인 5일 순매수 1위 섹터는 로봇(4,722억) 입니다. 기관 1위는 반도체(31,214억) 입니다."
     },
     {
       "title": "빈집 시그널",
-      "body": "빈집 스크리닝 상위는 인바디(반도체장비), 주성엔지니어링(반도체장비), 삼성증권(금융) 입니다. 신고가 후 음전+10일선 이탈 매도 시그널은 15건입니다."
+      "body": "빈집 스크리닝 상위는 삼성증권(증권), 현대차증권(증권), 삼성SDI(2차전지) 입니다. 신고가 후 음전+10일선 이탈 매도 시그널은 15건입니다."
     },
     {
       "title": "공시 체크",
@@ -38,14 +38,13 @@
     "crowdingSignal": "쏠림",
     "leadingSectors": {
       "now": [
-        "2차전지",
-        "AI/반도체팹리스",
-        "게임/IT",
-        "금융",
-        "로봇",
         "반도체",
+        "게임/IT",
+        "증권",
+        "조선",
+        "2차전지",
         "방산",
-        "조선"
+        "로봇"
       ],
       "added": [],
       "removed": []
@@ -98,29 +97,15 @@
     },
     "buyCandidatesTop": [
       {
-        "name": "인바디",
-        "sector": "반도체장비",
-        "score": 105.1,
-        "vacancyZone": "빈집",
-        "newHigh250d": true
-      },
-      {
-        "name": "주성엔지니어링",
-        "sector": "반도체장비",
-        "score": 104.0,
-        "vacancyZone": "빈집",
-        "newHigh250d": true
-      },
-      {
         "name": "삼성증권",
-        "sector": "금융",
+        "sector": "증권",
         "score": 96.0,
         "vacancyZone": "빈집",
         "newHigh250d": false
       },
       {
         "name": "현대차증권",
-        "sector": "금융",
+        "sector": "증권",
         "score": 91.5,
         "vacancyZone": "빈집",
         "newHigh250d": false
@@ -129,6 +114,20 @@
         "name": "삼성SDI",
         "sector": "2차전지",
         "score": 89.5,
+        "vacancyZone": "빈집",
+        "newHigh250d": false
+      },
+      {
+        "name": "SK하이닉스",
+        "sector": "반도체",
+        "score": 89.3,
+        "vacancyZone": "빈집",
+        "newHigh250d": true
+      },
+      {
+        "name": "SK스퀘어",
+        "sector": "반도체",
+        "score": 87.4,
         "vacancyZone": "빈집",
         "newHigh250d": false
       }

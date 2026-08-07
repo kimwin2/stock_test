@@ -133,12 +133,13 @@ def _resolve_leading_sectors_from_etfs(leading_etfs: list[dict]) -> list[str]:
         # 건설 (좁게 — 시멘트/철강 ETF 는 매핑 X 로 두어 노이즈 차단)
         ("건설", "건설/인프라"),
         ("인프라", "건설/인프라"),
-        # 금융 (증권 가장 먼저)
-        ("증권", "금융"),
-        ("KRX 증권", "금융"),
-        ("보험", "금융"),
-        ("배당", "금융"),
-        ("은행", "금융"),
+        # 금융 — 증권/보험/은행 분리 매핑.
+        # "배당" ETF 는 여러 섹터의 고배당주 묶음이라 섹터 시그널이 아니므로 매핑하지 않는다.
+        # (기존에는 배당 ETF 가 RS 상위에 들면 금융 전체가 주도섹터가 됐다.)
+        ("증권", "증권"),
+        ("KRX 증권", "증권"),
+        ("보험", "보험"),
+        ("은행", "은행"),
         # 연료전지/신재생
         ("연료전지", "연료전지/수소"),
         ("수소", "연료전지/수소"),
@@ -151,14 +152,23 @@ def _resolve_leading_sectors_from_etfs(leading_etfs: list[dict]) -> list[str]:
         ("S&P", "기타"),
         ("차이나", "기타"),
     ]
-    sectors: set[str] = set()
+    # [수정 이력] 기존에는 set → sorted() 로 반환해 섹터 순서가 '가나다순' 이었다.
+    # 그런데 후보 점수 로직은 leading_sectors.index(sector) 로 1·2·3위에
+    # +40/+32/+24 를 준다. 즉 RS 가 가장 강한 섹터가 아니라 이름이 먼저 오는
+    # 섹터가 최고 가산점을 받고 있었다 (실측: 반도체 RS 92.8 이 5위 +14,
+    # 2차전지 RS 31.5 가 1위 +40). RS 강도 순으로 정렬해 순위를 의미 있게 만든다.
+    sector_rs: dict[str, float] = {}
     for etf in leading_etfs:
         name = etf.get("name") or ""
+        try:
+            rs = float(etf.get("rsNorm") or 0)
+        except (TypeError, ValueError):
+            rs = 0.0
         for kw, sector in sector_map:
-            if kw in name:
-                if sector != "기타":
-                    sectors.add(sector)
-    return sorted(sectors)
+            if kw in name and sector != "기타":
+                if rs > sector_rs.get(sector, float("-inf")):
+                    sector_rs[sector] = rs
+    return [s for s, _ in sorted(sector_rs.items(), key=lambda kv: kv[1], reverse=True)]
 
 
 def build_flow_dashboard(
@@ -254,20 +264,49 @@ def build_flow_dashboard(
         sector_movers = {}
 
     # leadingSectors 보강 — 기관/외인 매수 상위 섹터를 추가 (ETF 없는 섹터를 잡기 위함).
-    # top5 컷오프는 "금융/연료전지/신재생" 같이 시총은 적지만 분명한 주도 섹터를 놓쳐서 top8 로 확대.
-    # 또한 vacancy_df 에 들어있는 모든 섹터 중 매수 우위 (organ+foreigner > 0) 면 후보 인정.
-    flow_sectors: list[str] = []
-    for entry in (sector_flows.get("organ") or [])[:8]:
-        if entry["amount"] > 0 and entry["sector"] not in flow_sectors:
-            flow_sectors.append(entry["sector"])
-    for entry in (sector_flows.get("foreigner") or [])[:8]:
-        if entry["amount"] > 0 and entry["sector"] not in flow_sectors:
-            flow_sectors.append(entry["sector"])
-    leading_sectors_flow = flow_sectors[:10]
-    print(f"   기관/외인 매수 상위 섹터: {leading_sectors_flow}")
+    #
+    # [수정 이력] 기존 로직은 "절대 금액 top8 중 amount>0" 이면 무조건 추가해서
+    # 주도 섹터가 13개(전체 분류의 절반 이상)까지 불어났고, 그 결과 "주도섹터 교집합"
+    # 필터가 사실상 아무것도 걸러내지 못했다. 특히 시총이 큰 금융은 순매수가
+    # 시총의 0.002% (정규화 강도 0.23) 에 불과한데도 절대금액만으로 상시 진입했다.
+    #
+    # 신규 규칙:
+    #   1) 절대금액이 아니라 시총 정규화 강도(섹터 시총 대비 5일 순매수, 만분율)로 판정
+    #   2) FLOW_STRENGTH_MIN 이상만 후보 (미미한 매수는 주도가 아님)
+    #   3) 정규화 강도 상위 FLOW_SECTOR_TOP_N 개만 채택
+    #   4) ETF RS 기반 섹터를 우선하고, 최종 개수를 MAX_LEADING_SECTORS 로 제한
+    FLOW_STRENGTH_MIN = 5.0      # 만분율. 섹터 시총의 0.05% 이상 순매수
+    FLOW_SECTOR_TOP_N = 4
+    MAX_LEADING_SECTORS = 7
+
+    flow_ranked: dict[str, float] = {}
+    for kind in ("organ", "foreigner"):
+        for entry in (sector_flows.get(kind) or []):
+            strength = entry.get("strength")
+            if strength is None or strength < FLOW_STRENGTH_MIN:
+                continue
+            sector = entry["sector"]
+            # 외인/기관 중 더 강한 쪽 값을 그 섹터의 대표 강도로 사용
+            if strength > flow_ranked.get(sector, 0.0):
+                flow_ranked[sector] = strength
+
+    leading_sectors_flow = [
+        s for s, _ in sorted(flow_ranked.items(), key=lambda kv: kv[1], reverse=True)
+    ][:FLOW_SECTOR_TOP_N]
+    print(
+        f"   수급 강도 기반 섹터(정규화 {FLOW_STRENGTH_MIN}+ 상위 {FLOW_SECTOR_TOP_N}): "
+        f"{[(s, round(flow_ranked[s], 1)) for s in leading_sectors_flow] or '(없음)'}"
+    )
+
     for sector in leading_sectors_flow:
         if sector not in leading_sectors:
             leading_sectors.append(sector)
+
+    # ETF RS 섹터를 앞에 두고 전체 개수 제한 — 주도 섹터가 많아질수록 필터 의미가 사라진다.
+    dropped_sectors = leading_sectors[MAX_LEADING_SECTORS:]
+    leading_sectors = leading_sectors[:MAX_LEADING_SECTORS]
+    if dropped_sectors:
+        print(f"   상한({MAX_LEADING_SECTORS}) 초과로 제외된 섹터: {dropped_sectors}")
     print(f"   최종 주도 섹터(통합): {leading_sectors}")
 
     # ─────────────────────────────────────────
@@ -484,6 +523,85 @@ def build_flow_dashboard(
     enriched_candidates.sort(key=lambda c: c.get("taerinScore", 0), reverse=True)
 
     # ─────────────────────────────────────────
+    # Step 7a: 하드 필터 — 점수만으로는 걸러지지 않던 미달 종목 배제
+    #
+    # [수정 이력] 기존에는 추세·빈집 조건이 전부 '점수 가감' 이었고 최종 30개를
+    # 커트라인 없이 상위 30개로 잘랐다. 그래서 통과 풀이 얇은 날에는
+    #   - 10일선을 이탈해 추세가 깨진 종목 (-22점을 받고도 상위 30위 안)
+    #   - 수급 오실레이터가 양수라 화면에 '정상/찼음' 으로 표시되는 종목
+    # 이 그대로 매수 후보로 노출됐다 (실측: 30개 중 각각 4개 / 3개).
+    #
+    # 하드 조건:
+    #   1) aboveMA10 — "추세가 살아있는" 종목만. 10일선 이탈은 강한 매도 시그널.
+    #   2) oscLast < 0 — 빈집의 정식 정의(수급 오실레이터 음수). osc 계산이
+    #      불가한 종목은 1차 스크리닝 지표로 대체 판정.
+    #   3) MIN_CANDIDATE_SCORE — 최소 점수 커트라인.
+    # 조건이 과해 후보가 MIN_CANDIDATES 미만이면 점수 커트라인만 완화한다
+    # (추세·빈집은 전략의 정의 자체라 완화하지 않는다).
+    MIN_CANDIDATE_SCORE = 45.0
+    MIN_CANDIDATES = 8
+
+    def _is_vacant(c: dict) -> bool:
+        osc = c.get("oscLast")
+        if osc is not None:
+            return osc < 0
+        # osc 없으면 1차 스크리닝(시총 표준화 모멘텀 + 5일 순매도) 으로 판정
+        return (c.get("vacancyScore") or 0) < 0 and (c.get("institutionNet5d") or 0) < 0
+
+    # 필터 이전 풀은 매도 시그널(Step 9) 산출에 쓴다. 하드 필터로 10MA 이탈
+    # 종목을 빼버리면 "신고가 후 음전 + 10MA 이탈" 조건이 영원히 성립하지 않는다.
+    pre_filter_candidates = list(enriched_candidates)
+
+    total_before = len(enriched_candidates)
+    trend_ok = [c for c in enriched_candidates if c.get("aboveMA10")]
+    dropped_trend = total_before - len(trend_ok)
+    vacant_ok = [c for c in trend_ok if _is_vacant(c)]
+    dropped_vacancy = len(trend_ok) - len(vacant_ok)
+    scored_ok = [c for c in vacant_ok if c.get("taerinScore", 0) >= MIN_CANDIDATE_SCORE]
+    dropped_score = len(vacant_ok) - len(scored_ok)
+
+    score_relaxed = False
+    if len(scored_ok) < MIN_CANDIDATES and vacant_ok:
+        # 점수 커트라인만 완화 (추세·빈집 조건은 유지)
+        scored_ok = vacant_ok[:MIN_CANDIDATES]
+        score_relaxed = True
+
+    # 섹터 편중 방지 — 한 섹터가 후보 목록을 점유하면 사용자에겐 분산이 사라진다.
+    # (실측: 증권 ETF 강세일 때 후보 15개 중 7개가 증권사)
+    # 이미 점수순 정렬돼 있으므로 섹터별 상위 MAX_PER_SECTOR 개만 남긴다.
+    MAX_PER_SECTOR = 4
+    per_sector: dict[str, int] = {}
+    diversified: list[dict] = []
+    for c in scored_ok:
+        sec = c.get("sector") or "기타"
+        if per_sector.get(sec, 0) >= MAX_PER_SECTOR:
+            continue
+        per_sector[sec] = per_sector.get(sec, 0) + 1
+        diversified.append(c)
+    dropped_concentration = len(scored_ok) - len(diversified)
+    scored_ok = diversified
+
+    print(
+        f"\n[Step 7a] 하드 필터: {total_before}개 → {len(scored_ok)}개 "
+        f"(10MA 이탈 -{dropped_trend}, 빈집 아님 -{dropped_vacancy}, "
+        f"{MIN_CANDIDATE_SCORE}점 미만 -{dropped_score}, "
+        f"섹터 편중 -{dropped_concentration}"
+        f"{', 점수 커트라인 완화 적용' if score_relaxed else ''})"
+    )
+    candidate_filter_stats = {
+        "beforeFilter": total_before,
+        "afterFilter": len(scored_ok),
+        "droppedByTrend": dropped_trend,
+        "droppedByVacancy": dropped_vacancy,
+        "droppedByScore": dropped_score,
+        "droppedByConcentration": dropped_concentration,
+        "minScore": MIN_CANDIDATE_SCORE,
+        "maxPerSector": MAX_PER_SECTOR,
+        "scoreCutoffRelaxed": score_relaxed,
+    }
+    enriched_candidates = scored_ok
+
+    # ─────────────────────────────────────────
     # Step 7c: 주도섹터 거래대금 톱10 — 빈집 필터와 별개로 외인+기관 동행 매수 주도주
     # 매수 후보(빈집 전략)에는 institutionNet5d<0 필터로 빠지지만, 삼전·하닉처럼
     # 외인·기관이 폭풍 매수 중인 거래대금 1위급 주도주를 별도 섹션으로 노출.
@@ -544,7 +662,7 @@ def build_flow_dashboard(
     # Step 9: 매도 시그널 — 신고가 갱신 후 음전 (매수 후보 풀 안에서)
     # ─────────────────────────────────────────
     exit_signals = []
-    for c in enriched_candidates:
+    for c in pre_filter_candidates:
         ph = c.get("priceHistory60d") or []
         if len(ph) < 3:
             continue
@@ -598,6 +716,7 @@ def build_flow_dashboard(
         "leadingSectorLabels": leading_sectors,
         "supplyVacancy": vacancy_result,
         "buyCandidates": enriched_candidates[:30],
+        "candidateFilterStats": candidate_filter_stats,
         "leadingValueTop": leading_value_top,
         "sectorFlows": sector_flows,
         "sectorMovers": sector_movers,

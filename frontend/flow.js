@@ -675,7 +675,20 @@ function renderCandCardV2(c, idx) {
 // ─────────────────────────────────────────┐
 // CARD: Buy candidates (STEP 3 — main hero) │
 // ─────────────────────────────────────────┘
-function buildBuyCandidatesCard(candidates, leadingLabels) {
+// 필터 통과 현황 — "무엇을 왜 걸러냈는지" 를 보여준다.
+// 후보 목록에 미달 종목이 섞이지 않았음을 사용자가 직접 확인할 수 있는 근거.
+function renderFilterStats(stats) {
+  if (!stats || !stats.beforeFilter) return '';
+  const parts = [];
+  if (stats.droppedByTrend)         parts.push(`10일선 이탈 ${stats.droppedByTrend}`);
+  if (stats.droppedByVacancy)       parts.push(`빈집 아님 ${stats.droppedByVacancy}`);
+  if (stats.droppedByScore)         parts.push(`점수 미달 ${stats.droppedByScore}`);
+  if (stats.droppedByConcentration) parts.push(`섹터 편중 ${stats.droppedByConcentration}`);
+  const detail = parts.length ? ` — 제외: ${parts.join(' · ')}` : '';
+  return `<div class="cand-filter-stats">검토 ${stats.beforeFilter}종목 → 조건 통과 ${stats.afterFilter}종목${fEscape(detail)}</div>`;
+}
+
+function buildBuyCandidatesCard(candidates, leadingLabels, filterStats) {
   if (!candidates || candidates.length === 0) {
     return `<div class="flow-card flow-card-candidates flow-step3"><div class="card-header step-header"><span class="step-num">STEP 3</span><span class="card-theme-name">수급 <b class="ct-accent">빈집</b> · 추세 생존</span></div><div class="empty-msg">현재 조건을 통과한 종목 없음</div></div>`;
   }
@@ -693,6 +706,7 @@ function buildBuyCandidatesCard(candidates, leadingLabels) {
         <span class="card-theme-name">수급 <b class="ct-accent">빈집</b> · 추세 생존 ${sectorTag ? `<small>(${fEscape(sectorTag)})</small>` : ''}</span>
       </div>
       <div class="cand-submeta">${shown}종목 · 외인·기관 순매수 빠진 자리(빈집) ∩ 추세 생존(MA10 위)</div>
+      ${renderFilterStats(filterStats)}
       <div class="cand-body">${rows}</div>
     </div>
   `;
@@ -855,7 +869,7 @@ async function loadFlow() {
       <div class="flow-grid flow-grid-v2">
         ${buildStep1Card(data.marketSentiment, data.cashRecommendation)}
         ${buildStep2Card(data.leadingSectors, data.crowding, data.leadingSectorLabels)}
-        ${buildBuyCandidatesCard(data.buyCandidates, data.leadingSectorLabels)}
+        ${buildBuyCandidatesCard(data.buyCandidates, data.leadingSectorLabels, data.candidateFilterStats)}
         ${buildLeadingValueCard(data.leadingValueTop, data.leadingSectorLabels)}
       </div>
       <details class="flow-collapsible">

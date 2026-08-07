@@ -2047,3 +2047,17 @@ body {
   .brief-headline { font-size: 1.08rem; }
   .brief-dart-cat { display: none; }
 }
+
+/* 매수 후보 — 필터 통과 현황 */
+.cand-filter-stats {
+  margin: 0 12px 8px;
+  padding: 7px 11px;
+  background: #f4f8f3;
+  border: 1px solid #dde8db;
+  border-radius: 9px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #5d675f;
+  line-height: 1.5;
+  word-break: keep-all;
+}
