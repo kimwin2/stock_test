@@ -160,23 +160,34 @@ def search_stock_code(stock_name: str) -> Optional[str]:
 
 
 def search_stock_code_online(stock_name: str) -> Optional[str]:
-    """네이버 증권 종목 페이지에서 검색합니다."""
-    # 방법 1: 네이버 금융 사이트맵에서 검색
+    """네이버 증권에서 종목명 → 종목코드를 검색합니다."""
+    # 방법 1: 네이버 증권 자동완성 API.
+    # 기존에 쓰던 m.stock.naver.com/api/search/stocks 는 폐기되어 404 를 돌려줬고,
+    # 그 탓에 OCI홀딩스·혜인 같은 실존 종목까지 "코드 없음"으로 탈락했다.
     try:
-        url = f"https://m.stock.naver.com/api/search/stocks?query={stock_name}"
-        resp = requests.get(url, headers={
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)",
-        }, timeout=5)
+        resp = requests.get(
+            "https://ac.stock.naver.com/ac",
+            params={"q": stock_name, "target": "stock"},
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=5,
+        )
         if resp.status_code == 200:
-            data = resp.json()
-            stocks = data.get("stocks", [])
-            if stocks:
-                code = stocks[0].get("stockCode") or stocks[0].get("code")
-                if code:
-                    STOCK_CODE_MAP[stock_name] = code  # 캐싱
-                    return code
+            items = [
+                it for it in (resp.json().get("items") or [])
+                if it.get("category") == "stock"
+                and it.get("nationCode") == "KOR"
+                and re.fullmatch(r"\d{6}", str(it.get("code") or ""))
+            ]
+            if items:
+                # 이름이 정확히 일치하는 항목을 우선 — "SK" 가 "SK하이닉스"를
+                # 가로채는 식의 오매칭을 막는다.
+                target = re.sub(r"\s+", "", stock_name)
+                exact = [it for it in items if re.sub(r"\s+", "", it.get("name", "")) == target]
+                code = (exact or items)[0]["code"]
+                STOCK_CODE_MAP[stock_name] = code  # 캐싱
+                return code
     except Exception as e:
-        print(f"  [!] 모바일 검색 실패 ({stock_name}): {e}")
+        print(f"  [!] 자동완성 검색 실패 ({stock_name}): {e}")
 
     # 방법 2: 네이버 통합검색에서 종목코드 추출
     try:
@@ -485,52 +496,125 @@ def calculate_bar_data(open_price: int, high: int, low: int, current: int, prev_
     }
 
 
-def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
+def get_stock_details_for_themes(themes: list[dict], analysis: dict | None = None) -> list[dict]:
     """
-    테마별 종목 상세 데이터를 조회하여 완성된 테마 데이터를 반환합니다.
+    테마별 종목을 증거 기반으로 선정하고 상세 데이터를 붙여 반환합니다.
+
+    analysis 가 주어지면 개미승리·급등클러스터·인포스탁·유튜브·와우넷·텔레그램
+    시그널을 합쳐 후보 풀을 만들고, 실측 시세 게이트와 점수로 상위 종목을
+    고른다. analysis 가 없으면 LLM 이 지목한 종목만으로 동작한다(하위 호환).
 
     Args:
         themes: analyzer에서 추출된 테마 리스트
             [{"themeName": str, "headline": str, "relatedStocks": [str, ...], ...}]
+        analysis: analyze_themes 결과 (시그널 원본 포함)
 
     Returns:
         프론트엔드용 완성된 테마 데이터 리스트
     """
+    try:
+        import theme_stocks as ts
+    except ImportError:
+        from . import theme_stocks as ts
+
+    analysis = analysis or {}
+    detail_cache: dict[str, dict | None] = {}
+
+    def fetch_detail(code: str) -> dict | None:
+        if code not in detail_cache:
+            detail_cache[code] = get_stock_detail(code)
+            time.sleep(0.1)  # 요청 간격
+        return detail_cache[code]
+
+    # 유사 테마 병합은 반드시 선정 전에. 아래 전역 종목 중복 제거가 먼저 돌면
+    # 중복 테마가 서로 다른 종목을 받아 겹침 판정이 발동하지 않는다.
+    before_merge = len(themes)
+    themes = ts.merge_similar_themes(themes)
+    if len(themes) < before_merge:
+        print(f"[INFO] 유사 테마 {before_merge - len(themes)}개 병합 → {len(themes)}개")
+
+    result_themes = _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed=False)
+
+    # 조용한 날에도 탭이 비지 않게. 종목 조회는 캐시되어 재시도 비용이 거의 없다.
+    if len(result_themes) < ts.MIN_THEMES:
+        print(f"[INFO] 통과 테마 {len(result_themes)}개 — 게이트를 완화해 재선정")
+        relaxed = _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed=True)
+        if len(relaxed) > len(result_themes):
+            for t in relaxed:
+                t["gateRelaxed"] = True
+            result_themes = relaxed
+
+    return result_themes
+
+
+def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool) -> list[dict]:
+    """테마 리스트 → 선정 완료된 테마 리스트. relaxed 는 게이트 완화 여부."""
     result_themes = []
+    used_codes: set[str] = set()   # 한 종목은 전체 테마 통틀어 1번만
+    stats = {"pool": 0, "unresolved": 0, "noQuote": 0,
+             "penny": 0, "illiquid": 0, "falling": 0, "duplicate": 0}
+    min_stocks = 1 if relaxed else ts.MIN_STOCKS_PER_THEME
 
     for theme in themes:
         theme_name = theme["themeName"]
         headline = theme.get("headline", "")
-        related_stocks = theme.get("relatedStocks", [])
 
-        print(f"\n[INFO] 테마 '{theme_name}' 종목 데이터 조회 중...")
+        print(f"\n[INFO] 테마 '{theme_name}' 종목 선정 중...")
 
-        # 개미승리가 직접 제공한 종목 코드 매핑 (이름 검색보다 우선)
-        direct_codes = theme.pop("_antwinner_stock_codes", {})
+        # 개미승리가 직접 제공한 종목 코드 매핑 (이름 검색보다 우선).
+        # pop 이 아니라 get — 완화 재시도 때도 코드 매핑이 살아있어야 한다.
+        direct_codes = theme.get("_antwinner_stock_codes") or {}
+
+        candidates = ts.build_candidates(theme, analysis)
+        stats["pool"] += len(candidates)
+
+        scored = []
+        for cand in candidates:
+            code = cand.code or direct_codes.get(cand.name) or search_stock_code(cand.name)
+            if not code:
+                # LLM 이 지어낸 종목명은 여기서 걸러진다.
+                stats["unresolved"] += 1
+                print(f"  [!] {cand.name} 종목코드 없음 (출처: {'·'.join(sorted(cand.sources))})")
+                continue
+            if code in used_codes:
+                stats["duplicate"] += 1
+                continue
+
+            detail = fetch_detail(code)
+            if not detail:
+                stats["noQuote"] += 1
+                continue
+
+            reject = ts.passes_gate(detail, relaxed=relaxed)
+            if reject:
+                stats[reject] += 1
+                print(f"  [-] {cand.name} 제외 ({reject}: {detail.get('changeRate')}% / "
+                      f"{detail.get('price')}원 / {detail.get('volume')})")
+                continue
+
+            score, reasons = ts.score_candidate(cand, detail)
+            scored.append((score, reasons, cand, code, detail))
+
+        # 점수 내림차순 — 등락률만 보던 기존 정렬을 대체한다.
+        scored.sort(key=lambda x: x[0], reverse=True)
+        selected = scored[:ts.MAX_STOCKS_PER_THEME]
+
+        if len(selected) < min_stocks:
+            print(f"  [DROP] {theme_name}: 유효 종목 {len(selected)}개 — 테마 제외")
+            continue
+
+        # 테마가 오늘 실제로 살아있는지 — 대장주가 의미 있게 올라야 한다.
+        lead_rate = max(float(d.get("changeRate") or 0) for *_, d in selected)
+        min_lead = ts.RELAXED_LEAD_RATE if relaxed else ts.THEME_MIN_LEAD_RATE
+        if lead_rate < min_lead:
+            print(f"  [DROP] {theme_name}: 최고 등락 {lead_rate:+.2f}% "
+                  f"(< {min_lead:+.1f}%) — 오늘 주도 테마 아님")
+            continue
 
         stock_details = []
         total_volume = 0
-
-        for stock_name in related_stocks:
-            print(f"  [>] {stock_name} 검색 중...")
-
-            # 1. 종목코드 검색 (개미승리 코드 우선 → 매핑 → 온라인 검색)
-            code = direct_codes.get(stock_name) or search_stock_code(stock_name)
-            if not code:
-                print(f"  [!] {stock_name} 종목코드를 찾을 수 없습니다.")
-                continue
-
-            # 2. 종목 상세 데이터 조회
-            detail = get_stock_detail(code)
-            if not detail:
-                continue
-
-            # 너무 가격이 낮은 동전주(1500원 미만) 제외
-            if detail.get("price", 0) < 1500:
-                print(f"  [!] {stock_name} 제외 (현 주가 1500원 미만: {detail.get('price')}원)")
-                continue
-
-            # 3. barData 계산
+        for score, reasons, cand, code, detail in selected:
+            used_codes.add(code)
             bar_data = calculate_bar_data(
                 open_price=detail.get("open", detail["price"]),
                 high=detail.get("high", detail["price"]),
@@ -538,33 +622,24 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
                 current=detail["price"],
                 prev_close=detail.get("prevClose", detail["price"]),
             )
-
-            stock_item = {
-                "name": detail["name"] or stock_name,
+            stock_details.append({
+                "code": code,
+                "name": detail["name"] or cand.name,
                 "price": detail["price"],
                 "time": detail.get("time", ""),
                 "changeRate": detail["changeRate"],
                 "volume": detail["volume"],
-                "isTop": False,  # 나중에 정렬 후 설정
+                "isTop": False,  # 아래에서 1위에만 설정
                 "barData": bar_data,
-            }
-
-            stock_details.append(stock_item)
+                "score": score,
+                "scoreReasons": reasons,
+                "sources": sorted(cand.sources),
+            })
             total_volume += detail.get("volumeRaw", 0)
 
-            time.sleep(0.1)  # 요청 간격
+        # 대장주 = 점수 1위 (등락률 1위가 아니라 근거가 가장 두꺼운 종목)
+        stock_details[0]["isTop"] = True
 
-            if len(stock_details) >= 4:
-                break  # 테마당 4개만
-
-        # 등락률 기준 정렬 (높은 순)
-        stock_details.sort(key=lambda x: x["changeRate"], reverse=True)
-
-        # 1위 종목은 isTop = True
-        if stock_details:
-            stock_details[0]["isTop"] = True
-
-        # 4개 미만이면 패스하지 않고 있는 만큼만
         result_themes.append({
             "themeName": theme_name,
             "totalVolume": format_volume(total_volume),
@@ -576,11 +651,13 @@ def get_stock_details_for_themes(themes: list[dict]) -> list[dict]:
             "headlineLinkConfidence": theme.get("headlineLinkConfidence", ""),
             "representativeArticleIndex": int(theme.get("representativeArticleIndex", 0) or 0),
             "reasoning": theme.get("reasoning", ""),
-            "stocks": stock_details[:4],
+            "stocks": stock_details,
         })
 
-        print(f"  [OK] {theme_name}: {len(stock_details)}개 종목 데이터 수집 완료")
+        print(f"  [OK] {theme_name}: {len(stock_details)}개 선정 "
+              f"(1위 {stock_details[0]['name']} {stock_details[0]['score']}점)")
 
+    print(f"[INFO] 테마 선정 통계 (relaxed={relaxed}): {stats}")
     return result_themes
 
 

@@ -261,9 +261,10 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "테마를 추출하지 못했습니다."})
             }
 
-        # ── Step 4: 종목 데이터 조회 ──
-        print("\n[Step 4] 테마별 종목 데이터 조회")
-        completed_themes = get_stock_details_for_themes(themes)
+        # ── Step 4: 종목 선정 + 데이터 조회 ──
+        # analysis 를 넘겨야 개미승리·급등클러스터 등 실측 시그널이 종목 선정에 개입한다.
+        print("\n[Step 4] 테마별 종목 선정 및 데이터 조회")
+        completed_themes = get_stock_details_for_themes(themes, analysis)
 
         # ── Step 5: JSON 조립 및 S3 업로드 ──
         print("\n[Step 5] JSON 조립 및 S3 업로드")
