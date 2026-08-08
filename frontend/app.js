@@ -160,25 +160,62 @@ function formatPct(rate) {
 }
 
 /**
- * 아크 게이지 (반원 스피도미터) — 등락률 강도/방향 시각화.
- * 한국장 상·하한 ±30%를 반원 꽉 참으로 매핑 (상한가 = 풀 아크).
- * 정확한 % 는 행 우측에 별도 표기하므로 아크엔 텍스트 없음.
+ * 당일 레인지 바 (Day's Range) — HTS·블룸버그가 쓰는 표준 표현.
+ *
+ * 반원 아크는 등락률 하나만 인코딩했는데, 그 값은 행 우측에 숫자로 이미
+ * 있어서 정보가 중복됐다. 레인지 바는 "오늘 저가~고가 중 현재가가 어디에
+ * 있나"를 보여준다 — 고가 부근 마감인지 밀린 마감인지가 한눈에 읽힌다.
+ *
+ *   저가 ├───[ 시가 ▓▓▓▓ 현재가 ]───┤ 고가
+ *                  ╎ 전일종가
  */
-function arcGauge(rate) {
-  const r = rate || 0;
-  const cx = 27, cy = 30, R = 21;
-  const f = Math.max(0.03, Math.min(1, Math.abs(r) / 30));
-  const color = r >= 0 ? '#E53935' : '#1565C0';
-  const polar = (a) => {
-    const rad = (a * Math.PI) / 180;
-    return [cx + R * Math.cos(rad), cy - R * Math.sin(rad)];
-  };
-  const [ax, ay] = polar(180);
-  const [bx, by] = polar(0);
-  const [ex, ey] = polar(180 - f * 180);
-  return `<svg class="bs-arc" width="54" height="40" viewBox="0 0 54 40" aria-hidden="true">
-    <path d="M${ax.toFixed(1)} ${ay.toFixed(1)} A${R} ${R} 0 0 1 ${bx.toFixed(1)} ${by.toFixed(1)}" fill="none" stroke="#efe6d5" stroke-width="4.5" stroke-linecap="round"/>
-    <path d="M${ax.toFixed(1)} ${ay.toFixed(1)} A${R} ${R} 0 0 1 ${ex.toFixed(1)} ${ey.toFixed(1)}" fill="none" stroke="${color}" stroke-width="4.5" stroke-linecap="round"/>
+function dayRangeBar(stock) {
+  const W = 108, H = 34;
+  const x0 = 4, x1 = W - 4, trackY = 13, trackH = 7;
+  const up = (stock.changeRate || 0) >= 0;
+  const color = up ? '#E53935' : '#1565C0';
+
+  const low = stock.low, high = stock.high;
+  const hasPrices = low != null && high != null && high > low;
+
+  // 위치(0~1). 실가격이 있으면 그걸로, 없으면 barData 정규화값으로 폴백.
+  let openF, curF, baseF;
+  if (hasPrices) {
+    const span = high - low;
+    const at = (v) => Math.max(0, Math.min(1, (v - low) / span));
+    openF = at(stock.open != null ? stock.open : stock.price);
+    curF = at(stock.price);
+    baseF = stock.prevClose != null ? at(stock.prevClose) : null;
+  } else {
+    const bd = stock.barData || {};
+    const cr = bd.currentRange || [40, 60];
+    openF = (cr[0] || 0) / 100;
+    curF = (cr[1] || 0) / 100;
+    baseF = bd.baseline != null ? bd.baseline / 100 : null;
+  }
+  const X = (f) => x0 + f * (x1 - x0);
+  const segA = Math.min(openF, curF), segB = Math.max(openF, curF);
+  const segX = X(segA), segW = Math.max(2.5, X(segB) - X(segA));
+  const curX = X(curF);
+
+  const gid = `rb-${Math.random().toString(36).slice(2, 7)}`;
+  const fmt = (v) => v == null ? '' : Number(v).toLocaleString('ko-KR');
+
+  return `<svg class="bs-range" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <defs>
+      <linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="1"/>
+      </linearGradient>
+    </defs>
+    <rect x="${x0}" y="${trackY}" width="${x1 - x0}" height="${trackH}" rx="3.5" fill="#EFE7D8"/>
+    <rect x="${segX.toFixed(1)}" y="${trackY}" width="${segW.toFixed(1)}" height="${trackH}" rx="3.5" fill="url(#${gid})"/>
+    ${baseF != null ? `<line x1="${X(baseF).toFixed(1)}" y1="${trackY - 2.5}" x2="${X(baseF).toFixed(1)}" y2="${trackY + trackH + 2.5}" stroke="#8C8474" stroke-width="1" stroke-dasharray="2 1.6"/>` : ''}
+    <circle cx="${curX.toFixed(1)}" cy="${trackY + trackH / 2}" r="3.6" fill="#FFFDF8" stroke="${color}" stroke-width="2"/>
+    ${hasPrices ? `
+      <text x="${x0}" y="${H - 2}" font-size="7.5" fill="#a89f8d">${fmt(low)}</text>
+      <text x="${x1}" y="${H - 2}" font-size="7.5" fill="#a89f8d" text-anchor="end">${fmt(high)}</text>
+      <text x="${(W / 2).toFixed(1)}" y="8" font-size="6.8" fill="#bdb4a2" text-anchor="middle" letter-spacing="0.5">당일 변동폭</text>` : ''}
   </svg>`;
 }
 
@@ -238,11 +275,11 @@ function createThemeCard(theme, index = 0) {
         s.volume ? `거래대금 ${escapeHTML(s.volume)}` : '',
       ].filter(Boolean).join(' · ');
       return `<div class="brief-stock">
-        ${arcGauge(s.changeRate)}
         <div class="bs-info">
           <div class="bs-name">${escapeHTML(s.name)}${s.isTop ? '<span class="bs-top">대표</span>' : ''}</div>
           <div class="bs-sub">${sub}</div>
         </div>
+        ${dayRangeBar(s)}
         <div class="bs-chg ${cls}">${formatPct(s.changeRate)}</div>
       </div>`;
     }).join('');

@@ -629,6 +629,12 @@ def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool) -> l
                 "time": detail.get("time", ""),
                 "changeRate": detail["changeRate"],
                 "volume": detail["volume"],
+                # 당일 레인지 바에 실제 가격 눈금을 찍기 위해 OHLC 를 함께 내려보낸다.
+                # barData 만으로는 0~100 정규화 위치뿐이라 라벨을 달 수 없다.
+                "open": detail.get("open"),
+                "high": detail.get("high"),
+                "low": detail.get("low"),
+                "prevClose": detail.get("prevClose"),
                 "isTop": False,  # 아래에서 1위에만 설정
                 "barData": bar_data,
                 "score": score,

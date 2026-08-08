@@ -121,7 +121,7 @@ const CHART_OSC   = '#B4791E';   // 오실레이터 (지표창)
 const CHART_GRID  = '#E5DFD3';
 const CHART_AXIS_TEXT = '#8C8474';
 const CHART_PAD_L = 6;
-const CHART_PAD_R = 36;          // 우측 가격축 (한국 HTS 관례)
+const CHART_PAD_R = 46;          // 우측 가격축 + 현재가 태그 pill 자리
 
 // 차트 논리 크기(viewBox)를 화면 폭에 맞춰 고른다.
 // 하나로 고정하면 폭 넓은 화면에서 SVG 가 3배 이상 늘어나고 축·라벨 글자도
@@ -282,11 +282,13 @@ function renderDualAxisChart(history, opts = {}) {
 function renderMiniPriceChart(c, opts = {}) {
   // 형상 상수는 렌더 직전에 정의 (kick_mockup_light 레시피)
 
-  // cap (시가총액, 60일) 과 osc (수급, ~76일) 길이가 다르면 둘 중 짧은 쪽
-  // 길이로 우측 끝부터 trim. 둘 다 마지막 거래일이 같으므로 우측 정렬됨.
-  const capFull = (c.capHistory60d && c.capHistory60d.length >= 2)
-    ? c.capHistory60d
-    : (c.priceHistory60d || []);
+  // 가격창은 '주가'를 그린다. 시가총액을 그리면 눈금이 낯설어 (3135억)
+  // 사람들이 늘 보던 종목 차트와 다른 물건처럼 읽힌다. 시가총액은
+  // 수급 오실레이터 정규화에만 쓰고, 화면에는 주가를 보여준다.
+  const capFull = (c.priceHistory60d && c.priceHistory60d.length >= 2)
+    ? c.priceHistory60d
+    : (c.capHistory60d || []);
+  const isPriceSeries = !!(c.priceHistory60d && c.priceHistory60d.length >= 2);
   const oscFull = c.supplyOscHistory || [];
   const dateFull = c.dateHistory60d || [];
   const N = (oscFull.length >= 2 && capFull.length >= 2)
@@ -320,7 +322,7 @@ function renderMiniPriceChart(c, opts = {}) {
   const n = cap.length;
   const X = (i) => x0 + (n <= 1 ? 0 : (i / (n - 1)) * (x1 - x0));
 
-  // 가격창 — 시가총액 + 5·20일선
+  // 가격창 — 주가 + 5·20일선
   const ma5Series = computeMA(cap, 5);
   const ma20Series = computeMA(cap, 20);
   const pAll = validCap
@@ -335,6 +337,21 @@ function renderMiniPriceChart(c, opts = {}) {
   const capPts = projP(cap);
   const ma5Pts = projP(ma5Series);
   const ma20Pts = projP(ma20Series);
+
+  // 구간 등락 방향으로 면적 색을 정한다 — 증권앱이 쓰는 그 표현.
+  const firstVal = validCap[0], lastVal = validCap[validCap.length - 1];
+  const rising = lastVal >= firstVal;
+  const areaColor = rising ? '#E53935' : '#1565C0';
+  const gid = `pa-${Math.random().toString(36).slice(2, 8)}`;
+  const priceArea = capPts ? `
+      <defs>
+        <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${areaColor}" stop-opacity="0.20"/>
+          <stop offset="100%" stop-color="${areaColor}" stop-opacity="0.02"/>
+        </linearGradient>
+      </defs>
+      <polygon points="${X(0).toFixed(1)},${(padT + priceH).toFixed(1)} ${capPts} ${X(n - 1).toFixed(1)},${(padT + priceH).toFixed(1)}" fill="url(#${gid})"/>
+  ` : '';
 
   // 지표창 — 수급 오실레이터 + 백분위 음영
   let oscSvg = '', oscFg = '';
@@ -372,13 +389,20 @@ function renderMiniPriceChart(c, opts = {}) {
       `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(lastOscVal) + (lastOscVal >= p50 ? 10 : 3)).toFixed(1)}" font-size="9" font-weight="800" fill="#B4560F" text-anchor="end">${(lastOscVal * 100).toFixed(2)}%</text>`;
   }
 
-  // 가격 끝점 + 우측 시총 라벨
+  // 현재가 태그 — HTS 처럼 우측 가격축에 색 pill + 점선 가이드
   const lastCapVal = [...cap].reverse().find(v => v != null);
-  const capLabel = lastCapVal >= 1e12 ? `${(lastCapVal / 1e12).toFixed(1)}조`
-                  : lastCapVal >= 1e8 ? `${(lastCapVal / 1e8).toFixed(0)}억`
-                  : `${lastCapVal}`;
-  const capDot = `<circle cx="${X(n - 1).toFixed(1)}" cy="${yP(lastCapVal).toFixed(1)}" r="2" fill="${CHART_PRICE}"/>`;
-  const capLabelSvg = `<text x="${(x1 + 3).toFixed(1)}" y="${(yP(lastCapVal) + 3).toFixed(1)}" font-size="8.5" font-weight="800" fill="${CHART_PRICE}">${fEscape(capLabel)}</text>`;
+  const capLabel = isPriceSeries
+    ? Number(lastCapVal).toLocaleString('ko-KR')
+    : (lastCapVal >= 1e12 ? `${(lastCapVal / 1e12).toFixed(1)}조`
+      : lastCapVal >= 1e8 ? `${(lastCapVal / 1e8).toFixed(0)}억` : `${lastCapVal}`);
+  const lastY = yP(lastCapVal);
+  const tagW = Math.max(26, capLabel.length * 5.2 + 8), tagH = 11;
+  const capDot = `<circle cx="${X(n - 1).toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.2" fill="${areaColor}"/>`;
+  const capLabelSvg = `
+      <line x1="${x0}" y1="${lastY.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${lastY.toFixed(1)}" stroke="${areaColor}" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
+      <rect x="${(x1 + 2).toFixed(1)}" y="${(lastY - tagH / 2).toFixed(1)}" width="${tagW}" height="${tagH}" rx="2.5" fill="${areaColor}"/>
+      <text x="${(x1 + 2 + tagW / 2).toFixed(1)}" y="${(lastY + 3.2).toFixed(1)}" font-size="7.8" font-weight="800" fill="#fff" text-anchor="middle">${fEscape(capLabel)}</text>`;
+  const priceTitle = `<text x="${x0}" y="${(padT + 6).toFixed(1)}" font-size="7.5" font-weight="700" fill="${CHART_AXIS_TEXT}">${isPriceSeries ? '주가' : '시가총액'}</text>`;
   const oscTitle = `<text x="${x0}" y="${(oscTop - 1.5).toFixed(1)}" font-size="7.5" font-weight="700" fill="${CHART_OSC}">수급 오실레이터</text>`;
 
   // X축 날짜 라벨 — 3개 (좌끝 / 중앙 / 우끝)
@@ -395,11 +419,13 @@ function renderMiniPriceChart(c, opts = {}) {
     <div class="mini-chart-wrap">
       <svg viewBox="0 0 ${W} ${H}" class="mini-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
         ${oscSvg}
+        ${priceArea}
         ${ma20Pts ? `<polyline points="${ma20Pts}" fill="none" stroke="${CHART_MA20}" stroke-width="1" stroke-linejoin="round"/>` : ''}
         ${ma5Pts ? `<polyline points="${ma5Pts}" fill="none" stroke="${CHART_MA5}" stroke-width="1" stroke-linejoin="round"/>` : ''}
         <polyline points="${capPts}" fill="none" stroke="${CHART_PRICE}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
         ${capDot}
         ${capLabelSvg}
+        ${priceTitle}
         ${oscTitle}
         ${oscFg}
         ${axisLabels}
@@ -670,7 +696,7 @@ function buyGradeBadge(score) {
 function renderChartLegend() {
   return `
     <div class="chart-legend">
-      <span><i class="ln" style="background:${CHART_PRICE};height:2.5px"></i>시가총액</span>
+      <span><i class="ln" style="background:${CHART_PRICE};height:2.5px"></i>주가</span>
       <span><i class="ln" style="background:${CHART_MA5}"></i>5일선</span>
       <span><i class="ln" style="background:${CHART_MA20}"></i>20일선</span>
       <span><i class="ln" style="background:${CHART_OSC}"></i>수급 오실레이터</span>
@@ -1038,7 +1064,7 @@ function buildTopOscHTML(c) {
       <div class="search-modal-osc-chart">${renderMiniPriceChart(c)}</div>
       ${gauge}
       <div class="search-modal-legend">
-        <span><span class="legend-line" style="background:${CHART_PRICE}"></span>시가총액</span>
+        <span><span class="legend-line" style="background:${CHART_PRICE}"></span>주가</span>
         <span><span class="legend-line" style="background:${CHART_MA5}"></span>5일선</span>
         <span><span class="legend-line" style="background:${CHART_MA20}"></span>20일선</span>
         <span><span class="legend-line" style="background:${CHART_OSC}"></span>수급 오실레이터</span>
