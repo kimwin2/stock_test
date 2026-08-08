@@ -27,7 +27,7 @@ DISCLAIMER = (
 )
 
 BRIEFING_SYSTEM_PROMPT = """당신은 한국 주식시장 데이터 브리핑 작성자입니다.
-제공되는 JSON 은 자체 계산된 수급 시그널(Fear&Greed, 주도섹터, 외인/기관 수급, 수급 빈집 오실레이터)과
+제공되는 JSON 은 자체 계산된 수급 시그널(공포·탐욕 지수, 주도섹터, 외인/기관 수급, 수급 빈집 오실레이터)과
 금감원 DART 공시 이벤트입니다. 이 데이터만 근거로 아침 브리핑을 한국어로 작성하세요.
 
 절대 규칙 (위반 금지):
@@ -35,14 +35,14 @@ BRIEFING_SYSTEM_PROMPT = """당신은 한국 주식시장 데이터 브리핑 �
 2. 조언 금지 — "매수 추천", "비중 확대 권장" 등 투자 판단을 대신하는 문장 금지.
 3. 제공된 JSON 에 없는 사실을 만들어내지 마세요. 수치는 JSON 그대로 인용하세요.
 4. 일어난 변화를 담백하게 서술하세요. (예: "외국인은 5일 연속 반도체를 순매수했다",
-   "Fear&Greed 는 62에서 71로 올라 과열 구간에 진입했다")
+   "공포·탐욕 지수는 62에서 71로 올라 과열 구간에 진입했다")
 5. 공시는 사실만 요약 (예: "OO는 유상증자 결정을 공시했다"). 호재/악재 단정 금지.
 
 출력은 JSON 만:
 {
   "headline": "오늘 데이터의 핵심 한 줄 (40자 이내, 서술형)",
   "sections": [
-    {"title": "시장 온도", "body": "F&G/현금비중 변화 서술 (2~3문장)"},
+    {"title": "시장 온도", "body": "공포·탐욕 지수/현금비중 변화 서술 (2~3문장)"},
     {"title": "수급 흐름", "body": "주도섹터/외인·기관 섹터 흐름 변화 서술 (2~4문장)"},
     {"title": "빈집 시그널", "body": "빈집 후보/존 전환 서술 (2~3문장)"},
     {"title": "공시 체크", "body": "후보·유니버스 종목 주요 공시 서술 (2~4문장, 공시 없으면 '특이 공시 없음' 1문장)"}
@@ -157,9 +157,9 @@ def _fallback_sections(facts: dict, disclosures: dict) -> tuple[str, list[dict]]
     if fg.get("kospi") is not None:
         if fg.get("kospiDelta") is not None and abs(fg["kospiDelta"]) >= 0.05:
             direction = "올라" if fg["kospiDelta"] > 0 else "내려"
-            parts.append(f"KOSPI Fear&Greed 는 {fg['kospiPrev']}에서 {fg['kospi']}로 {direction} 있습니다.")
+            parts.append(f"코스피 공포·탐욕 지수는 {fg['kospiPrev']}에서 {fg['kospi']}로 {direction} 있습니다.")
         else:
-            parts.append(f"KOSPI Fear&Greed 는 {fg['kospi']} 입니다.")
+            parts.append(f"코스피 공포·탐욕 지수는 {fg['kospi']} 입니다.")
     if fg.get("kosdaq") is not None:
         parts.append(f"KOSDAQ 은 {fg['kosdaq']} 입니다.")
     if cash.get("nowPct") is not None:
@@ -220,7 +220,7 @@ def _fallback_sections(facts: dict, disclosures: dict) -> tuple[str, list[dict]]
 
     # 헤드라인
     if fg.get("kospiDelta") is not None and abs(fg["kospiDelta"]) >= 3:
-        headline = f"F&G {fg['kospiPrev']}→{fg['kospi']}, 시장 온도 변화 확대"
+        headline = f"공포·탐욕 {fg['kospiPrev']}→{fg['kospi']}, 시장 온도 변화 확대"
     elif sectors.get("added"):
         headline = f"주도 섹터에 {sectors['added'][0]} 신규 진입"
     elif now_sectors:

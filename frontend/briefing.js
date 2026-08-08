@@ -1,7 +1,7 @@
 /**
  * Briefing Tab — AI 데이터 브리핑
  *
- * 자체 시그널(F&G, 주도섹터, 수급, 빈집) 변화 + DART 공시 이벤트를
+ * 자체 시그널(공포·탐욕, 주도섹터, 수급, 빈집) 변화 + DART 공시 이벤트를
  * 백엔드(briefing/generator.py)가 서술형으로 정리한 것을 표시한다.
  *
  * 데이터: flow_dashboard.json 의 briefing 키 (flow.js 의 loadFlow 재사용).
@@ -40,7 +40,7 @@ function buildBriefingStats(facts) {
     const deltaHtml = (delta != null && Math.abs(delta) >= 0.05)
       ? `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`
       : '';
-    chips.push(`<div class="brief-chip"><span class="brief-chip-label">KOSPI F&amp;G</span><span class="brief-chip-value">${fg.kospi}${deltaHtml}</span></div>`);
+    chips.push(`<div class="brief-chip"><span class="brief-chip-label">코스피 공포·탐욕</span><span class="brief-chip-value">${fg.kospi}${deltaHtml}</span></div>`);
   }
   if (cash.nowPct != null) {
     chips.push(`<div class="brief-chip"><span class="brief-chip-label">권고 현금</span><span class="brief-chip-value">${cash.nowPct}%</span></div>`);
