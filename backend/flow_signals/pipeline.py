@@ -302,6 +302,11 @@ def build_flow_dashboard(
     #   4) ETF RS 기반 섹터를 우선하고, 최종 개수를 MAX_LEADING_SECTORS 로 제한
     FLOW_STRENGTH_MIN = 5.0      # 만분율. 섹터 시총의 0.05% 이상 순매수
     FLOW_AMOUNT_MIN = 300 * 1e8  # 300억. 정규화만 쓰면 초소형 섹터가 상위를 독식한다.
+    # 주도 '섹터' 라면 폭이 있어야 한다. 종목 3개짜리 묶음이 움직인 건 섹터
+    # 테마가 아니라 개별 종목 움직임이고, 시총이 작아 정규화 강도만 비정상적으로
+    # 높게 나온다. 섹터 분류를 잘게 쪼갠 뒤 항공(3종목)이 강도 43.3 으로 1위에
+    # 올라 진짜 주도섹터를 밀어내고 매수 후보를 39개→21개로 깎았다.
+    FLOW_SECTOR_MIN_MEMBERS = 6
     FLOW_SECTOR_TOP_N = 4
     MAX_LEADING_SECTORS = 7
 
@@ -318,9 +323,12 @@ def build_flow_dashboard(
         for entry in (sector_flows.get(kind) or []):
             strength = entry.get("strength")
             amount = entry.get("amount") or 0
+            members = entry.get("stockCount") or 0
             if strength is None or strength < FLOW_STRENGTH_MIN:
                 continue
             if amount < FLOW_AMOUNT_MIN:
+                continue
+            if members < FLOW_SECTOR_MIN_MEMBERS:
                 continue
             sector = entry["sector"]
             # 외인/기관 중 더 강한 쪽 값을 그 섹터의 대표 강도로 사용
