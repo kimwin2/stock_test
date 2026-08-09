@@ -92,7 +92,18 @@ sam build && sam deploy --parameter-overrides "GeminiApiKey=AIza..."
 # 텔레그램 채널 덤프 + 분석 (개인 분석 도구)
 cd backend && python -m telegram.fetch_dump --channel "https://t.me/+..." --limit 1000 --out telegram/dev/<name>_raw.json
 cd backend && python -m telegram.analyze_dump --in telegram/dev/<name>_raw.json
+
+# 참고 채널 대조 (개발용 — 자세한 내용은 backend/benchmark/README.md)
+cd backend && python -m benchmark.compare --all
+
+# flow 수동 실행 (스케줄은 평일 8~20시라 주말·장외에는 안 돈다)
+printf '{"mode":"flow"}' > /tmp/p.json
+aws lambda invoke --function-name stock-pipeline --invocation-type Event --payload file:///tmp/p.json /tmp/out.json
 ```
+
+> **주의**: 섹터 분류·주도섹터 로직을 고치면 반드시 배포 후 `mode=flow` 로 돌려
+> `candidateFilterStats` 의 `beforeFilter`/`afterFilter`/`scoreCutoffRelaxed` 를
+> 이전 값과 비교할 것. 코드만 보고 끝내면 후보가 30% 줄어든 걸 놓친다 (실제로 겪음).
 
 ## 참고 채널 대조 (backend/benchmark/)
 
