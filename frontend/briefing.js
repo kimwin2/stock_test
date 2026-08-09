@@ -174,7 +174,7 @@ function buildScreenResult(flow) {
   return `
     <div class="flow-card brief-card-screen">
       <div class="card-header">
-        <span class="card-theme-name">🎯 오늘 조건을 통과한 종목</span>
+        <span class="card-theme-name">조건 통과 종목</span>
         <span class="card-volume">${cands.length}개</span>
       </div>
       ${whatIs('외국인·기관이 최근 5일 순매수를 줄인(수급이 빠진) 자리 중, 10일선 위에서 추세가 살아있는 종목만 남겼습니다. 빈집 깊이는 그 종목의 과거 수급 이력에서 지금이 얼마나 아래인지를 뜻합니다 — 낮을수록 매물이 비어 있습니다. 매수 권유가 아니라 관찰 대상입니다.')}
@@ -192,7 +192,7 @@ function buildExitList(flow) {
   return `
     <div class="flow-card brief-card-exit">
       <div class="card-header">
-        <span class="card-theme-name">⚠️ 이탈 신호</span>
+        <span class="card-theme-name">이탈 신호</span>
         <span class="card-volume">${ex.length}건</span>
       </div>
       ${whatIs('수급 빈집 화면에 올랐던 종목 중, 최근 고점에서 밀리면서 10일 이동평균선까지 내준 종목입니다. 추세가 꺾였다는 사실만 알립니다.')}
@@ -282,7 +282,7 @@ function buildMoneyFlow(flows) {
   return `
     <div class="flow-card brief-card-money">
       <div class="card-header">
-        <span class="card-theme-name">💰 오늘 돈이 간 곳</span>
+        <span class="card-theme-name">업종별 자금 유입</span>
         <span class="card-volume">외국인 · 기관 5일 순매수</span>
       </div>
       <div class="mf-legend">
@@ -320,7 +320,7 @@ function buildTodayNumbers(flow, facts) {
   if (!items.length) return '';
   return `
     <div class="flow-card brief-card-nums">
-      <div class="card-header"><span class="card-theme-name">📊 오늘의 숫자</span></div>
+      <div class="card-header"><span class="card-theme-name">오늘의 숫자</span></div>
       <div class="tn-grid">
         ${items.map(([k, v, cls]) => `
           <div class="tn-item">
@@ -334,18 +334,13 @@ function buildTodayNumbers(flow, facts) {
 // ─────────────────────────────────────────┐
 // 브리핑 본문 섹션                          │
 // ─────────────────────────────────────────┘
-const BRIEF_SECTION_ICONS = {
-  '시장 온도': '🌡️',
-  '수급 흐름': '💧',
-  '빈집 시그널': '🏚️',
-  '공시 체크': '📋',
-};
+
 
 function buildBriefingSections(sections) {
   if (!sections || !sections.length) return '';
   return sections.map(s => `
     <div class="brief-section">
-      <div class="brief-section-title">${BRIEF_SECTION_ICONS[s.title] || '•'} ${bEscape(s.title)}</div>
+      <div class="brief-section-title">${bEscape(s.title)}</div>
       <p class="brief-section-body">${bEscape(s.body)}</p>
     </div>
   `).join('');
@@ -369,7 +364,7 @@ function buildDisclosureCard(disclosures) {
       : '공시 데이터 미연결 — DART API 키 설정 후 표시됩니다.';
     return `
       <div class="flow-card brief-card-dart">
-        <div class="card-header"><span class="card-theme-name">📋 DART 공시 이벤트</span></div>
+        <div class="card-header"><span class="card-theme-name">DART 공시</span></div>
         <div class="brief-dart-empty">${bEscape(msg)}</div>
       </div>
     `;
@@ -379,7 +374,7 @@ function buildDisclosureCard(disclosures) {
   if (!cand.length && !uni.length) {
     return `
       <div class="flow-card brief-card-dart">
-        <div class="card-header"><span class="card-theme-name">📋 DART 공시 이벤트</span></div>
+        <div class="card-header"><span class="card-theme-name">DART 공시</span></div>
         <div class="brief-dart-empty">최근 3일 내 후보·유니버스 종목의 특이 공시가 없습니다.</div>
       </div>
     `;
@@ -394,7 +389,7 @@ function buildDisclosureCard(disclosures) {
   `;
   return `
     <div class="flow-card brief-card-dart">
-      <div class="card-header"><span class="card-theme-name">📋 DART 공시 이벤트</span><span class="card-volume">${cand.length + uni.length}건</span></div>
+      <div class="card-header"><span class="card-theme-name">DART 공시</span><span class="card-volume">${cand.length + uni.length}건</span></div>
       <div class="brief-dart-body">
         ${cand.length ? `<div class="brief-dart-group">수급 시그널 종목</div>${cand.map(row).join('')}` : ''}
         ${uni.length ? `<div class="brief-dart-group">유니버스 (시총 상위 600)</div>${uni.slice(0, 12).map(row).join('')}` : ''}

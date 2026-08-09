@@ -814,7 +814,7 @@ function buildTICard(items) {
   if (!items || items.length === 0) return '';
   return `
     <div class="flow-card flow-card-ti">
-      <div class="card-header"><span class="card-theme-name">📈 거래대금 강도 — 후보 종목별 (60d)</span><span class="card-volume">${items.length}개</span></div>
+      <div class="card-header"><span class="card-theme-name">거래대금 강도</span><span class="card-volume">${items.length}개</span></div>
       <div class="ti-body">
         ${items.map(t => {
           const tiColor = t.ti >= 80 ? '#E53935' : t.ti >= 60 ? '#FB8C00' : t.ti >= 40 ? '#FDD835' : t.ti >= 20 ? '#43A047' : '#1E88E5';
@@ -882,7 +882,7 @@ function buildLeadingCard(leading) {
   if (!leading || !leading.top || leading.top.length === 0) return '';
   return `
     <div class="flow-card flow-card-leading">
-      <div class="card-header"><span class="card-theme-name">🚀 주도 업종 ETF</span><span class="card-volume">강도 70+ ${leading.leadingCount || 0}개</span></div>
+      <div class="card-header"><span class="card-theme-name">주도 업종 ETF</span><span class="card-volume">강도 70+ ${leading.leadingCount || 0}개</span></div>
       <div class="leading-body">
         <div class="leading-table-head"><span>ETF</span><span>시장대비강도</span><span>3개월</span><span>1개월</span></div>
         ${leading.top.slice(0, 12).map(e => `
@@ -905,7 +905,7 @@ function buildExitCard(exits) {
   if (!exits || exits.length === 0) return '';
   return `
     <div class="flow-card flow-card-exit">
-      <div class="card-header"><span class="card-theme-name">⚠️ 매도 시그널 — 신고가 후 음전 + 10일선 이탈</span><span class="card-volume">${exits.length}개</span></div>
+      <div class="card-header"><span class="card-theme-name">매도 시그널</span><span class="card-volume">${exits.length}개</span></div>
       <div class="exit-body">
         ${exits.slice(0, 10).map(e => `
           <div class="exit-row">
