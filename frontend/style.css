@@ -2046,8 +2046,9 @@ body {
 }
 .flow-card .card-theme-name small { color: #7d877f; font-weight: 600; font-size: 0.78rem; }
 .flow-card .step-num {
-  background: var(--teal); color: #fff;
-  font-size: 0.66rem; letter-spacing: 1px;
+  background: none; color: #a89f8d; border-right: 1px solid var(--rule);
+  padding: 0 9px 0 0; margin-right: 3px;
+  font-size: 0.82rem; font-weight: 800; letter-spacing: 0;
   padding: 4px 9px; border-radius: 2px;
 }
 .flow-card-step1 .step-num { background: #C4622A; }

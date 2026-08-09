@@ -604,8 +604,8 @@ function buildStep1Card(sentiment, cash) {
   return `
     <div class="flow-card flow-card-step1 flow-step1">
       <div class="card-header step-header">
-        <span class="step-num">STEP 1</span>
-        <span class="card-theme-name">시장 상태</span>
+        <span class="step-num">1</span>
+        <span class="card-theme-name">시장 · 지수와 심리</span>
       </div>
       <div class="step1-body">
         <div class="step1-row">
@@ -661,8 +661,8 @@ function buildStep2Card(leading, crowding, leadingLabels) {
   return `
     <div class="flow-card flow-card-step2 flow-step2">
       <div class="card-header step-header">
-        <span class="step-num">STEP 2</span>
-        <span class="card-theme-name">주도 업종</span>
+        <span class="step-num">2</span>
+        <span class="card-theme-name">업종 · 어디가 강한가</span>
         ${crowdLatest != null ? `<span class="crowd-pill" style="background:${sigColor}">쏠림 ${crowdLatest.toFixed(0)} ${fEscape(crowdSignal)}</span>` : ''}
       </div>
       <div class="step2-body">
@@ -763,7 +763,7 @@ function renderFilterStats(stats) {
 
 function buildBuyCandidatesCard(candidates, leadingLabels, filterStats) {
   if (!candidates || candidates.length === 0) {
-    return `<div class="flow-card flow-card-candidates flow-step3"><div class="card-header step-header"><span class="step-num">STEP 3</span><span class="card-theme-name">수급 <b class="ct-accent">빈집</b> · 추세 생존</span></div><div class="empty-msg">현재 조건을 통과한 종목 없음</div></div>`;
+    return `<div class="flow-card flow-card-candidates flow-step3"><div class="card-header step-header"><span class="step-num">3</span><span class="card-theme-name">종목 · 수급 <b class="ct-accent">빈집</b></span></div><div class="empty-msg">현재 조건을 통과한 종목 없음</div></div>`;
   }
   const sectorTag = leadingLabels?.length ? leadingLabels.slice(0, 5).join(', ') : '';
   // 참고 자료: 한 종목 4-5% × 20개. 5개보다 적으면 의미 없음.
@@ -775,8 +775,8 @@ function buildBuyCandidatesCard(candidates, leadingLabels, filterStats) {
   return `
     <div class="flow-card flow-card-candidates flow-step3">
       <div class="card-header step-header">
-        <span class="step-num">STEP 3</span>
-        <span class="card-theme-name">수급 <b class="ct-accent">빈집</b> · 추세 생존 ${sectorTag ? `<small>(${fEscape(sectorTag)})</small>` : ''}</span>
+        <span class="step-num">3</span>
+        <span class="card-theme-name">종목 · 수급 <b class="ct-accent">빈집</b> ${sectorTag ? `<small>(${fEscape(sectorTag)})</small>` : ''}</span>
       </div>
       <div class="cand-submeta">${shown}종목 · 외인·기관 순매수 빠진 자리(빈집) ∩ 추세 생존(10일선 위)</div>
       ${renderFilterStats(filterStats)}
