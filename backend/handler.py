@@ -65,6 +65,45 @@ def _sanitize_for_json(obj):
     return obj
 
 
+def _compute_changes(payload: dict, previous: dict | None) -> dict:
+    """직전 실행 대비 변화.
+
+    매일 같은 목록을 다시 읽게 하면 며칠 만에 안 열게 된다. "어제와 뭐가
+    달라졌나"가 매일 열어볼 이유다. 종목은 code, 섹터는 이름으로 대조한다.
+
+    직전 데이터가 없으면 전부 '신규' 로 잡히는 오서술이 되므로 available=False
+    로 두고 화면에서 감춘다.
+    """
+    if not previous:
+        return {"available": False, "reason": "직전 데이터 없음"}
+
+    def codes(d, key):
+        return {c.get("code"): c for c in (d.get(key) or []) if c.get("code")}
+
+    now_c, prev_c = codes(payload, "buyCandidates"), codes(previous, "buyCandidates")
+    now_s = [s for s in (payload.get("leadingSectorLabels") or []) if s]
+    prev_s = [s for s in (previous.get("leadingSectorLabels") or []) if s]
+    now_e, prev_e = codes(payload, "exitSignals"), codes(previous, "exitSignals")
+
+    entered = [{"code": k, "name": v.get("name"), "sector": v.get("sector")}
+               for k, v in now_c.items() if k not in prev_c]
+    left = [{"code": k, "name": v.get("name"), "sector": v.get("sector")}
+            for k, v in prev_c.items() if k not in now_c]
+    new_exit = [{"code": k, "name": v.get("name"),
+                 "drawdownFromHighPct": v.get("drawdownFromHighPct")}
+                for k, v in now_e.items() if k not in prev_e]
+
+    return {
+        "available": True,
+        "since": previous.get("updatedAt"),
+        "candidatesEntered": entered,
+        "candidatesLeft": left,
+        "sectorsEntered": [s for s in now_s if s not in prev_s],
+        "sectorsLeft": [s for s in prev_s if s not in now_s],
+        "newExitSignals": new_exit,
+    }
+
+
 def _fetch_existing_dashboard(bucket: str, key: str) -> dict | None:
     """S3 에서 기존 dashboard_data.json 을 조회. 없거나 파싱 실패 시 None."""
     try:
@@ -158,6 +197,10 @@ def _run_flow_pipeline(bucket: str) -> dict:
     except ModuleNotFoundError:
         from .briefing.generator import attach_briefing
     attach_briefing(payload, previous_payload=previous_payload)
+
+    # 직전 실행 대비 변화 — 매일 열어볼 이유는 "어제와 뭐가 달라졌나"에서 나온다.
+    # 같은 목록을 매일 다시 읽게 하면 며칠 만에 안 열게 된다.
+    payload["changes"] = _compute_changes(payload, previous_payload)
 
     flow_url = upload_to_s3(payload, bucket, flow_key)
 

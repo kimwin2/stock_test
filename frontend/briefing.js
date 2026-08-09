@@ -132,6 +132,39 @@ function pickReasons(reasons) {
   return clean.slice(0, 2).map(x => x.text).join(' · ');
 }
 
+// 직전 실행 대비 변화. 매일 같은 목록을 다시 읽게 하면 며칠 만에 안 열게 된다.
+// "어제와 뭐가 달라졌나"가 매일 여는 이유다. 변화가 없으면 카드를 그리지 않는다.
+function buildChanges(flow) {
+  const ch = (flow || {}).changes;
+  if (!ch || !ch.available) return '';
+  const items = [];
+  const names = (a) => (a || []).map(x => bEscape(x.name || x)).join(', ');
+  if ((ch.candidatesEntered || []).length)
+    items.push(['새로 진입', names(ch.candidatesEntered), 'in']);
+  if ((ch.candidatesLeft || []).length)
+    items.push(['목록에서 빠짐', names(ch.candidatesLeft), 'out']);
+  if ((ch.sectorsEntered || []).length)
+    items.push(['주도 업종 진입', names(ch.sectorsEntered), 'in']);
+  if ((ch.sectorsLeft || []).length)
+    items.push(['주도 업종 이탈', names(ch.sectorsLeft), 'out']);
+  if ((ch.newExitSignals || []).length)
+    items.push(['새 이탈 신호', names(ch.newExitSignals), 'out']);
+  if (!items.length) return '';
+
+  return `
+    <div class="flow-card brief-card-changes">
+      <div class="card-header">
+        <span class="card-theme-name">직전 대비 변화</span>
+        <span class="card-volume">${items.length}건</span>
+      </div>
+      <div class="chg-body">${items.map(([k, v, dir]) => `
+        <div class="chg-row">
+          <span class="chg-key chg-${dir}">${bEscape(k)}</span>
+          <span class="chg-val">${v}</span>
+        </div>`).join('')}</div>
+    </div>`;
+}
+
 // 조건을 통과한 종목 — 이 제품의 본체. '오늘' 화면에서 결론까지 보여주고
 // 상세는 종목 탭으로 넘긴다. 몇 개에서 몇 개로 좁혔는지를 함께 적어
 // 걸러진 과정이 보이게 한다 (근거 없는 목록은 신뢰를 못 얻는다).
@@ -433,6 +466,7 @@ function renderBriefing(briefing, flow) {
         ${whatIs('공포·탐욕 지수는 주가 흐름·거래량·변동성·안전자산 선호를 하나로 합친 0~100 값입니다. 낮을수록 시장이 위축된 상태입니다.')}
       </div>
 
+      ${buildChanges(flow)}
       ${buildScreenResult(flow)}
       ${buildExitList(flow)}
       ${buildMoneyFlow((flow || {}).sectorFlows)}
