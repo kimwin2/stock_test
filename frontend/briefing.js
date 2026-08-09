@@ -73,6 +73,22 @@ function fgZoneLabel(v) {
   return FG_ZONES[FG_ZONES.length - 1];
 }
 
+// 백엔드가 내려주는 zone 은 '레벨'이 아니라 '오실레이터(모멘텀)' 기준이다.
+// 이 둘은 다른 축이라 섞으면 정반대 결론이 나온다 — 실측(2026-08-07):
+//   레벨 38.7 만 보면 '공포', 오실레이터 +0.01 로 보면 '강세'(과열 직전).
+//   레퍼런스도 같은 날 "과열권 진입"으로 읽고 현금을 7%→19% 로 올렸다.
+// 즉 방향을 말해주는 건 오실레이터다. 백엔드 판정을 그대로 쓴다.
+const OSC_ZONE_COLORS = {
+  '과열': '#D2402F', '강세': '#E58A3C', '중립': '#C9B896',
+  '약세': '#4E8FCB', '공포': '#1565C0',
+};
+
+function zoneOf(marketNode, fgValue) {
+  const z = (marketNode || {}).zone;
+  if (z && OSC_ZONE_COLORS[z]) return { label: z, color: OSC_ZONE_COLORS[z], byOsc: true };
+  return { ...fgZoneLabel(fgValue), byOsc: false };   // 구버전 페이로드 폴백
+}
+
 // ─────────────────────────────────────────┐
 // 용어 한 줄 설명                            │
 // ─────────────────────────────────────────┘
@@ -87,7 +103,8 @@ function whatIs(text) {
 function buildMarketVerdict(fg, sentiment, flow) {
   const v = fg.kospi;
   if (v == null) return '';
-  const zone = fgZoneLabel(v);
+  const zone = zoneOf(sentiment.kospi, v);
+  const osc = (sentiment.kospi || {}).oscillator;
   const d = fg.kospiDelta;
   const move = (d == null || Math.abs(d) < 0.05) ? '전일과 비슷'
     : (d > 0 ? `전일 대비 ${d.toFixed(1)} 상승` : `전일 대비 ${Math.abs(d).toFixed(1)} 하락`);
@@ -118,7 +135,8 @@ function buildMarketVerdict(fg, sentiment, flow) {
       <div class="verdict-zone" style="color:${zone.color}">${zone.label}</div>
       <div class="verdict-num">
         <strong style="color:${zone.color}">${v.toFixed(1)}</strong>
-        <span>/100 · ${bEscape(move)}</span>
+        <span>공포·탐욕 레벨 /100 · ${bEscape(move)}${
+          zone.byOsc && osc != null ? ` · 방향 ${osc >= 0 ? '+' : ''}${osc.toFixed(3)}` : ''}</span>
         ${(sentiment.kospi || {}).close != null
           ? `<span class="verdict-idx">코스피 ${Number(sentiment.kospi.close).toLocaleString('ko-KR')}` +
             `${(sentiment.kosdaq || {}).close != null ? ` · 코스닥 ${Number(sentiment.kosdaq.close).toLocaleString('ko-KR')}` : ''}</span>`
@@ -280,10 +298,10 @@ function buildExitList(flow) {
     </div>`;
 }
 
-function buildThermometer(name, value, delta) {
+function buildThermometer(name, value, delta, node) {
   if (value == null) return '';
   const v = Math.max(0, Math.min(100, value));
-  const zone = fgZoneLabel(v);
+  const zone = zoneOf(node, v);
   const stops = FG_ZONES.map((z, i) => {
     const from = i === 0 ? 0 : FG_ZONES[i - 1].to;
     return `${z.color} ${from}%, ${z.color} ${z.to}%`;
@@ -497,10 +515,10 @@ function renderBriefing(briefing, flow) {
         <div class="brief-headline">${bEscape(briefing.headline)}</div>
         ${buildMarketVerdict(fg, sentiment, flow)}
         <div class="tm-wrap">
-          ${buildThermometer(sentiment.kospi?.label || '코스피', fg.kospi, fg.kospiDelta)}
-          ${buildThermometer(sentiment.kosdaq?.label || '코스닥', fg.kosdaq, null)}
+          ${buildThermometer(sentiment.kospi?.label || '코스피', fg.kospi, fg.kospiDelta, sentiment.kospi)}
+          ${buildThermometer(sentiment.kosdaq?.label || '코스닥', fg.kosdaq, null, sentiment.kosdaq)}
         </div>
-        ${whatIs('공포·탐욕 지수는 주가 흐름·거래량·변동성·안전자산 선호를 하나로 합친 0~100 값입니다. 낮을수록 시장이 위축된 상태입니다.')}
+        ${whatIs('공포·탐욕 지수는 주가 흐름·거래량·변동성·안전자산 선호를 하나로 합친 0~100 레벨입니다. 큰 글씨의 구간 이름은 레벨이 아니라 그 지수의 방향(오실레이터)으로 판정합니다 — 레벨이 낮아도 방향이 위를 향하면 과열로 올라가는 중입니다.')}
       </div>
 
       ${buildChanges(flow)}
