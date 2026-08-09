@@ -216,6 +216,22 @@ function dayRangeBar(stock) {
  * Theme Card 렌더링 — 매거진 브리핑 (C안)
  * 큰 세리프 타이틀 + 뉴스 한 줄 + 대표종목(레인지 바) + 종목 칩
  */
+// 테마 종목을 우리 수급 데이터와 대조한다.
+//
+// 재료·테마 자체는 무료 서비스와 겹치고, 수동 실시간 중계를 하는 업체와도
+// 경쟁이 안 된다. 우리가 더할 수 있는 건 "이 테마에서 수급이 빈 종목은
+// 어느 것인가" — 뉴스로 뜬 테마 중 아직 외인·기관이 안 들어온 자리다.
+function supplyTagFor(name) {
+  const flow = (typeof flowData !== 'undefined' && flowData) ? flowData : null;
+  if (!flow || !name) return '';
+  const n = String(name).replace(/\s+/g, '');
+  const hit = (flow.buyCandidates || []).find(c => String(c.name || '').replace(/\s+/g, '') === n);
+  if (hit) return `<span class="ts-tag ts-cand" title="수급 빈집 조건 통과 종목">빈집 · 조건통과</span>`;
+  const uni = (flow.universeMetadata || []).find(m => String(m.name || '').replace(/\s+/g, '') === n);
+  if (uni) return `<span class="ts-tag ts-uni" title="분석 유니버스에 포함">유니버스</span>`;
+  return '';
+}
+
 function createThemeCard(theme, index = 0) {
   const card = document.createElement('div');
   card.className = 'brief';
@@ -269,7 +285,7 @@ function createThemeCard(theme, index = 0) {
       ].filter(Boolean).join(' · ');
       return `<div class="brief-stock">
         <div class="bs-info">
-          <div class="bs-name">${escapeHTML(s.name)}${s.isTop ? '<span class="bs-top">대표</span>' : ''}</div>
+          <div class="bs-name">${escapeHTML(s.name)}${s.isTop ? '<span class="bs-top">대표</span>' : ''}${supplyTagFor(s.name)}</div>
           <div class="bs-sub">${sub}</div>
         </div>
         ${dayRangeBar(s)}
@@ -332,6 +348,12 @@ async function loadAndRender() {
     // 테마 분석이 실패하면 updatedAt 만 갱신되고 테마는 마지막 성공분이 그대로 남는다.
     // 이걸 표시하지 않으면 "갱신: 방금"으로 보여 몇 달 지난 데이터를 최신으로 오인한다.
     renderThemeStaleNotice(grid, data);
+
+    // 수급 대조 태그를 붙이려면 flow 데이터가 먼저 있어야 한다.
+    // 실패해도 테마 자체는 그려야 하므로 조용히 넘어간다.
+    if (typeof loadFlow === 'function') {
+      try { await loadFlow(); } catch (e) { /* 태그만 생략 */ }
+    }
 
     // Render theme cards
     const themes = data.themes || [];

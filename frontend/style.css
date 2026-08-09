@@ -2350,3 +2350,12 @@ body {
 .cb-line b.up { color: #E53935; }
 .cb-line b.down { color: #1565C0; }
 .cb-line em { font-style: normal; color: #b8b0a0; font-size: 0.68rem; margin-left: 3px; }
+
+
+/* 테마 종목의 수급 대조 태그 — 뉴스로 뜬 테마 중 아직 수급이 안 들어온 자리 */
+.ts-tag {
+  font-size: 0.62rem; font-weight: 800; padding: 1px 5px;
+  border-radius: 2px; margin-left: 6px; vertical-align: 2px; white-space: nowrap;
+}
+.ts-cand { color: #7A5310; background: #FBF3DD; border: 1px solid #E0CFA8; }
+.ts-uni { color: #8a8272; background: #F4EEE2; border: 1px solid #E7DFCF; }
