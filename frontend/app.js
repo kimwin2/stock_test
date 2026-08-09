@@ -171,51 +171,44 @@ function formatPct(rate) {
  */
 function dayRangeBar(stock) {
   const W = 108, H = 34;
-  const x0 = 4, x1 = W - 4, trackY = 13, trackH = 7;
-  const up = (stock.changeRate || 0) >= 0;
+  const x0 = 4, x1 = W - 4, trackY = 14, trackH = 8;
+  const mid = (x0 + x1) / 2;
+  const half = (x1 - x0) / 2;
+
+  const rate = stock.changeRate || 0;
+  const up = rate >= 0;
   const color = up ? '#E53935' : '#1565C0';
 
-  const low = stock.low, high = stock.high;
-  const hasPrices = low != null && high != null && high > low;
-
-  // 위치(0~1). 실가격이 있으면 그걸로, 없으면 barData 정규화값으로 폴백.
-  let openF, curF, baseF;
-  if (hasPrices) {
-    const span = high - low;
-    const at = (v) => Math.max(0, Math.min(1, (v - low) / span));
-    openF = at(stock.open != null ? stock.open : stock.price);
-    curF = at(stock.price);
-    baseF = stock.prevClose != null ? at(stock.prevClose) : null;
-  } else {
-    const bd = stock.barData || {};
-    const cr = bd.currentRange || [40, 60];
-    openF = (cr[0] || 0) / 100;
-    curF = (cr[1] || 0) / 100;
-    baseF = bd.baseline != null ? bd.baseline / 100 : null;
-  }
-  const X = (f) => x0 + f * (x1 - x0);
-  const segA = Math.min(openF, curF), segB = Math.max(openF, curF);
-  const segX = X(segA), segW = Math.max(2.5, X(segB) - X(segA));
-  const curX = X(curF);
+  // 한국장 상·하한 ±30% 를 반쪽 꽉 참으로 매핑한다.
+  //
+  // 예전에는 저가~고가 안에서 현재가 위치를 그렸는데, 그러면 변동폭이 좁은 날
+  // 2% 종목도 30% 종목도 똑같이 가득 차 보인다 — 막대 길이가 등락률과 무관해
+  // 카드끼리 비교가 안 됐다. 0% 를 가운데 두고 |등락률|/30 만큼 채운다.
+  const MAX_RATE = 30;
+  const f = Math.min(1, Math.abs(rate) / MAX_RATE);
+  const segW = Math.max(1.5, f * half);
+  const segX = up ? mid : mid - segW;
 
   const gid = `rb-${Math.random().toString(36).slice(2, 7)}`;
-  const fmt = (v) => v == null ? '' : Number(v).toLocaleString('ko-KR');
+  const tick = (frac) => {
+    const x = mid + frac * half;
+    return `<line x1="${x.toFixed(1)}" y1="${trackY - 1.5}" x2="${x.toFixed(1)}" y2="${trackY + trackH + 1.5}" stroke="#DDD3C0" stroke-width="0.8"/>`;
+  };
 
   return `<svg class="bs-range" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
     <defs>
-      <linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="${color}" stop-opacity="0.55"/>
+      <linearGradient id="${gid}" x1="${up ? 0 : 1}" y1="0" x2="${up ? 1 : 0}" y2="0">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.5"/>
         <stop offset="100%" stop-color="${color}" stop-opacity="1"/>
       </linearGradient>
     </defs>
-    <rect x="${x0}" y="${trackY}" width="${x1 - x0}" height="${trackH}" rx="3.5" fill="#EFE7D8"/>
-    <rect x="${segX.toFixed(1)}" y="${trackY}" width="${segW.toFixed(1)}" height="${trackH}" rx="3.5" fill="url(#${gid})"/>
-    ${baseF != null ? `<line x1="${X(baseF).toFixed(1)}" y1="${trackY - 2.5}" x2="${X(baseF).toFixed(1)}" y2="${trackY + trackH + 2.5}" stroke="#8C8474" stroke-width="1" stroke-dasharray="2 1.6"/>` : ''}
-    <circle cx="${curX.toFixed(1)}" cy="${trackY + trackH / 2}" r="3.6" fill="#FFFDF8" stroke="${color}" stroke-width="2"/>
-    ${hasPrices ? `
-      <text x="${x0}" y="${H - 2}" font-size="7.5" fill="#a89f8d">${fmt(low)}</text>
-      <text x="${x1}" y="${H - 2}" font-size="7.5" fill="#a89f8d" text-anchor="end">${fmt(high)}</text>
-      <text x="${(W / 2).toFixed(1)}" y="8" font-size="6.8" fill="#bdb4a2" text-anchor="middle" letter-spacing="0.5">당일 변동폭</text>` : ''}
+    <rect x="${x0}" y="${trackY}" width="${x1 - x0}" height="${trackH}" rx="4" fill="#F2EADB"/>
+    ${tick(-0.5)}${tick(0.5)}
+    <rect x="${segX.toFixed(1)}" y="${trackY}" width="${segW.toFixed(1)}" height="${trackH}" rx="${Math.min(4, segW / 2).toFixed(1)}" fill="url(#${gid})"/>
+    <line x1="${mid}" y1="${trackY - 3}" x2="${mid}" y2="${trackY + trackH + 3}" stroke="#8C8474" stroke-width="1.2"/>
+    <text x="${x0}" y="9" font-size="6.8" fill="#bdb4a2">-30%</text>
+    <text x="${mid}" y="9" font-size="6.8" fill="#bdb4a2" text-anchor="middle">0</text>
+    <text x="${x1}" y="9" font-size="6.8" fill="#bdb4a2" text-anchor="end">+30%</text>
   </svg>`;
 }
 

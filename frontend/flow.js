@@ -457,11 +457,24 @@ function supplyLevelIdx(pct) {
   return 4;
 }
 
-function renderSupplyGauge(percentile, _zone, amount) {
-  if (percentile == null) return '';
+// 게이지 단계는 zone 에서 먼저 결정하고, 백분위로 세부만 나눈다.
+//
+// 예전에는 백분위만 보고 단계를 정했는데, 카드에 붙는 zone 과 서로 다른
+// 지표를 써서 정면으로 어긋났다 (SK이터닉스: 카드 '빈집' ↔ 모달 '강한 찼음').
+// zone 은 osc 부호로 정해지는 1차 기준이고 백분위는 보조라, 이 순서를
+// 뒤집으면 안 된다. 이렇게 하면 두 표시가 구조적으로 모순될 수 없다.
+function supplyLevelIdxFromZone(zone, percentile) {
+  const pct = percentile == null ? 50 : Math.max(0, Math.min(100, percentile));
+  if (zone === '빈집') return pct < 25 ? 0 : 1;   // 강한 빈집 / 빈집
+  if (zone === '찼음') return pct > 90 ? 4 : 3;   // 강한 찼음 / 찼음
+  return 2;                                      // 정상 → 중간
+}
 
-  const pct = Math.max(0, Math.min(100, percentile));
-  const idx = supplyLevelIdx(pct);
+function renderSupplyGauge(percentile, zone, amount) {
+  if (percentile == null && !zone) return '';
+
+  const pct = Math.max(0, Math.min(100, percentile == null ? 50 : percentile));
+  const idx = zone ? supplyLevelIdxFromZone(zone, pct) : supplyLevelIdx(pct);
   const lv = SUPPLY_LEVELS[idx];
 
   const amt = amount != null ? fmtBillion(amount) : '-';
@@ -1056,7 +1069,9 @@ function buildTopOscHTML(c) {
     </div>
   `;
   const gauge = (c.vacancyPercentile != null)
-    ? renderSupplyGauge(c.vacancyPercentile, c.vacancyZone, c.institutionNet5d)
+    // oscPercentile 을 쓴다. vacancyPercentile 은 유니버스 점수 백분위라
+    // zone 과 다른 지표이고, 백엔드도 osc 가 있으면 그쪽을 무시한다.
+    ? renderSupplyGauge(c.oscPercentile, c.vacancyZone, c.institutionNet5d)
     : '';
   return `
     <div class="search-modal-osc-wrap">

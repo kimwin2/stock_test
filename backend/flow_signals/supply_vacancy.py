@@ -207,7 +207,7 @@ def _vacancy_zone(percentile: float) -> str:
 def _zone_from_osc(osc_series: list[float]) -> tuple[str, float | None]:
     """수급 오실레이터(MACD Histogram) 의 마지막 값과 자기 종목 historical 분포로 zone 결정.
 
-    참고 자료(태린이아빠) 정의:
+    참고 자료 정의:
       - osc < 0  →  "빈집"  (수급이 빠져나간 상태, 추세 안에서 눌림목 공략 후보)
       - osc 의 historical 상위 25% 초과 → "찼음" (xlsm 수급오실레이터 시트 점선 기준)
       - 그 외 → "정상"
@@ -367,7 +367,7 @@ def enrich_with_chart_and_buyzone(
                         "osc": o,
                     })
 
-        # 수급 오실레이터 기반 zone 재정의 — 참고 자료(태린이아빠) 기준이 1차.
+        # 수급 오실레이터 기반 zone 재정의 — 참고 자료 기준이 1차.
         # osc 시계열이 있으면 그 부호로 빈집/정상/찼음 결정 (universe percentile 무시).
         osc_last = None
         ratio_last = None
