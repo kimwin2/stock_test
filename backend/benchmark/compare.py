@@ -74,6 +74,30 @@ def is_domestic(name: str) -> bool:
     return ok
 
 
+FLOW_SNAPSHOT_URL = ("https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com"
+                     "/history/flow/{date}.json")
+SNAPSHOT_CACHE = Path(__file__).with_name("_snapshots")
+
+
+def load_snapshot(date_str: str) -> dict | None:
+    """그날의 flow 스냅샷. S3 에 있으면 받아서 로컬에 캐시한다.
+
+    최신본만 보면 다른 날 시장과 견주게 되어 섹터 비교가 무의미해진다.
+    파이프라인이 history/flow/YYYY-MM-DD.json 을 남기므로 그걸 쓴다.
+    """
+    SNAPSHOT_CACHE.mkdir(exist_ok=True)
+    local = SNAPSHOT_CACHE / f"{date_str}.json"
+    if local.exists():
+        return json.loads(local.read_text())
+    try:
+        with urllib.request.urlopen(FLOW_SNAPSHOT_URL.format(date=date_str), timeout=60) as r:
+            data = json.loads(r.read())
+    except Exception:
+        return None
+    local.write_text(json.dumps(data, ensure_ascii=False))
+    return data
+
+
 def load_flow(path: str | None) -> dict:
     if path:
         return json.loads(Path(path).read_text())
@@ -248,6 +272,8 @@ def main() -> int:
     ap.add_argument("--all", action="store_true", help="가능한 모든 날짜")
     ap.add_argument("--flow", help="flow_dashboard.json 경로 (기본: S3 최신)")
     ap.add_argument("--flow-dir", help="날짜별 flow 스냅샷 디렉터리 (YYYY-MM-DD.json)")
+    ap.add_argument("--strict", action="store_true",
+                    help="같은 날 스냅샷이 없으면 건너뛴다 (최신본 대체 금지)")
     args = ap.parse_args()
 
     dates = available_dates() if args.all else ([args.date] if args.date else [])
@@ -269,11 +295,23 @@ def main() -> int:
                 print(f"[skip] {d}: flow 스냅샷 없음 ({p})", file=sys.stderr)
                 continue
             flow_path = str(p)
-        try:
-            flow = load_flow(flow_path)
-        except Exception as e:
-            print(f"[skip] {d}: flow 로드 실패 {e}", file=sys.stderr)
-            continue
+
+        flow = None
+        if not flow_path:
+            # 같은 날 스냅샷이 S3 에 있으면 그걸 쓴다. 없으면 최신본으로 폴백하되
+            # 날짜 불일치 경고가 뜨므로 결과를 오해할 일은 없다.
+            flow = load_snapshot(d)
+            if flow is None and not args.strict:
+                print(f"[warn] {d}: 스냅샷 없음 — 최신본으로 대체", file=sys.stderr)
+            elif flow is None:
+                print(f"[skip] {d}: 스냅샷 없음 (--strict)", file=sys.stderr)
+                continue
+        if flow is None:
+            try:
+                flow = load_flow(flow_path)
+            except Exception as e:
+                print(f"[skip] {d}: flow 로드 실패 {e}", file=sys.stderr)
+                continue
         res = compare_one(ref, flow)
         results.append(res)
         print_report(res)
