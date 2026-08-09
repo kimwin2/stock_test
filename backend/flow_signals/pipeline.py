@@ -306,9 +306,14 @@ def build_flow_dashboard(
     # 테마가 아니라 개별 종목 움직임이고, 시총이 작아 정규화 강도만 비정상적으로
     # 높게 나온다. 섹터 분류를 잘게 쪼갠 뒤 항공(3종목)이 강도 43.3 으로 1위에
     # 올라 진짜 주도섹터를 밀어내고 매수 후보를 39개→21개로 깎았다.
-    # 5 = 관측된 병리(항공 3·해운 3·통신 4)를 배제하는 최소값. 6 으로 올리면
-    # 신재생(5)·미디어/엔터(5) 같은 정상 테마까지 잘려나간다.
-    FLOW_SECTOR_MIN_MEMBERS = 5
+    # 종목 수가 이보다 적으면 섹터라 부를 수 없다 (개별 종목 움직임).
+    FLOW_SECTOR_MIN_MEMBERS = 3
+    # 폭 가중 — 정규화 강도는 시총이 작을수록 커지므로, 소수 종목 섹터가
+    # 상위를 독식한다. 하드 컷오프로 자르면 경계값에서 절벽이 생겨
+    # 정상 테마(신재생 5종목)까지 잘리거나, 반대로 통과시키면 대형 섹터
+    # (반도체장비 39종목·2,492억)가 밀려난다. 둘 다 실측으로 겪었다.
+    # 종목 수가 이 값에 이를 때까지 선형으로 가중해 절벽 없이 처리한다.
+    FLOW_SECTOR_BREADTH_FULL = 10
     FLOW_SECTOR_TOP_N = 4
     MAX_LEADING_SECTORS = 7
 
@@ -333,16 +338,17 @@ def build_flow_dashboard(
             if members < FLOW_SECTOR_MIN_MEMBERS:
                 continue
             sector = entry["sector"]
-            # 외인/기관 중 더 강한 쪽 값을 그 섹터의 대표 강도로 사용
-            if strength > flow_ranked.get(sector, 0.0):
-                flow_ranked[sector] = strength
+            # 폭 가중 후 순위를 매긴다. 외인/기관 중 더 강한 쪽을 대표값으로.
+            weighted = strength * min(1.0, members / FLOW_SECTOR_BREADTH_FULL)
+            if weighted > flow_ranked.get(sector, 0.0):
+                flow_ranked[sector] = weighted
 
     leading_sectors_flow = [
         s for s, _ in sorted(flow_ranked.items(), key=lambda kv: kv[1], reverse=True)
         if s not in NON_THEME_SECTORS
     ][:FLOW_SECTOR_TOP_N]
     print(
-        f"   수급 강도 기반 섹터(정규화 {FLOW_STRENGTH_MIN}+ 상위 {FLOW_SECTOR_TOP_N}): "
+        f"   수급 강도 기반 섹터(폭가중 상위 {FLOW_SECTOR_TOP_N}, 괄호는 폭가중 점수): "
         f"{[(s, round(flow_ranked[s], 1)) for s in leading_sectors_flow] or '(없음)'}"
     )
 
