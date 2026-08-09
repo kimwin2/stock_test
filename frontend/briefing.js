@@ -92,13 +92,26 @@ function buildMarketVerdict(fg, sentiment, flow) {
   const move = (d == null || Math.abs(d) < 0.05) ? '전일과 비슷'
     : (d > 0 ? `전일 대비 ${d.toFixed(1)} 상승` : `전일 대비 ${Math.abs(d).toFixed(1)} 하락`);
   const cash = (flow || {}).cashRecommendation || {};
-  const crowd = ((flow || {}).crowding || {}).signal;
-  const mdd = (sentiment.kospi || {}).mddPct;
+  const crowding = (flow || {}).crowding || {};
+  const safety = ((sentiment.buySafety || {}).kospi) || {};
+  const nCand = ((flow || {}).buyCandidates || []).length;
+  const nExit = ((flow || {}).exitSignals || []).length;
+  const sectors = (((flow || {}).leadingSectorLabels) || []).slice(0, 3);
 
+  // 아침에 필요한 사실을 한 줄에 모은다. 칩이 둘뿐이면 화면이 비어 보이고,
+  // 정작 "오늘 뭘 봐야 하나" 로 이어지지 않는다.
   const chips = [];
+  if (safety.stageLabel) {
+    chips.push(['매수 환경', bEscape(safety.stageLabel),
+      `${safety.stageIndex ?? '-'}/${safety.totalStages ?? 5}단계`]);
+  }
   if (cash.cashPct != null) chips.push(['권고 현금비중', `${cash.cashPct}%`, cash.level || '']);
-  if (crowd) chips.push(['업종 쏠림', crowd, '']);
-  if (mdd != null) chips.push(['코스피 낙폭(MDD)', `${mdd.toFixed(1)}%`, '고점 대비']);
+  if (crowding.signal) {
+    chips.push(['업종 쏠림', crowding.signal,
+      crowding.latest != null ? `지수 ${crowding.latest.toFixed(1)}` : '']);
+  }
+  if (sectors.length) chips.push(['주도 업종', sectors.join(' · '), `상위 ${sectors.length}`]);
+  if (nCand) chips.push(['조건 통과', `${nCand}종목`, nExit ? `이탈 신호 ${nExit}` : '']);
 
   return `
     <div class="verdict">
@@ -106,6 +119,10 @@ function buildMarketVerdict(fg, sentiment, flow) {
       <div class="verdict-num">
         <strong style="color:${zone.color}">${v.toFixed(1)}</strong>
         <span>/100 · ${bEscape(move)}</span>
+        ${(sentiment.kospi || {}).close != null
+          ? `<span class="verdict-idx">코스피 ${Number(sentiment.kospi.close).toLocaleString('ko-KR')}` +
+            `${(sentiment.kosdaq || {}).close != null ? ` · 코스닥 ${Number(sentiment.kosdaq.close).toLocaleString('ko-KR')}` : ''}</span>`
+          : ''}
       </div>
       ${chips.length ? `<div class="verdict-chips">${chips.map(([k, val, sub]) => `
         <div class="vc-item">
@@ -165,6 +182,25 @@ function buildChanges(flow) {
     </div>`;
 }
 
+// 조건은 다 통과했는데 '섹터당 4개' 상한에만 걸린 종목.
+//
+// 숨기면 "우리가 그 종목을 못 봤다"로 오해된다. 실제로 주도섹터가 반도체장비인
+// 날에는 여기서 6~7개가 잘려나가는데, 그게 곧 그 섹터가 강하다는 뜻이기도 하다.
+// 목록을 좁게 유지하는 규율은 지키되, 잘린 사실은 드러낸다.
+function buildOverflow(flow) {
+  const ov = (flow || {}).overflowCandidates || [];
+  if (!ov.length) return '';
+  const bySector = {};
+  ov.forEach(o => { (bySector[o.sector || '기타'] ||= []).push(o.name); });
+  const parts = Object.entries(bySector)
+    .map(([sec, names]) => `<span><b>${bEscape(sec)}</b> ${names.map(bEscape).join(', ')}</span>`);
+  return `
+    <div class="sr-overflow">
+      <span class="sr-ov-key">섹터 상한(4개)으로 제외 ${ov.length}종목</span>
+      ${parts.join('')}
+    </div>`;
+}
+
 // 조건을 통과한 종목 — 이 제품의 본체. '오늘' 화면에서 결론까지 보여주고
 // 상세는 종목 탭으로 넘긴다. 몇 개에서 몇 개로 좁혔는지를 함께 적어
 // 걸러진 과정이 보이게 한다 (근거 없는 목록은 신뢰를 못 얻는다).
@@ -214,6 +250,7 @@ function buildScreenResult(flow) {
       <div class="sr-funnel">${bEscape(funnel)}</div>
       <div class="sr-head"><span>종목 · 뽑힌 이유</span><span>업종</span><span>빈집 깊이</span><span>5일</span></div>
       <div class="sr-body">${cands.map(row).join('')}</div>
+      ${buildOverflow(flow)}
       <button class="sr-more" data-goto-tab="flow">종목별 차트·근거 보기 →</button>
     </div>`;
 }

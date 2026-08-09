@@ -626,9 +626,17 @@ def build_flow_dashboard(
     MAX_PER_SECTOR = 4
     per_sector: dict[str, int] = {}
     diversified: list[dict] = []
+    overflow: list[dict] = []
     for c in scored_ok:
         sec = c.get("sector") or "기타"
         if per_sector.get(sec, 0) >= MAX_PER_SECTOR:
+            # 조건은 다 통과했는데 섹터 상한에만 걸린 종목이다. 버리면
+            # "우리가 그 종목을 못 봤다" 로 오해된다. 따로 담아 화면에 남긴다.
+            overflow.append({
+                "code": c.get("code"), "name": c.get("name"), "sector": sec,
+                "flowScore": c.get("flowScore"), "ret5d": c.get("ret5d"),
+                "oscPercentile": c.get("oscPercentile"), "vacancyZone": c.get("vacancyZone"),
+            })
             continue
         per_sector[sec] = per_sector.get(sec, 0) + 1
         diversified.append(c)
@@ -777,6 +785,8 @@ def build_flow_dashboard(
         "newHighs": new_highs,
         "tradingIntensity": ti_results,
         "exitSignals": exit_signals[:15],
+        # 조건은 통과했으나 섹터 상한(4개)에만 걸린 종목. 숨기면 "못 봤다"로 오해된다.
+        "overflowCandidates": overflow,
         "universeMetadata": universe_metadata,
         "universeSize": int(len(universe)),
         "vacancyAnalyzed": int(len(vacancy_df)),

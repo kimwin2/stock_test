@@ -2359,3 +2359,29 @@ body {
 }
 .ts-cand { color: #7A5310; background: #FBF3DD; border: 1px solid #E0CFA8; }
 .ts-uni { color: #8a8272; background: #F4EEE2; border: 1px solid #E7DFCF; }
+
+
+/* 섹터 상한으로 제외된 종목 — 규율은 지키되 잘린 사실은 드러낸다 */
+.sr-overflow {
+  margin: 6px 8px 0; padding: 9px 0 0; border-top: 1px solid var(--rule);
+  font-size: 0.74rem; color: #8a8272; line-height: 1.7;
+}
+.sr-ov-key { display: block; font-weight: 800; color: #a89f8d; letter-spacing: 0.03em; margin-bottom: 2px; }
+.sr-overflow span + span { display: block; }
+.sr-overflow b { color: var(--text-primary); font-weight: 800; margin-right: 5px; }
+
+/* 히어로 — 결론과 온도계 사이 간격을 좁혀 한 덩어리로 읽히게 */
+.brief-card-hero .tm-wrap { margin-top: 16px; }
+.brief-headline {
+  font-family: 'Noto Serif KR', Georgia, serif;
+  font-weight: 700; letter-spacing: -0.4px; line-height: 1.4;
+}
+
+.verdict-idx {
+  margin-left: auto; font-size: 0.8rem; font-weight: 700; color: #8a8272;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .verdict-num { flex-wrap: wrap; }
+  .verdict-idx { margin-left: 0; flex-basis: 100%; margin-top: 2px; }
+}
