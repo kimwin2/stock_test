@@ -266,6 +266,37 @@ def passes_gate(detail: dict, relaxed: bool = False) -> str | None:
     return None
 
 
+def sector_mix(stocks: list[dict]) -> dict:
+    """선정 종목들의 실제 업종 분포.
+
+    LLM 이 붙인 테마명이 종목 구성과 맞는지 사후에 볼 수 있게 남긴다.
+    실제로 급등클러스터가 묶은 동조 상한가 종목에 "2차전지 소재 및 장비"
+    라는 이름이 붙었는데, 그 안에 건설기계 유통사와 피혁업체가 있었다.
+    프롬프트가 금지해도 새어나가므로 최소한 드러나게는 해야 한다.
+
+    분류가 '기타' 인 소형주가 많으면 판정 자체가 불가능하다. 그래서
+    'unknown' 비율을 함께 담아, 근거 없이 단정하지 않도록 한다.
+    """
+    try:
+        from flow_signals.universe import classify_sector
+    except ImportError:
+        from .flow_signals.universe import classify_sector
+
+    counts: dict[str, int] = {}
+    for s in stocks:
+        sec = classify_sector(s.get("name") or "", s.get("code"))
+        counts[sec] = counts.get(sec, 0) + 1
+    known = {k: v for k, v in counts.items() if k != "기타"}
+    total = len(stocks) or 1
+    top = max(known.items(), key=lambda kv: kv[1]) if known else None
+    return {
+        "counts": counts,
+        "dominant": top[0] if top else None,
+        "dominantRatio": round(top[1] / total, 2) if top else 0.0,
+        "unknownRatio": round(counts.get("기타", 0) / total, 2),
+    }
+
+
 def merge_similar_themes(themes: list[dict]) -> list[dict]:
     """유사 테마를 종목 선정 *전에* 병합.
 

@@ -659,6 +659,12 @@ def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool) -> l
         # 대장주 = 점수 1위 (등락률 1위가 아니라 근거가 가장 두꺼운 종목)
         stock_details[0]["isTop"] = True
 
+        # 테마명이 종목 구성과 맞는지 사후 확인용. 판정만 남기고 동작은 바꾸지 않는다
+        # — 분류가 '기타'인 소형주가 많으면 근거 없이 단정할 수 없기 때문이다.
+        mix = ts.sector_mix(stock_details)
+        if mix["dominant"] and mix["dominantRatio"] >= 0.5 and mix["unknownRatio"] <= 0.25:
+            print(f"  [i] {theme_name}: 실제 업종 다수 = {mix['dominant']} ({mix['dominantRatio']:.0%})")
+
         result_themes.append({
             "themeName": theme_name,
             "totalVolume": format_volume(total_volume),
