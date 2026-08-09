@@ -264,6 +264,23 @@ def enrich_with_chart_and_buyzone(
         price_hist = [round(float(v), 0) for v in recent["Close"]]
         date_hist = [d.strftime("%Y-%m-%d") for d in recent.index]
 
+        # 일봉 캔들 + 거래량 — 종가 선 하나로는 그날 무슨 일이 있었는지 안 보인다.
+        # 종가베팅 대상을 고르는 사람은 위꼬리/아래꼬리와 거래량을 같이 본다.
+        # OHLC 는 이미 df 에 있는데 Close 만 쓰고 있었다.
+        def _col(name):
+            return recent[name] if name in recent.columns else recent["Close"]
+        ohlc_hist = [
+            {
+                "o": round(float(o), 0), "h": round(float(h), 0),
+                "l": round(float(l), 0), "c": round(float(c), 0),
+                "v": int(v) if v == v else 0,
+            }
+            for o, h, l, c, v in zip(
+                _col("Open"), _col("High"), _col("Low"), recent["Close"],
+                recent["Volume"] if "Volume" in recent.columns else [0] * len(recent),
+            )
+        ]
+
         # 이동평균
         ma10_series = df["Close"].rolling(10).mean() if len(df) >= 10 else None
         ma20_series = df["Close"].rolling(20).mean() if len(df) >= 20 else None
@@ -381,6 +398,7 @@ def enrich_with_chart_and_buyzone(
         enriched = {
             **item,
             "priceHistory60d": price_hist,
+            "ohlc60d": ohlc_hist,
             "dateHistory60d": date_hist,
             "capHistory60d": cap_history_won,
             "supplyOscHistory": supply_osc_series,
