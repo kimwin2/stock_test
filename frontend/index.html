@@ -42,20 +42,21 @@
       </button>
       <div class="search-suggestions" id="search-suggestions" hidden></div>
     </div>
+    <!-- 순서 = 아침에 답이 필요한 순서. 뉴스 테마는 근거 자료라 맨 뒤로 보냈다. -->
     <nav class="tabs" id="tab-nav">
-      <button class="tab-btn active" data-tab="themes">급등·테마</button>
-      <button class="tab-btn" data-tab="flow">수급·주도</button>
-      <button class="tab-btn" data-tab="briefing">오늘의 시황</button>
+      <button class="tab-btn active" data-tab="briefing">오늘</button>
+      <button class="tab-btn" data-tab="flow">수급·종목</button>
+      <button class="tab-btn" data-tab="themes">재료·테마</button>
     </nav>
   </header>
 
   <!-- ===== Main Content ===== -->
   <main>
-    <section id="tab-themes" class="tab-panel active">
-      <div id="theme-grid">
-        <div class="loading-state" id="loading-state">
+    <section id="tab-briefing" class="tab-panel active">
+      <div id="briefing-content">
+        <div class="loading-state" id="briefing-loading">
           <div class="spinner"></div>
-          <p>테마 데이터를 불러오는 중...</p>
+          <p>오늘 시장을 정리하는 중...</p>
         </div>
       </div>
     </section>
@@ -69,11 +70,11 @@
       </div>
     </section>
 
-    <section id="tab-briefing" class="tab-panel" hidden>
-      <div id="briefing-content">
-        <div class="loading-state" id="briefing-loading">
+    <section id="tab-themes" class="tab-panel" hidden>
+      <div id="theme-grid">
+        <div class="loading-state" id="loading-state">
           <div class="spinner"></div>
-          <p>브리핑을 불러오는 중...</p>
+          <p>테마 데이터를 불러오는 중...</p>
         </div>
       </div>
     </section>

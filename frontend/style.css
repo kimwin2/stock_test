@@ -1743,6 +1743,115 @@ body {
 .down { color: var(--blue); }
 .flat { color: var(--text-muted); }
 
+/* === 오늘: 결론 블록 ===
+   숫자만 크게 띄우면 안 읽힌다. 구간 이름(공포/탐욕)을 가장 크게,
+   숫자는 그 근거로 붙인다. */
+.brief-eyebrow {
+  font-size: 0.72rem; font-weight: 900; letter-spacing: 0.08em;
+  color: #a89f8d; margin-bottom: 6px;
+}
+.verdict { margin: 14px 0 4px; }
+.verdict-zone {
+  font-size: 2.1rem; font-weight: 900; letter-spacing: -1.2px; line-height: 1.1;
+}
+.verdict-num {
+  display: flex; align-items: baseline; gap: 7px; margin-top: 2px;
+  font-size: 0.86rem; color: var(--text-secondary);
+}
+.verdict-num strong { font-size: 1.5rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.verdict-chips {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px; margin-top: 14px;
+}
+.vc-item { background: #FBF6EC; border: 1px solid #EFE7D8; border-radius: 9px; padding: 8px 11px; }
+.vc-key { font-size: 0.7rem; color: #8a8272; font-weight: 700; }
+.vc-val { font-size: 1.02rem; font-weight: 900; color: var(--text-primary); margin-top: 2px; letter-spacing: -0.3px; }
+.vc-sub { font-size: 0.68rem; color: #a89f8d; margin-top: 1px; }
+
+/* 용어 한 줄 설명 */
+.what-is {
+  font-size: 0.76rem; line-height: 1.6; color: #8a8272;
+  background: #FAF6ED; border-left: 3px solid #E0CFA8;
+  padding: 8px 11px; border-radius: 0 7px 7px 0; margin: 10px 0 0;
+  word-break: keep-all;
+}
+
+/* === 오늘: 조건 통과 종목 === */
+.sr-funnel {
+  font-size: 0.75rem; color: #8a8272; font-weight: 700;
+  margin: 10px 2px 8px; padding: 6px 10px;
+  background: #F7F2E6; border-radius: 7px;
+}
+.sr-head, .sr-row {
+  display: grid; grid-template-columns: 1.5fr 1fr 62px 60px;
+  align-items: center; gap: 8px; padding: 8px 8px;
+}
+.sr-head { font-size: 0.7rem; color: #a89f8d; font-weight: 800; border-bottom: 1px solid #EFE7D8; }
+.sr-row { border-bottom: 1px solid #F4EEE2; cursor: pointer; border-radius: 7px; }
+.sr-row:hover { background: #FBF6EC; }
+.sr-name { font-size: 0.95rem; font-weight: 900; color: var(--text-primary); }
+.sr-sector { font-size: 0.78rem; color: #8a8272; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 빈집 깊이 — 막대 + 백분위. 같은 '빈집' 이라도 깊이가 다르다. */
+.sr-depth { display: flex; flex-direction: column; gap: 3px; }
+.sr-depth-bar {
+  display: block; height: 6px; border-radius: 3px; background: #EFE7D8; overflow: hidden;
+}
+.sr-depth-bar i { display: block; height: 100%; background: linear-gradient(90deg, #D8C39A, #B4791E); }
+.sr-depth em { font-style: normal; font-size: 0.68rem; color: #8a8272; font-weight: 700; }
+/* 뽑힌 이유 — 근거 없는 목록은 신뢰를 못 얻는다 */
+.sr-why {
+  display: block; font-style: normal; font-size: 0.68rem; font-weight: 700;
+  color: #a89f8d; margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sr-ret { font-size: 0.86rem; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums; }
+.sr-ret.up { color: #E53935; }
+.sr-ret.down { color: #1565C0; }
+.sr-more {
+  display: block; width: calc(100% - 16px); margin: 12px 8px 4px; padding: 10px;
+  font-size: 0.84rem; font-weight: 800; color: #7A5310;
+  background: #FBF3DD; border: 1px solid #E0CFA8; border-radius: 9px; cursor: pointer;
+}
+.sr-more:hover { background: #F7EBCE; }
+
+/* === 오늘: 이탈 신호 === */
+.ex-body { padding: 0 4px 8px; }
+.ex-head, .ex-row {
+  display: grid; grid-template-columns: 1.3fr 1fr 72px 76px;
+  align-items: center; gap: 8px; padding: 7px 8px;
+  font-size: 0.84rem;
+}
+.ex-head {
+  font-size: 0.7rem; color: #a89f8d; font-weight: 800;
+  border-bottom: 1px solid #EFE7D8; margin: 8px 4px 0;
+}
+.ex-row { border-bottom: 1px solid #F4EEE2; }
+.ex-name { font-weight: 900; color: var(--text-primary); }
+.ex-sector { color: #8a8272; font-size: 0.76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 고점 대비 낙폭 — 왜 이 종목이 목록에 있는지를 숫자로 설명한다 */
+.ex-dd { text-align: right; font-weight: 900; color: #1565C0; font-variant-numeric: tabular-nums; }
+.ex-px { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; color: #6b6459; }
+
+/* === 오늘: 접힘 영역 === */
+.brief-more { margin-top: 4px; }
+.brief-more > summary {
+  cursor: pointer; list-style: none; padding: 12px 14px;
+  font-size: 0.84rem; font-weight: 800; color: #7d776b;
+  background: #FBF6EC; border: 1px solid #EFE7D8; border-radius: 10px;
+}
+.brief-more > summary::-webkit-details-marker { display: none; }
+.brief-more > summary::after { content: ' ▾'; color: #a89f8d; }
+.brief-more[open] > summary::after { content: ' ▴'; }
+.brief-more-body { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+
+@media (max-width: 560px) {
+  .verdict-zone { font-size: 1.72rem; }
+  .sr-head, .sr-row { grid-template-columns: 1.4fr 1fr 54px 52px; gap: 5px; padding: 8px 4px; }
+  .sr-sector { font-size: 0.7rem; }
+  .sr-zone { font-size: 0.66rem; padding: 2px 5px; }
+  .ex-head, .ex-row { grid-template-columns: 1.1fr 0.9fr 58px 64px; gap: 5px; font-size: 0.76rem; }
+}
+
 /* === 오늘의 시황: 시장 온도계 === */
 .brief-card-hero { padding-bottom: 16px; }
 .tm-wrap { display: flex; flex-direction: column; gap: 13px; margin-top: 14px; }

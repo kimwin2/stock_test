@@ -73,6 +73,143 @@ function fgZoneLabel(v) {
   return FG_ZONES[FG_ZONES.length - 1];
 }
 
+// ─────────────────────────────────────────┐
+// 용어 한 줄 설명                            │
+// ─────────────────────────────────────────┘
+// 숫자만 크게 띄워도 뜻을 모르면 안 읽힌다. 지표마다 "이게 무엇인지"를
+// 한 줄로 붙인다. 판단을 대신하지 않고 정의만 말한다.
+function whatIs(text) {
+  return `<p class="what-is">${bEscape(text)}</p>`;
+}
+
+// 오늘 시장을 한 문장으로. 구간 이름을 가장 크게 보여준다 — '38.7'만으로는
+// 높은 건지 낮은 건지 알 수 없기 때문이다.
+function buildMarketVerdict(fg, sentiment, flow) {
+  const v = fg.kospi;
+  if (v == null) return '';
+  const zone = fgZoneLabel(v);
+  const d = fg.kospiDelta;
+  const move = (d == null || Math.abs(d) < 0.05) ? '전일과 비슷'
+    : (d > 0 ? `전일 대비 ${d.toFixed(1)} 상승` : `전일 대비 ${Math.abs(d).toFixed(1)} 하락`);
+  const cash = (flow || {}).cashRecommendation || {};
+  const crowd = ((flow || {}).crowding || {}).signal;
+  const mdd = (sentiment.kospi || {}).mddPct;
+
+  const chips = [];
+  if (cash.cashPct != null) chips.push(['권고 현금비중', `${cash.cashPct}%`, cash.level || '']);
+  if (crowd) chips.push(['업종 쏠림', crowd, '']);
+  if (mdd != null) chips.push(['코스피 낙폭(MDD)', `${mdd.toFixed(1)}%`, '고점 대비']);
+
+  return `
+    <div class="verdict">
+      <div class="verdict-zone" style="color:${zone.color}">${zone.label}</div>
+      <div class="verdict-num">
+        <strong style="color:${zone.color}">${v.toFixed(1)}</strong>
+        <span>/100 · ${bEscape(move)}</span>
+      </div>
+      ${chips.length ? `<div class="verdict-chips">${chips.map(([k, val, sub]) => `
+        <div class="vc-item">
+          <div class="vc-key">${bEscape(k)}</div>
+          <div class="vc-val">${bEscape(val)}</div>
+          ${sub ? `<div class="vc-sub">${bEscape(sub)}</div>` : ''}
+        </div>`).join('')}</div>` : ''}
+    </div>`;
+}
+
+// 점수 근거 문자열은 디버그용 raw 값이 섞여 있다 ("빈집 osc=-0.00188 pct=30.3").
+// 사용자에게는 뜻이 통하는 것만, 가점이 큰 순으로 두 개까지 보여준다.
+// 숫자 꼬리(+40)와 osc/pct 같은 내부 표기는 떼어낸다.
+function pickReasons(reasons) {
+  const clean = (reasons || [])
+    .filter(r => r && !/osc=|pct=|ratio=/.test(r))
+    .map(r => ({
+      text: r.replace(/\s*[+-]\d+(\.\d+)?$/, '').replace(/^★\s*/, '').trim(),
+      pts: Math.abs(parseFloat((r.match(/([+-]\d+(?:\.\d+)?)\s*$/) || [])[1] || 0)),
+      up: !/-\d/.test(r.slice(-4)),
+    }))
+    .filter(x => x.text && x.up)
+    .sort((a, b) => b.pts - a.pts);
+  return clean.slice(0, 2).map(x => x.text).join(' · ');
+}
+
+// 조건을 통과한 종목 — 이 제품의 본체. '오늘' 화면에서 결론까지 보여주고
+// 상세는 종목 탭으로 넘긴다. 몇 개에서 몇 개로 좁혔는지를 함께 적어
+// 걸러진 과정이 보이게 한다 (근거 없는 목록은 신뢰를 못 얻는다).
+function buildScreenResult(flow) {
+  const cands = (flow || {}).buyCandidates || [];
+  if (!cands.length) return '';
+  const st = (flow || {}).candidateFilterStats || {};
+  const uni = ((flow || {}).universeMetadata || []).length;
+
+  // 11개가 전부 '빈집' 이면 그 칸은 정보가 0 이다. 얼마나 깊은 빈집인지를
+  // 자기 종목 osc 히스토리 백분위로 보여줘야 종목끼리 구별이 된다.
+  const depth = (c) => {
+    const p = c.oscPercentile;
+    if (p == null) return { label: c.vacancyZone || '-', w: 0 };
+    return { label: `하위 ${Math.round(p)}%`, w: Math.max(4, 100 - p) };
+  };
+  const row = (c) => {
+    const ret = c.ret5d;
+    const cls = ret == null ? '' : (ret >= 0 ? 'up' : 'down');
+    const d = depth(c);
+    const why = pickReasons(c.flowReasons);
+    return `
+      <div class="sr-row" data-stock-code="${bEscape(c.code)}" data-stock-name="${bEscape(c.name)}">
+        <span class="sr-name">${bEscape(c.name)}
+          ${why ? `<em class="sr-why">${bEscape(why)}</em>` : ''}
+        </span>
+        <span class="sr-sector">${bEscape(c.sector || '-')}</span>
+        <span class="sr-depth" title="자기 종목 수급 이력 대비 위치 — 낮을수록 깊은 빈집">
+          <span class="sr-depth-bar"><i style="width:${d.w}%"></i></span>
+          <em>${bEscape(d.label)}</em>
+        </span>
+        <span class="sr-ret ${cls}">${ret == null ? '-' : `${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%`}</span>
+      </div>`;
+  };
+
+  const funnel = (uni && st.beforeFilter)
+    ? `검토 ${uni}종목 → 추세·수급 조건 ${st.beforeFilter} → 최종 ${cands.length}`
+    : `최종 ${cands.length}종목`;
+
+  return `
+    <div class="flow-card brief-card-screen">
+      <div class="card-header">
+        <span class="card-theme-name">🎯 오늘 조건을 통과한 종목</span>
+        <span class="card-volume">${cands.length}개</span>
+      </div>
+      ${whatIs('외국인·기관이 최근 5일 순매수를 줄인(수급이 빠진) 자리 중, 10일선 위에서 추세가 살아있는 종목만 남겼습니다. 빈집 깊이는 그 종목의 과거 수급 이력에서 지금이 얼마나 아래인지를 뜻합니다 — 낮을수록 매물이 비어 있습니다. 매수 권유가 아니라 관찰 대상입니다.')}
+      <div class="sr-funnel">${bEscape(funnel)}</div>
+      <div class="sr-head"><span>종목 · 뽑힌 이유</span><span>업종</span><span>빈집 깊이</span><span>5일</span></div>
+      <div class="sr-body">${cands.map(row).join('')}</div>
+      <button class="sr-more" data-goto-tab="flow">종목별 차트·근거 보기 →</button>
+    </div>`;
+}
+
+// 보유 종목 점검용. 기회보다 리스크를 먼저 보는 사람이 오래 살아남는다.
+function buildExitList(flow) {
+  const ex = (flow || {}).exitSignals || [];
+  if (!ex.length) return '';
+  return `
+    <div class="flow-card brief-card-exit">
+      <div class="card-header">
+        <span class="card-theme-name">⚠️ 이탈 신호</span>
+        <span class="card-volume">${ex.length}건</span>
+      </div>
+      ${whatIs('수급 빈집 화면에 올랐던 종목 중, 최근 고점에서 밀리면서 10일 이동평균선까지 내준 종목입니다. 추세가 꺾였다는 사실만 알립니다.')}
+      <div class="ex-head"><span>종목</span><span>업종</span><span>고점 대비</span><span>종가</span></div>
+      <div class="ex-body">${ex
+        .slice()
+        .sort((a, b) => (a.drawdownFromHighPct ?? 0) - (b.drawdownFromHighPct ?? 0))
+        .slice(0, 12).map(e => `
+        <div class="ex-row">
+          <span class="ex-name">${bEscape(e.name)}</span>
+          <span class="ex-sector">${bEscape(e.sector || '-')}</span>
+          <span class="ex-dd">${e.drawdownFromHighPct != null ? `${e.drawdownFromHighPct.toFixed(1)}%` : '-'}</span>
+          <span class="ex-px">${e.lastClose != null ? Number(e.lastClose).toLocaleString('ko-KR') : ''}</span>
+        </div>`).join('')}</div>
+    </div>`;
+}
+
 function buildThermometer(name, value, delta) {
   if (value == null) return '';
   const v = Math.max(0, Math.min(100, value));
@@ -291,21 +428,45 @@ function renderBriefing(briefing, flow) {
     </div>
     <div class="brief-wrap">
       <div class="flow-card brief-card-hero">
+        <div class="brief-eyebrow">오늘 시장</div>
         <div class="brief-headline">${bEscape(briefing.headline)}</div>
+        ${buildMarketVerdict(fg, sentiment, flow)}
         <div class="tm-wrap">
           ${buildThermometer(sentiment.kospi?.label || '코스피', fg.kospi, fg.kospiDelta)}
           ${buildThermometer(sentiment.kosdaq?.label || '코스닥', fg.kosdaq, null)}
         </div>
+        ${whatIs('공포·탐욕 지수는 주가 흐름·거래량·변동성·안전자산 선호를 하나로 합친 0~100 값입니다. 낮을수록 시장이 위축된 상태입니다.')}
       </div>
+
+      ${buildScreenResult(flow)}
+      ${buildExitList(flow)}
       ${buildMoneyFlow((flow || {}).sectorFlows)}
-      ${buildTodayNumbers(flow, facts)}
-      <div class="flow-card brief-card-main">
-        ${buildBriefingSections(briefing.sections)}
-      </div>
-      ${buildDisclosureCard(briefing.disclosures)}
+
+      <details class="brief-more">
+        <summary>서술 요약 · 오늘의 숫자 · 공시 자세히 보기</summary>
+        <div class="brief-more-body">
+          <div class="flow-card brief-card-main">
+            ${buildBriefingSections(briefing.sections)}
+          </div>
+          ${buildTodayNumbers(flow, facts)}
+          ${buildDisclosureCard(briefing.disclosures)}
+        </div>
+      </details>
+
       <p class="brief-disclaimer">${bEscape(briefing.disclaimer || '')}</p>
     </div>
   `;
+
+  // 종목 행 클릭 → 차트 모달, 버튼 → 종목 탭
+  container.querySelectorAll('.sr-row').forEach(el => {
+    el.addEventListener('click', () => {
+      const c = ((flow || {}).buyCandidates || []).find(x => x.code === el.dataset.stockCode);
+      if (c && typeof openStockModal === 'function') openStockModal(c);
+    });
+  });
+  container.querySelector('.sr-more')?.addEventListener('click', () => {
+    document.querySelector('.tab-btn[data-tab="flow"]')?.click();
+  });
 }
 
 // ─────────────────────────────────────────┐

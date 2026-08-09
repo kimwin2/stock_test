@@ -571,10 +571,10 @@ def build_flow_dashboard(
     # 점수 + 근거를 각 후보 dict 에 부착
     for c in enriched_candidates:
         s, r = _candidate_score_with_reasons(c)
-        c["taerinScore"] = s
-        c["taerinReasons"] = r
+        c["flowScore"] = s
+        c["flowReasons"] = r
 
-    enriched_candidates.sort(key=lambda c: c.get("taerinScore", 0), reverse=True)
+    enriched_candidates.sort(key=lambda c: c.get("flowScore", 0), reverse=True)
 
     # ─────────────────────────────────────────
     # Step 7a: 하드 필터 — 점수만으로는 걸러지지 않던 미달 종목 배제
@@ -611,7 +611,7 @@ def build_flow_dashboard(
     dropped_trend = total_before - len(trend_ok)
     vacant_ok = [c for c in trend_ok if _is_vacant(c)]
     dropped_vacancy = len(trend_ok) - len(vacant_ok)
-    scored_ok = [c for c in vacant_ok if c.get("taerinScore", 0) >= MIN_CANDIDATE_SCORE]
+    scored_ok = [c for c in vacant_ok if c.get("flowScore", 0) >= MIN_CANDIDATE_SCORE]
     dropped_score = len(vacant_ok) - len(scored_ok)
 
     score_relaxed = False

@@ -105,7 +105,7 @@ def build_signal_facts(payload: dict, previous: dict | None) -> dict:
         {
             "name": c.get("name"),
             "sector": c.get("sector"),
-            "score": c.get("taerinScore"),
+            "score": c.get("flowScore"),
             "vacancyZone": c.get("vacancyZone"),
             "newHigh250d": bool(c.get("newHigh250d")),
         }

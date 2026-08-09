@@ -688,7 +688,7 @@ function buildStep2Card(leading, crowding, leadingLabels) {
 // 매수 후보 핵심 키워드 chip — 기존 badge/vacancy-now 와 중복되지 않는 것만.
 // (★주도1·2위, ↑MA, 신고가, 매수권 = 이미 badge / 5d%, 매도연속 = 이미 다른 위치)
 // ─────────────────────────────────────────┘
-// taerinScore 를 5단계 매수 등급으로 매핑.
+// flowScore 를 5단계 등급으로 매핑.
 // 종합 점수가 곧 매수 강도이므로 모든 개별 시그널을 한 라벨로 압축.
 function buyGradeBadge(score) {
   if (score == null) return '';
@@ -1207,4 +1207,9 @@ function setupStockSearch() {
 document.addEventListener('DOMContentLoaded', () => {
   setupTabs();
   setupStockSearch();
+  // '오늘' 이 기본 탭이다. 탭 클릭 때만 로드하면 첫 화면이 계속 스피너로 남는다.
+  if (document.querySelector('.tab-btn.active')?.dataset.tab === 'briefing'
+      && typeof loadBriefing === 'function') {
+    loadBriefing();
+  }
 });
