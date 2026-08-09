@@ -306,7 +306,9 @@ def build_flow_dashboard(
     # 테마가 아니라 개별 종목 움직임이고, 시총이 작아 정규화 강도만 비정상적으로
     # 높게 나온다. 섹터 분류를 잘게 쪼갠 뒤 항공(3종목)이 강도 43.3 으로 1위에
     # 올라 진짜 주도섹터를 밀어내고 매수 후보를 39개→21개로 깎았다.
-    FLOW_SECTOR_MIN_MEMBERS = 6
+    # 5 = 관측된 병리(항공 3·해운 3·통신 4)를 배제하는 최소값. 6 으로 올리면
+    # 신재생(5)·미디어/엔터(5) 같은 정상 테마까지 잘려나간다.
+    FLOW_SECTOR_MIN_MEMBERS = 5
     FLOW_SECTOR_TOP_N = 4
     MAX_LEADING_SECTORS = 7
 
