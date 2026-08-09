@@ -47,6 +47,30 @@ python -m benchmark.compare --all --strict         # 같은 날 스냅샷 없으
 - **분류 상위어(산업재·소재 등)는 매매 대상이 아니다.** 사전 누락으로 세면
   `SECTOR_RULES` 에 잡동사니를 추가하게 된다. `UMBRELLA_TERMS` 로 제외한다.
 
+## 자동 축적 (2026-08-09 설정)
+
+| 쪽 | 방식 | 상태 |
+|---|---|---|
+| 우리 flow 스냅샷 | EventBridge `stock-pipeline-flow-hourly` (평일 8~20시 매시) 가 매 실행마다 `s3://stock-dashboard-data/history/flow/YYYY-MM-DD.json` 기록 | ENABLED |
+| 레퍼런스 | stock_chat 의 `daily.yml`(매일) · `hourly.yml`(30분) cron | 초대 링크 갱신으로 복구 |
+
+레퍼런스 `data/` 는 평문이라 커밋하지 않는 정책이다(암호화 번들로만 배포).
+대신 텔레그램이 원문을 보관하므로 **언제든 재생성**할 수 있다:
+
+```bash
+cd ~/repo/stock_chat && python -m pipeline.run --weeks 1
+```
+
+### 조용한 죽음을 막는 장치
+
+실제로 채널 초대 링크가 만료돼 crawl 이 죽었고, **6일치를 날리고도 아무도
+몰랐다.** 그래서 대조 도구가 실행 첫머리에 레퍼런스 신선도를 먼저 확인한다.
+
+- 3일 이상 묵음 → 경고 + 재수집 명령 안내
+- 데이터 없음 → 명시적 경고
+
+낡은 데이터로 결론을 내는 게 대조를 안 하는 것보다 나쁘기 때문이다.
+
 ## 현재 수준 (2026-08-09)
 
 ```

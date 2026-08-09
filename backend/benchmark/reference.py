@@ -141,6 +141,21 @@ def load_reference(date_str: str) -> dict | None:
     }
 
 
+def staleness_days() -> int | None:
+    """레퍼런스 최신 데이터가 며칠 묵었는지. 없으면 None.
+
+    수집이 조용히 멈추면 낡은 데이터로 계속 대조하게 된다. 실제로 채널
+    초대 링크가 만료돼 6일치를 날리고도 아무도 몰랐다. 대조할 때마다
+    먼저 이걸 보고, 오래됐으면 결론을 내기 전에 수집부터 다시 돌린다.
+    """
+    dates = available_dates()
+    if not dates:
+        return None
+    from datetime import date
+    y, m, d = (int(x) for x in dates[-1].split("-"))
+    return (date.today() - date(y, m, d)).days
+
+
 def available_dates() -> list[str]:
     d = daily_dir()
     if not d.exists():

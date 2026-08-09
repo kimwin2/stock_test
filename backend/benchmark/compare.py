@@ -24,10 +24,10 @@ import urllib.request
 from pathlib import Path
 
 try:
-    from benchmark.reference import load_reference, available_dates, family_of
+    from benchmark.reference import load_reference, available_dates, family_of, staleness_days
     from flow_signals.universe import SECTOR_RULES
 except ImportError:  # 패키지 상대 실행
-    from .reference import load_reference, available_dates, family_of
+    from .reference import load_reference, available_dates, family_of, staleness_days
     from ..flow_signals.universe import SECTOR_RULES
 
 FLOW_S3_URL = "https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com/flow_dashboard.json"
@@ -275,6 +275,14 @@ def main() -> int:
     ap.add_argument("--strict", action="store_true",
                     help="같은 날 스냅샷이 없으면 건너뛴다 (최신본 대체 금지)")
     args = ap.parse_args()
+
+    # 수집이 멈추면 낡은 데이터로 계속 대조하게 된다. 결론 내기 전에 먼저 알린다.
+    stale = staleness_days()
+    if stale is None:
+        print("[!] 레퍼런스 데이터가 하나도 없습니다. stock_chat 수집을 먼저 돌리세요.", file=sys.stderr)
+    elif stale >= 3:
+        print(f"[!] 레퍼런스 최신 데이터가 {stale}일 묵었습니다 — 수집이 멈췄을 수 있습니다.\n"
+              f"    cd ~/repo/stock_chat && python -m pipeline.run --weeks 1", file=sys.stderr)
 
     dates = available_dates() if args.all else ([args.date] if args.date else [])
     if not dates:
