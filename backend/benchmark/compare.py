@@ -24,10 +24,10 @@ import urllib.request
 from pathlib import Path
 
 try:
-    from benchmark.reference import load_reference, available_dates
+    from benchmark.reference import load_reference, available_dates, family_of
     from flow_signals.universe import SECTOR_RULES
 except ImportError:  # 패키지 상대 실행
-    from .reference import load_reference, available_dates
+    from .reference import load_reference, available_dates, family_of
     from ..flow_signals.universe import SECTOR_RULES
 
 FLOW_S3_URL = "https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com/flow_dashboard.json"
@@ -108,10 +108,13 @@ def compare_one(ref: dict, flow: dict) -> dict:
     # 우리 유니버스가 실제로 커버하는 섹터 (사전에 존재하는가)
     ref_pairs = list(zip(ref.get("sectorsRaw") or [], ref.get("sectors") or []))
 
-    hit, missed_rank, missed_dict = [], [], []
+    hit, family_hit, missed_rank, missed_dict = [], [], [], []
     for raw, norm in ref_pairs:
         if norm in our_set:
             hit.append(norm)
+        elif family_of(norm) & our_set:
+            # 같은 계열을 우리가 더 좁게(또는 넓게) 잡은 경우. 놓친 게 아니다.
+            family_hit.append(f"{norm}~{sorted(family_of(norm) & our_set)[0]}")
         elif norm in OUR_SECTORS:
             missed_rank.append(norm)      # 사전엔 있는데 주도섹터로 안 뽑힘
         else:
@@ -121,9 +124,11 @@ def compare_one(ref: dict, flow: dict) -> dict:
         "referenceCount": len(ref_pairs),
         "ourLeading": our_leading,
         "hit": sorted(set(hit)),
+        "familyHit": sorted(set(family_hit)),
         "missedByRank": sorted(set(missed_rank)),
         "missedByDictionary": sorted(set(missed_dict)),
         "recall": round(len(set(hit)) / total, 3),
+        "recallFamily": round((len(set(hit)) + len(set(family_hit))) / total, 3),
     }
 
     # ── 3. 종목 ────────────────────────────────────
@@ -170,9 +175,12 @@ def print_report(res: dict) -> None:
         lean = "우리가 더 공격적" if c["signed"] < 0 else ("우리가 더 보수적" if c["signed"] > 0 else "")
         print(f"   우리 {c['ours']}%  ↔  레퍼런스 {c['reference']}%   차이 {c['signed']:+}p  [{verdict}] {lean}")
 
-    print(f"\n■ 섹터  재현율 {s['recall']:.0%}  ({len(s['hit'])}/{s['referenceCount']})")
+    print(f"\n■ 섹터  정확 {s['recall']:.0%} · 계열포함 {s['recallFamily']:.0%}"
+          f"  ({len(s['hit'])}+{len(s['familyHit'])}/{s['referenceCount']})")
     print(f"   우리 주도섹터: {', '.join(s['ourLeading']) or '-'}")
-    print(f"   맞춘 것      : {', '.join(s['hit']) or '-'}")
+    print(f"   정확 일치    : {', '.join(s['hit']) or '-'}")
+    if s["familyHit"]:
+        print(f"   계열 일치    : {', '.join(s['familyHit'])}")
     if s["missedByRank"]:
         print(f"   놓침(순위밖) : {', '.join(s['missedByRank'])}")
         print("       → 사전엔 있다. 주도섹터 선정 임계값/상한 문제.")
@@ -209,7 +217,9 @@ def print_actions(results: list[dict]) -> None:
         print(f"\n■ 현금비중 평균 편차 {avg:+.1f}p  (최대 괴리 {max(abs(d) for d in diffs)}p) — {bias}")
     matched = [r for r in results if r.get("dateMatched")]
     recalls = [r["sector"]["recall"] for r in results]
-    print(f"■ 섹터 재현율 평균 {sum(recalls) / len(recalls):.0%}"
+    fam = [r["sector"]["recallFamily"] for r in results]
+    print(f"■ 섹터 재현율 평균 정확 {sum(recalls) / len(recalls):.0%} · "
+          f"계열포함 {sum(fam) / len(fam):.0%}"
           + ("" if len(matched) == len(results) else f"  (날짜 일치 {len(matched)}/{len(results)}일 — 나머지는 참고값)"))
     covs = [r["ticker"]["universeCoverage"] for r in results]
     print(f"■ 종목 유니버스 커버리지 평균 {sum(covs) / len(covs):.0%}")

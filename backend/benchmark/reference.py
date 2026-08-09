@@ -50,7 +50,43 @@ SECTOR_ALIASES: dict[str, str] = {
     "항공우주": "우주항공",
     "AI": "AI/반도체팹리스",
     "팹리스": "AI/반도체팹리스",
+    # 우리는 정유·석유를 '화학' 으로 분류한다. 표현이 다를 뿐 같은 대상이다.
+    "에너지": "화학",
+    "정유": "화학",
+    "석유": "화학",
+    # LNG 보냉재(한국카본·동성화인텍)는 조선 기자재 사이클을 탄다.
+    "보냉재": "조선",
 }
+
+# 개별 테마가 아니라 분류 체계 상위어. 매매 대상이 아니므로 대조에서 제외한다.
+# 이런 단어를 '사전 누락' 으로 세면 SECTOR_RULES 에 잡동사니를 추가하게 된다.
+UMBRELLA_TERMS = {"산업재", "경기소비재", "필수소비재", "소재", "IT", "성장주", "가치주", "대형주", "중소형주"}
+
+
+# 같은 계열로 볼 섹터 묶음.
+#
+# 레퍼런스의 `sectors` 는 대화에서 뽑은 납작한 키워드 목록이라 세분이 없다.
+# 예를 들어 그가 "반도체" 라고 쓴 날 본문은 대개 소부장·후공정 이야기인데,
+# 우리는 그걸 '반도체장비' 로 더 좁게 분류한다. 문자열만 비교하면 정확히
+# 맞힌 것을 '놓침' 으로 세어, 있지도 않은 결함을 만들어낸다.
+# 정확 일치와 계열 일치를 함께 보고해 그 착시를 없앤다.
+SECTOR_FAMILIES: list[set[str]] = [
+    {"반도체", "반도체장비", "AI/반도체팹리스"},
+    {"증권", "은행", "보험"},
+    {"바이오", "헬스케어"},
+    {"신재생", "연료전지/수소", "화학"},
+    {"전력기기", "원전"},
+    {"조선", "방산", "우주항공"},
+    {"게임/IT", "미디어/엔터"},
+]
+
+
+def family_of(sector: str) -> set[str]:
+    """그 섹터가 속한 계열 집합 (없으면 자기 자신만)."""
+    for fam in SECTOR_FAMILIES:
+        if sector in fam:
+            return fam
+    return {sector}
 
 
 def normalize_sector(name: str) -> str:
@@ -75,7 +111,10 @@ def load_reference(date_str: str) -> dict | None:
     raw = json.loads(path.read_text())
 
     kr_cash = ((raw.get("cash") or {}).get("kr") or {})
-    sectors_raw = [s for s in (raw.get("sectors") or []) if s]
+    sectors_raw = [
+        s for s in (raw.get("sectors") or [])
+        if s and re.sub(r"\s+", "", s) not in UMBRELLA_TERMS
+    ]
     tickers = [t for t in (raw.get("tickers") or []) if t]
 
     return {

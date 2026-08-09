@@ -91,7 +91,10 @@ def build_cash_recommendation(market_sentiment: dict, crowding: dict) -> dict:
 # DB손해보험·서울보증보험이 매수 후보 11개 중 4개를 차지했다 — 사용자가 처음부터
 # 지적한 바로 그 종목들이다. RS 규칙상 '틀린' 건 아니지만 전략의 의도와 어긋나므로
 # 주도 섹터 후보에서 제외한다. (증권은 거래대금 테마로 움직여 유지)
-NON_THEME_SECTORS = {"보험", "은행"}
+# 주도 '테마' 로 보지 않는 섹터. 수급 집계에는 포함하되 주도섹터 후보에서만 뺀다.
+# 금리·밸류업으로 장기 RS 는 올라오지만 단타 테마로 움직이지 않는다.
+# 지주는 업종이 아니라 지배구조 형태라 애초에 테마가 될 수 없다.
+NON_THEME_SECTORS = {"보험", "은행", "지주"}
 
 
 def _resolve_leading_sectors_from_etfs(leading_etfs: list[dict]) -> list[str]:
