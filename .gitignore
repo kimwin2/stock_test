@@ -43,3 +43,4 @@ gstack/
 
 # gstack 세션 메타데이터 (혹시 ~/.gstack 외부에 떨어지면)
 .gstack/
+backend/benchmark/_domestic_cache.json

@@ -94,6 +94,29 @@ cd backend && python -m telegram.fetch_dump --channel "https://t.me/+..." --limi
 cd backend && python -m telegram.analyze_dump --in telegram/dev/<name>_raw.json
 ```
 
+## 참고 채널 대조 (backend/benchmark/)
+
+수급·시황 탭이 숙련 트레이더의 판단에 얼마나 수렴하는지 **측정**하는 개발용 도구.
+
+- **경계**: 레퍼런스의 문장·수치를 제품에 실어 나르지 않는다. Lambda 배포·S3 산출물·
+  사용자 화면 어디에도 들어가지 않는다. 유료 상품이라 외부 코멘트에 의존할 수 없고,
+  의존하면 그 채널이 멈추는 순간 제품도 멈춘다. 정답지(평가용)로만 쓴다.
+- **개선 경로**: 대조에서 나온 격차는 항상 **우리 계산 로직**에 반영한다.
+  `사전 누락`(SECTOR_RULES 에 그 섹터 자체가 없음) → 코드 결함,
+  `순위 누락`(사전엔 있는데 주도섹터로 안 뽑힘) → 임계값 문제. 처방이 다르다.
+- 하루치 노이즈로 로직을 흔들지 않도록 **2일 이상 반복된 격차만** 조치 후보로 낸다.
+
+```bash
+cd backend
+python -m benchmark.compare --date 2026-08-01
+python -m benchmark.compare --all --flow-dir <일별 스냅샷 디렉터리>
+```
+
+레퍼런스 경로는 `REFERENCE_DAILY_DIR` 환경변수(기본 `~/repo/stock_chat/data/daily`).
+flow 산출물은 매 실행마다 `s3://<bucket>/history/flow/YYYY-MM-DD.json` 로 스냅샷이
+남으므로, 같은 날짜끼리 대조하려면 이걸 받아서 `--flow-dir` 로 준다. 날짜가 어긋나면
+도구가 경고한다 (다른 날 시장을 견주면 섹터 비교가 성립하지 않는다).
+
 ## 알려진 이슈 / 메모
 
 - KOSDAQ 시총 200위 밖 종목 (심텍, 코리아써키트 등)은 매수 후보에 안 잡힘. 필요 시 `flow_signals/universe.py` 의 `EXPLICIT_SECTOR` 에 추가.

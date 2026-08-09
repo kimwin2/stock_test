@@ -161,6 +161,16 @@ def _run_flow_pipeline(bucket: str) -> dict:
 
     flow_url = upload_to_s3(payload, bucket, flow_key)
 
+    # 일별 스냅샷 — 최신본만 두면 "그날 우리가 뭐라고 했는지"가 남지 않아
+    # 사후 대조·성능 추적이 불가능하다. 덮어쓰기 전에 날짜별로 한 벌 남긴다.
+    # 실패해도 파이프라인은 계속한다 (본 산출물은 이미 올라갔다).
+    try:
+        snapshot_key = f"history/flow/{datetime.now(KST).strftime('%Y-%m-%d')}.json"
+        upload_to_s3(payload, bucket, snapshot_key)
+        print(f"  [OK] flow 스냅샷 저장: {snapshot_key}")
+    except Exception as e:
+        print(f"  [!] flow 스냅샷 저장 실패 (파이프라인 계속): {e}")
+
     return {
         "statusCode": 200,
         "body": json.dumps(

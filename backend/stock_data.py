@@ -143,17 +143,17 @@ def search_stock_code(stock_name: str) -> Optional[str]:
     if stock_name in STOCK_CODE_MAP:
         return STOCK_CODE_MAP[stock_name]
 
-    # 부분 매칭 시도 (예: "삼성전자우" → "삼성전자")
-    # 가장 긴 매칭을 우선하여 "SK"가 "SKC"를 가로채는 문제 방지
-    best_match = None
-    best_len = 0
-    for name, code in STOCK_CODE_MAP.items():
-        if stock_name.startswith(name) or name.startswith(stock_name):
-            if len(name) > best_len:
-                best_len = len(name)
-                best_match = code
-    if best_match:
-        return best_match
+    # 우선주 표기 흡수 (예: "삼성전자우" → "삼성전자"). 접미사를 떼고 정확히 맞을 때만.
+    #
+    # 예전에는 name.startswith(stock_name) 도 허용했는데, 그러면 짧은 질의가
+    # 더 긴 종목명을 가로챈다. 실제로 "메타"(해외 기업)가 "메타케어"로 해석돼
+    # 엉뚱한 종목이 테마 카드에 올랐다. 부분 매칭은 방향을 한쪽으로 고정한다.
+    for suffix in ("우B", "1우", "2우B", "우"):
+        if stock_name.endswith(suffix):
+            base = stock_name[: -len(suffix)]
+            if base in STOCK_CODE_MAP:
+                return STOCK_CODE_MAP[base]
+            break
 
     # 2. 네이버 증권 검색 시도
     return search_stock_code_online(stock_name)
@@ -179,17 +179,26 @@ def search_stock_code_online(stock_name: str) -> Optional[str]:
                 and re.fullmatch(r"\d{6}", str(it.get("code") or ""))
             ]
             if items:
-                # 이름이 정확히 일치하는 항목을 우선 — "SK" 가 "SK하이닉스"를
-                # 가로채는 식의 오매칭을 막는다.
-                target = re.sub(r"\s+", "", stock_name)
-                exact = [it for it in items if re.sub(r"\s+", "", it.get("name", "")) == target]
-                code = (exact or items)[0]["code"]
-                STOCK_CODE_MAP[stock_name] = code  # 캐싱
-                return code
+                # 이름이 정확히 일치할 때만 채택한다.
+                #
+                # 첫 항목으로 폴백하면 자동완성이 접두사로 찾아준 다른 회사를
+                # 그대로 받아버린다. 실제로 "메타"(해외 기업)가 "메타케어"로
+                # 해석됐다. 존재하지 않는 종목명(LLM 환각)이나 해외 기업은
+                # 여기서 None 이 되는 게 맞다 — 틀린 종목을 넣는 것보다 낫다.
+                target = re.sub(r"\s+", "", stock_name).lower()
+                for it in items:
+                    if re.sub(r"\s+", "", it.get("name", "")).lower() == target:
+                        STOCK_CODE_MAP[stock_name] = it["code"]  # 캐싱
+                        return it["code"]
     except Exception as e:
         print(f"  [!] 자동완성 검색 실패 ({stock_name}): {e}")
 
-    # 방법 2: 네이버 통합검색에서 종목코드 추출
+    # 방법 2: 네이버 통합검색에서 종목코드 추출.
+    #
+    # 마지막 정규식 code=(\d{6}) 는 페이지 어디에 있는 6자리든 물어온다.
+    # 그래서 상장되지도 않은 이름(해외 기업 '애플' 등)에도 엉뚱한 코드가
+    # 잡혔고, 페이지 구성에 따라 결과가 매번 달라졌다. 뽑은 코드가 정말
+    # 그 종목인지 실제 종목명으로 확인한 뒤에만 채택한다.
     try:
         url = "https://search.naver.com/search.naver"
         params = {"query": f"{stock_name} 주가"}
@@ -202,8 +211,12 @@ def search_stock_code_online(stock_name: str) -> Optional[str]:
                 match = re.search(r'code=(\d{6})', resp.text)
             if match:
                 code = match.group(1)
-                STOCK_CODE_MAP[stock_name] = code  # 캐싱
-                return code
+                detail = get_stock_detail(code)
+                found = re.sub(r"\s+", "", (detail or {}).get("name", "")).lower()
+                if found and found == re.sub(r"\s+", "", stock_name).lower():
+                    STOCK_CODE_MAP[stock_name] = code  # 캐싱
+                    return code
+                print(f"  [!] 통합검색 결과 불일치 ({stock_name} ≠ {(detail or {}).get('name')}) — 버림")
     except Exception as e:
         print(f"  [!] 통합검색 실패 ({stock_name}): {e}")
 
