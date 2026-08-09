@@ -2324,3 +2324,29 @@ body {
   line-height: 1.5;
   word-break: keep-all;
 }
+
+
+/* === 일별 수급 히트맵 ===
+   종가베팅 관점의 핵심 — "수급이 언제 돌아섰나"가 색 전환으로 읽힌다.
+   HTS 에서는 종목마다 투자자별 매매동향을 열어야 보이는 정보다. */
+.fh { margin: 10px 2px 2px; }
+.fh-head { display: flex; align-items: baseline; gap: 9px; margin-bottom: 5px; }
+.fh-title { font-size: 0.72rem; font-weight: 800; color: #8a8272; letter-spacing: 0.04em; }
+.fh-streak { font-size: 0.7rem; font-weight: 800; color: #1565C0; }
+.fh-grid { display: grid; grid-template-columns: 42px 1fr; gap: 3px 8px; align-items: center; }
+.fh-lab { font-size: 0.68rem; color: #a89f8d; font-weight: 700; }
+.fh-cells { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
+.fh-cells i { display: block; height: 13px; border-radius: 1px; }
+.fh-dates em { font-style: normal; font-size: 0.6rem; color: #b8b0a0; text-align: center; }
+.fh-dates { align-items: center; }
+
+/* 종가베팅 한 줄 */
+.cb-line {
+  display: flex; flex-wrap: wrap; gap: 4px 16px;
+  margin: 8px 2px 0; padding-top: 8px; border-top: 1px solid var(--rule);
+  font-size: 0.76rem; color: #8a8272;
+}
+.cb-line b { font-weight: 900; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.cb-line b.up { color: #E53935; }
+.cb-line b.down { color: #1565C0; }
+.cb-line em { font-style: normal; color: #b8b0a0; font-size: 0.68rem; margin-left: 3px; }

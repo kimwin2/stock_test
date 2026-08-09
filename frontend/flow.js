@@ -748,6 +748,61 @@ function buyGradeBadge(score) {
 // ─────────────────────────────────────────┘
 // 범례가 없으면 어느 선이 주가고 어느 선이 이평선인지 알 수 없다.
 // 선 견본 색은 실제 stroke 값과 반드시 같아야 한다 (CHART_* 토큰 사용).
+// ─────────────────────────────────────────┐
+// 일별 수급 히트맵 (10거래일)                │
+// ─────────────────────────────────────────┘
+// 종가베팅·1~2일 보유 관점에서 가장 중요한 건 "수급이 언제 돌아섰나"다.
+// HTS 에서는 종목마다 투자자별 매매동향을 일일이 열어봐야 보이는데,
+// 우리는 후보 전 종목에 대해 이미 계산해 두고 화면에 안 쓰고 있었다.
+// 외인/기관 각각 일별 순매수 부호와 크기를 칸 색으로 보여준다.
+function renderFlowHeatmap(c) {
+  const days = c.dailyFlow10d || [];
+  if (days.length < 3) return '';
+  const vals = days.flatMap(d => [Math.abs(d.foreigner || 0), Math.abs(d.organ || 0)]);
+  const max = Math.max(...vals, 1);
+  const cell = (v) => {
+    const amt = v || 0;
+    const t = Math.min(1, Math.abs(amt) / max);
+    // 0.14 아래는 사실상 보합 — 옅은 회색으로 두고 색을 낭비하지 않는다
+    const bg = t < 0.14 ? '#F1EADC'
+      : `${amt >= 0 ? 'rgba(229,57,53,' : 'rgba(21,101,192,'}${(0.16 + t * 0.72).toFixed(2)})`;
+    return `<i style="background:${bg}" title="${amt >= 0 ? '+' : ''}${fmtBillion(amt)}"></i>`;
+  };
+  const md = (s) => { const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(s || ''); return m ? `${+m[1]}/${+m[2]}` : ''; };
+  const streak = c.currentVacancyDays || 0;
+
+  return `
+    <div class="fh">
+      <div class="fh-head">
+        <span class="fh-title">일별 수급 (10거래일)</span>
+        ${streak > 0 ? `<span class="fh-streak">외인·기관 ${streak}일째 순매도</span>` : ''}
+      </div>
+      <div class="fh-grid">
+        <span class="fh-lab">외국인</span>
+        <span class="fh-cells">${days.map(d => cell(d.foreigner)).join('')}</span>
+        <span class="fh-lab">기관</span>
+        <span class="fh-cells">${days.map(d => cell(d.organ)).join('')}</span>
+        <span class="fh-lab"></span>
+        <span class="fh-cells fh-dates">${days.map((d, i) =>
+          `<em>${(i === 0 || i === days.length - 1) ? md(d.date) : ''}</em>`).join('')}</span>
+      </div>
+    </div>`;
+}
+
+// 종가베팅 관점 한 줄 — 오늘 고가에서 얼마나 눌렸나, 거래대금은 평소 대비 어떤가.
+// 눌림에서 담는 전략이라 이 둘이 진입 판단의 재료다.
+function renderCloseBetLine(c) {
+  const bz = c.buyZone || {};
+  const parts = [];
+  if (bz.todayPullbackPct != null)
+    parts.push(`<span>고가 대비 <b class="${bz.todayPullbackPct < 0 ? 'down' : 'up'}">${bz.todayPullbackPct.toFixed(1)}%</b></span>`);
+  if (c.tradingValueRatio != null)
+    parts.push(`<span>거래대금 <b>${c.tradingValueRatio.toFixed(2)}배</b><em>(20일 평균 대비)</em></span>`);
+  if (c.foreignerHoldRatio) parts.push(`<span>외인 지분 <b>${fEscape(c.foreignerHoldRatio)}</b></span>`);
+  if (!parts.length) return '';
+  return `<div class="cb-line">${parts.join('')}</div>`;
+}
+
 function renderChartLegend() {
   return `
     <div class="chart-legend">
@@ -782,6 +837,8 @@ function renderCandCardV2(c, idx) {
       </div>
       <div class="cand-v2-chartbox">${renderMiniPriceChart(c)}</div>
       ${renderChartLegend()}
+      ${renderCloseBetLine(c)}
+      ${renderFlowHeatmap(c)}
       ${renderVacancyTags(c)}
     </div>
   `;
