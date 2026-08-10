@@ -176,6 +176,22 @@ jobs:
             response.json
           cat response.json
 
+      # flow(수급·종목·오늘 탭) 도 함께 갱신한다.
+      # 위 invoke 는 mode 를 안 넘겨 themes(dashboard_data.json) 만 다시 만든다.
+      # 그래서 flow 관련 코드를 배포해도 flow_dashboard.json 은 다음 정각
+      # (EventBridge, 평일 8~20시)까지 옛 코드 결과 그대로였다 — 배포했는데
+      # 화면이 안 바뀌는 것처럼 보이는 원인.
+      - name: Invoke Lambda Async Refresh (flow)
+        run: |
+          aws lambda invoke \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --region "$AWS_REGION" \
+            --invocation-type Event \
+            --cli-binary-format raw-in-base64-out \
+            --payload '{"mode":"flow","source":"github-actions-${{ github.event_name }}-flow"}' \
+            response-flow.json
+          cat response-flow.json
+
       - name: Wait For S3 Refresh
         run: |
           PREV_UPDATED_AT=$(curl --silent "$S3_OBJECT_URL" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("updatedAt",""))')
