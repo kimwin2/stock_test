@@ -564,8 +564,8 @@ def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool) -> l
     """테마 리스트 → 선정 완료된 테마 리스트. relaxed 는 게이트 완화 여부."""
     result_themes = []
     used_codes: set[str] = set()   # 한 종목은 전체 테마 통틀어 1번만
-    stats = {"pool": 0, "unresolved": 0, "noQuote": 0,
-             "penny": 0, "illiquid": 0, "falling": 0, "duplicate": 0}
+    stats = {"pool": 0, "unresolved": 0, "noQuote": 0, "penny": 0,
+             "illiquid": 0, "falling": 0, "duplicate": 0, "indexProduct": 0}
     min_stocks = 1 if relaxed else ts.MIN_STOCKS_PER_THEME
 
     for theme in themes:

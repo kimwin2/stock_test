@@ -53,6 +53,30 @@ MAX_POOL_PER_THEME = 12               # 시세 조회 예산 상한
 THEME_MERGE_OVERLAP = 0.6             # 선정 종목이 이 비율 이상 겹치면 같은 테마
 
 
+# 지수 추종 상품(ETF/ETN/레버리지/인버스). 지수 급등일엔 이들이 급등주 상위를
+# 점령해 "코스닥150 레버리지 상품" 같은 무의미한 테마가 만들어진다 (2026-08-10).
+# 개별 기업이 아니므로 테마 대시보드에서는 어떤 소스로 들어와도 제외한다.
+_INDEX_PRODUCT_BRANDS = (
+    "KODEX", "TIGER", "KBSTAR", "RISE", "ACE", "ARIRANG", "HANARO", "SOL",
+    "KIWOOM", "PLUS", "UNICORN", "TIMEFOLIO", "WOORI", "FOCUS", "MASTER",
+    "KOSEF", "1Q", "BNK", "HK", "ITF", "DAISHIN343", "N2", "QV", "메리츠",
+)
+# "합성" 은 동남합성 같은 실제 기업이 있어 넣지 않는다 (합성 ETF 는 ETF 로 잡힘).
+_INDEX_PRODUCT_KEYWORDS = ("ETN", "ETF", "레버리지", "인버스", "선물")
+
+
+def is_index_product(name: str) -> bool:
+    """지수·파생 추종 상품인가. 종목명 기반 판별."""
+    n = (name or "").strip()
+    if not n:
+        return False
+    upper = n.upper()
+    if any(kw in upper for kw in _INDEX_PRODUCT_KEYWORDS):
+        return True
+    head = upper.split(" ", 1)[0]
+    return head in _INDEX_PRODUCT_BRANDS and " " in upper
+
+
 def _norm_name(name: str) -> str:
     """종목명 정규화 — 소스마다 표기가 미묘하게 다르다."""
     return re.sub(r"\s+", "", (name or "")).strip()
@@ -257,6 +281,8 @@ def passes_gate(detail: dict, relaxed: bool = False) -> str | None:
     """하드 게이트. 통과하면 None, 아니면 탈락 사유 키."""
     min_value = RELAXED_TRADING_VALUE if relaxed else MIN_TRADING_VALUE
     min_rate = RELAXED_CHANGE_RATE if relaxed else MIN_CHANGE_RATE
+    if is_index_product(detail.get("name") or ""):
+        return "indexProduct"
     if float(detail.get("price") or 0) < MIN_PRICE:
         return "penny"
     if float(detail.get("volumeRaw") or 0) < min_value:

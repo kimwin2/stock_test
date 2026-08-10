@@ -764,11 +764,28 @@ JSON만 출력하세요."""
     return pruned
 
 
+def _drop_index_products(movers: list[dict]) -> list[dict]:
+    """지수 추종 상품(ETF/ETN/레버리지)을 급등주 목록에서 제외.
+
+    지수 급등일엔 레버리지 상품이 등락률 상위를 점령해 "코스닥150 레버리지"
+    같은 무의미한 클러스터가 만들어진다. 개별 기업 테마만 남긴다."""
+    try:
+        from theme_stocks import is_index_product
+    except ImportError:
+        from ..theme_stocks import is_index_product
+    kept = [m for m in movers if not is_index_product(m.get("name") or "")]
+    dropped = len(movers) - len(kept)
+    if dropped:
+        print(f"  [제외] 지수 추종 상품 {dropped}종목을 급등주 후보에서 제거")
+    return kept
+
+
 def discover_theme_candidates(
     movers: list[dict],
     articles: list[dict],
     telegram_signals: list[dict],
 ) -> list[dict]:
+    movers = _drop_index_products(movers)
     labeled_themes = _label_theme_candidates_with_llm(movers, articles, telegram_signals)
     refined_themes = _refine_theme_candidates_with_llm(labeled_themes, movers, articles, telegram_signals)
     final_themes = refined_themes or labeled_themes
