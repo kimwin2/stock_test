@@ -20,59 +20,113 @@ from .data_sources import fetch_etf_listing, fetch_stock_ohlcv, fetch_index_ohlc
 
 
 # 주요 테마/업종 ETF 핸드픽 (티커 → 라벨)
+#
+# [2026-08-10 전수 정정] 46개 중 25개의 코드가 라벨과 다른 ETF를 가리키고 있었다.
+# RS 는 **코드의 실제 주가**로 계산하고 섹터 매핑은 **라벨의 키워드**로 하기 때문에,
+# 둘이 어긋나면 "엉뚱한 ETF 의 강도로 엉뚱한 섹터가 주도로 뽑힌다".
+#   실측: 479850 은 'TIGER 글로벌AI인프라' 가 아니라 'HANARO K-뷰티' 였다.
+#         K-뷰티 ETF 가 강한 날 AI/반도체팹리스 가 주도섹터 2위로 올라갔다.
+#         266390 은 'KODEX 2차전지산업' 이 아니라 'KODEX 경기소비재' 였다
+#         (그래서 신세계가 '2차전지 ETF 편입종목' 으로 잡혔고, 그 덕에 발견했다).
+# 운용사가 코드를 재활용·상장폐지하므로 이 목록은 **썩는다**. 아래 검증 가드가
+# 매 실행마다 상장 목록과 대조해 라벨을 실제 이름으로 덮고 어긋남을 출력한다.
 THEME_ETFS = {
+    # 지수
     "069500": "KODEX 200",
     "229200": "KODEX 코스닥150",
+    "278530": "KODEX 200TR",
+    # 반도체
     "091160": "KODEX 반도체",
     "091230": "TIGER 반도체",
     "396500": "TIGER 반도체TOP10",
     "139260": "TIGER 200 IT",
-    "098560": "KODEX 자동차",
+    "261060": "TIGER 코스닥150 IT",   # 232080 은 'TIGER 코스닥150'(IT 아님) 이었다
+    "395160": "KODEX AI반도체TOP2플러스",
+    "455850": "SOL AI반도체소부장",
+    # 2차전지
+    "305720": "KODEX 2차전지산업",     # 266390(=KODEX 경기소비재) 제거
+    "364980": "TIGER 2차전지TOP10",    # 라벨이 'TIGER KRX BBIG K-뉴딜' 로 틀려 있었다
+    # 자동차/소비재
+    "091180": "KODEX 자동차",          # 098560 은 상장 목록에 없는 죽은 코드였다
+    "228790": "TIGER 화장품",          # 228810(=TIGER 미디어컨텐츠) 제거
+    "227550": "TIGER 200 산업재",      # 139290 은 'TIGER 200 경기소비재' 였다
+    # 화학/철강/건설
     "117460": "KODEX 에너지화학",
-    "228810": "TIGER 화장품",
-    "227560": "TIGER 200 헬스케어",
-    "266390": "KODEX 2차전지산업",
-    "305720": "KODEX 2차전지산업",
-    "364980": "TIGER KRX BBIG K-뉴딜",
     "117680": "KODEX 철강",
-    "157490": "TIGER 소프트웨어",
     "139220": "TIGER 200 건설",
-    "140700": "KODEX 보험",
-    "139230": "TIGER 200 중공업",
-    "117700": "KODEX 조선",
-    "446770": "KODEX 미국조선",
-    "381180": "TIGER 미국S&P500",
-    "133690": "TIGER 미국나스닥100",
-    "473460": "KODEX 인공지능반도체",
-    "479850": "TIGER 글로벌AI인프라",
-    "456600": "KODEX K-방산",
-    "449450": "PLUS K방산",
+    # 조선/방산/우주
+    "139230": "TIGER 200 중공업",      # 139250(=TIGER 200 에너지화학) 제거
+    "0115D0": "KODEX 조선TOP10",       # 117700 은 'KODEX 건설' 이었다
+    "449450": "PLUS K방산",            # 456600(=TIME 글로벌AI인공지능액티브) 제거
+    "463250": "TIGER K방산&우주",
+    "421320": "PLUS 우주항공",
+    # 전력/원전 — 주도섹터로 자주 지목되는데 ETF 가 하나도 없었다
+    "487240": "KODEX AI전력핵심설비",
+    "0117V0": "TIGER 코리아AI전력기기TOP3플러스",
+    "434730": "HANARO 원자력iSelect",
+    "0098F0": "KODEX 원자력SMR",
     # 로봇 ETF — 이전에 454910(=두산로보틱스 개별 종목)이 잘못 등록돼 있어 RS 가
     # 음수로 잡혀서 로봇 섹터가 leading 에 못 들어갔음. 정정.
     "445290": "KODEX 로봇액티브",
-    "464310": "TIGER 글로벌AI&로보틱스",
-    "471040": "KoAct 글로벌AI&로봇액티브",
-    "449180": "KOSEF K-게임",
-    "395750": "TIGER 글로벌리튬",
-    "381170": "TIGER 미국테크TOP10",
-    "404540": "TIGER 글로벌클라우드컴퓨팅",
-    "279530": "KODEX 고배당",
-    "433330": "KODEX 미국빅테크TOP7Plus",
-    "411060": "ACE 글로벌반도체TOP4Plus",
-    # 추가: 전력기기/원전/방산 (주도 섹터 자주 언급)
-    "139250": "TIGER 200 중공업",
-    "139290": "TIGER 200 산업재",
-    "143850": "TIGER 미국S&P500선물",
-    "278530": "KODEX 200TR",
-    "385520": "TIGER 미국나스닥100TR",
-    "228790": "TIGER 화장품",
-    "192090": "TIGER 차이나CSI300",
-    "232080": "TIGER 코스닥150 IT",
-    # 증권/금융 — 5/4·5/6 텔레그램 분석에서 "수급+시세 교집합 핵심"으로 강조됨.
+    # 게임/소프트웨어
+    "300950": "KODEX 게임산업",        # 449180 은 'KODEX 미국S&P500(H)' 였다
+    "157490": "TIGER 소프트웨어",
+    # 바이오/헬스케어
+    "244580": "KODEX 바이오",
+    "227540": "TIGER 200 헬스케어",    # 227560 은 'TIGER 200 생활소비재' 였다
+    # 금융 — 5/4·5/6 참고 자료 분석에서 "수급+시세 교집합 핵심"으로 강조됨.
     # 외국인 통합계좌 규제 완화·IBKR 한국주식 직거래 오픈 등 구조적 모멘텀 반영.
-    "102780": "KODEX 증권",
+    "102970": "KODEX 증권",            # 102780 은 'KODEX 삼성그룹' 이었다
+    "140700": "KODEX 보험",
+    "091170": "KODEX 은행",
     "139270": "TIGER 200 금융",
+    "279530": "KODEX 고배당주",
 }
+
+# 해외 ETF 는 전부 뺐다. 한국 섹터로 매핑될 수 없어 sector_map 이 '기타' 로
+# 버리는데, RS 상위는 차지해 leading 목록에서 국내 테마를 밀어냈고 (실측:
+# 2026-08-10 주도 ETF 1위가 미국 S&P500 이었다) 편입비중 조회 비용만 늘렸다.
+
+
+def resolve_theme_etfs(verbose: bool = True) -> dict[str, str]:
+    """THEME_ETFS 를 상장 목록의 **실제 이름**으로 덮는다. 목록에 없으면 버린다.
+
+    핸드픽 목록은 썩는다 — 운용사가 코드를 재활용하고 ETF 를 상장폐지한다.
+    그런데 RS 는 코드로, 섹터 매핑은 이름으로 하므로 어긋남이 조용히 가짜
+    주도섹터를 만든다. 매 실행 상장 목록을 정답으로 삼아 이름을 맞추고,
+    어긋난 것은 눈에 띄게 출력해 다음 사람이 목록을 고칠 수 있게 한다.
+    """
+    try:
+        df = fetch_etf_listing()
+    except Exception as e:
+        if verbose:
+            print(f"  [!] ETF 상장 목록 조회 실패 — 핸드픽 라벨 그대로 사용: {e}")
+        return dict(THEME_ETFS)
+
+    name_col = next((c for c in ["Name", "Symbol Name", "종목명"] if c in df.columns), None)
+    code_col = next((c for c in ["Symbol", "Code", "종목코드"] if c in df.columns), None)
+    if not name_col or not code_col:
+        return dict(THEME_ETFS)
+    listed = {str(c).zfill(6): str(n) for c, n in zip(df[code_col], df[name_col])}
+
+    resolved: dict[str, str] = {}
+    drifted, missing = [], []
+    for code, label in THEME_ETFS.items():
+        actual = listed.get(code)
+        if actual is None:
+            missing.append(f"{code}({label})")
+            continue
+        if actual.replace(" ", "") != label.replace(" ", ""):
+            drifted.append(f"{code}: 기대 '{label}' → 실제 '{actual}'")
+        resolved[code] = actual
+    if verbose and drifted:
+        print(f"  [!] ETF 라벨 불일치 {len(drifted)}건 — 실제 이름으로 덮었습니다. "
+              f"THEME_ETFS 를 고치세요:")
+        for d in drifted:
+            print(f"        {d}")
+    if verbose and missing:
+        print(f"  [!] 상장 목록에 없는 ETF {len(missing)}건 — 제외: {', '.join(missing)}")
+    return resolved
 
 
 def _mansfield_rs(etf: pd.Series, benchmark: pd.Series, ma_period: int) -> pd.Series:
@@ -111,7 +165,9 @@ def compute_etf_rs(
     bench_close = benchmark_df["Close"]
 
     rows: list[dict] = []
-    for code, label in THEME_ETFS.items():
+    # 핸드픽 라벨이 아니라 상장 목록의 실제 이름을 쓴다. 섹터 매핑이 이름
+    # 키워드로 이뤄지므로, 여기서 어긋나면 가짜 주도섹터가 만들어진다.
+    for code, label in resolve_theme_etfs().items():
         try:
             df = fetch_stock_ohlcv(code, days=400)
         except Exception as e:

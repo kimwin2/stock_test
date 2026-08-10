@@ -2496,5 +2496,11 @@ body {
 }
 .pp-step em { font-style: normal; font-size: 0.76rem; font-weight: 900; color: #2b332c; }
 .pp-step small { font-size: 0.64rem; font-weight: 700; color: #a89f8d; }
-.pp-step .pp-src { color: #00695C; }
+/* 브랜드 브론즈. 하드코딩 #00695C(teal) 가 남아 있어 티마 색으로 회귀해 있었다. */
+.pp-step .pp-src { color: var(--teal-dark); }
+/* 실제 편입비중 — 추정이 아니라 확인된 사실이라 조금 더 진하게 준다. */
+.pp-step .pp-hold { color: var(--teal); }
+.pp-step .pp-lead-mark { color: var(--orange); margin-left: 2px; }
+/* 미편입도 숨기지 않는다. 다만 근거가 약한 쪽이므로 톤을 낮춘다. */
+.pp-step .pp-hold-none { color: var(--text-muted); font-weight: 700; }
 .pp-arrow { align-self: center; font-size: 0.9rem; font-weight: 900; color: #c9bfa8; }

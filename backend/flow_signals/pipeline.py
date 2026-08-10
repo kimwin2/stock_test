@@ -22,6 +22,7 @@ import pandas as pd
 
 from .market_sentiment import build_market_sentiment
 from .relative_strength import build_leading_sectors
+from .etf_holdings import build_holdings_index, holdings_for
 from .sector_skew import compute_crowding_index
 from .universe import build_universe
 from .supply_vacancy import (
@@ -116,7 +117,10 @@ def _resolve_leading_sectors_from_etfs(
         ("패키징", "반도체장비"),
         ("디스플레이", "반도체"),
         ("200 IT", "반도체"),       # KOSPI 200 IT — 삼성전자/하이닉스 비중 큼
-        ("코스닥150 IT", "반도체"),  # 코스닥 IT — 반도체 비중 큼
+        # 코스닥 IT — 반도체 비중 큼. 상장 목록 표기는 'TIGER 코스닥150IT'(공백 없음)
+        # 이라 공백 있는 키만 두면 매칭에 실패해 게임/IT 로 흘러간다.
+        ("코스닥150 IT", "반도체"),
+        ("코스닥150IT", "반도체"),
         ("반도체", "반도체"),
         # 2차전지/ESS
         ("2차전지", "2차전지"),
@@ -135,6 +139,10 @@ def _resolve_leading_sectors_from_etfs(
         ("IT", "게임/IT"),
         # 로봇/AI
         ("로봇", "로봇"),
+        # "AI전력..." 계열은 전력기기 ETF 다. 아래 ("AI", ...) 보다 반드시 위 —
+        # 밑에 두면 'KODEX AI전력핵심설비' 가 AI/반도체팹리스로 둔갑한다.
+        ("AI전력", "전력기기"),
+        ("전력기기", "전력기기"),
         ("AI", "AI/반도체팹리스"),
         # 방산/조선/중공업
         ("방산", "방산"),
@@ -144,6 +152,8 @@ def _resolve_leading_sectors_from_etfs(
         ("전력", "전력기기"),
         ("산업재", "전력기기"),
         ("원전", "원전"),
+        ("원자력", "원전"),   # 'HANARO 원자력iSelect' 는 "원전" 키워드에 안 걸린다
+        ("SMR", "원전"),
         # 바이오/우주
         ("바이오", "바이오"),
         ("헬스케어", "바이오"),
@@ -681,6 +691,40 @@ def build_flow_dashboard(
         "scoreCutoffRelaxed": score_relaxed,
     }
     enriched_candidates = scored_ok
+
+    # ─────────────────────────────────────────
+    # Step 7b: 주도 ETF 실제 편입비중 — 포착 경로의 마지막 화살표를 근거로 바꾼다
+    #
+    # 지금까지 `주도 ETF › 섹터 › 종목` 의 마지막 연결은 우리 섹터 사전이
+    # 대신 주장하고 있었다("같은 섹터니까 담겨 있을 것이다"). 이 전략의 원리가
+    # "ETF 로 들어온 자금이 구성종목을 사 올린다" 인 이상, 그 ETF 가 이 종목을
+    # 실제로 담고 있는지가 근거의 핵심이다. 담고 있지 않다면 같은 섹터라는
+    # 사실만으로는 자금이 올 이유가 없다.
+    #
+    # 실패해도 파이프라인은 계속 간다 — 근거 '보강' 이지 후보 선정 조건이 아니다.
+    # (선정 조건으로 삼으면 WISEfn 이 하루 죽을 때 후보가 통째로 비어버린다.)
+    # ─────────────────────────────────────────
+    print("\n[Step 7b] 테마 ETF 편입비중")
+    etf_holdings_index: dict = {"byName": {}, "etfCount": 0, "asOf": None}
+    try:
+        _leading_codes = {e.get("code") for e in (leading.get("leading") or []) if e.get("code")}
+        etf_holdings_index = build_holdings_index(
+            leading.get("all") or [], leading_codes=_leading_codes)
+        print(f"   PDF 확보 ETF {etf_holdings_index['etfCount']}개 · "
+              f"기준일 {etf_holdings_index.get('asOf') or '-'}")
+    except Exception as e:
+        print(f"  [!] 실패: {e}")
+
+    if etf_holdings_index.get("etfCount"):
+        # 미편입(None)도 그대로 둔다. '어떤 테마 ETF 도 안 담은 종목' 이라는
+        # 사실이 정보라서, 화면이 편입/미편입을 구분해 보여줄 수 있어야 한다.
+        for c in enriched_candidates:
+            c["etfHoldings"] = holdings_for(etf_holdings_index, c.get("name"))
+        held = sum(1 for c in enriched_candidates if c.get("etfHoldings"))
+        lead_held = sum(1 for c in enriched_candidates
+                        if (c.get("etfHoldings") or {}).get("leadingCount"))
+        print(f"   후보 {len(enriched_candidates)}개 중 테마 ETF 편입 {held}개 "
+              f"(그중 주도 ETF 편입 {lead_held}개)")
 
     # ─────────────────────────────────────────
     # Step 7c: 주도섹터 거래대금 톱10 — 빈집 필터와 별개로 외인+기관 동행 매수 주도주
