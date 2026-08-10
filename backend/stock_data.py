@@ -612,6 +612,27 @@ def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool) -> l
         scored.sort(key=lambda x: x[0], reverse=True)
         selected = scored[:ts.MAX_STOCKS_PER_THEME]
 
+        # 가격 클러스터에서 승격된 테마는 클러스터 종목이 최소 1개는 게이트를
+        # 통과해야 한다. 전멸했다는 것은 근거(대개 저가 급등 묶음)가 화면
+        # 기준으로 존재하지 않는다는 뜻이고, 그대로 두면 테마명·설명은
+        # 클러스터 것, 종목은 이름이 비슷한 다른 테마에서 차입한 짝짜꿍이 된다
+        # (2026-08-10 실사고: '반도체 소부장' 환각 클러스터에 씨이랩 등 차입).
+        cluster_stocks = {ts._norm_name(n) for n in (theme.get("_cluster_stocks") or []) if n}
+        if cluster_stocks:
+            def _in_cluster(x):
+                return (ts._norm_name(x[2].name) in cluster_stocks
+                        or ts._norm_name((x[4].get("name") or "")) in cluster_stocks)
+
+            survivors = [x for x in scored if _in_cluster(x)]
+            if not survivors:
+                print(f"  [DROP] {theme_name}: 클러스터 근거 종목이 게이트에서 전멸 — "
+                      f"차입 종목으로 테마를 유지하지 않음")
+                continue
+            # 근거 종목이 점수에서 밀려 화면에서 사라지면 결국 같은 짝짜꿍이다.
+            # 최소 1개는 반드시 노출한다 (가장 점수 높은 생존 근거로 마지막 자리 교체).
+            if not any(_in_cluster(x) for x in selected):
+                selected = selected[:-1] + [survivors[0]]
+
         if len(selected) < min_stocks:
             print(f"  [DROP] {theme_name}: 유효 종목 {len(selected)}개 — 테마 제외")
             continue
