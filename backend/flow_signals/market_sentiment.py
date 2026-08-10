@@ -86,8 +86,16 @@ def fear_greed_real(close: pd.Series, krx: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _sentiment_record(label: str, symbol: str, df: pd.DataFrame) -> dict:
-    """fear_greed_real/proxy 결과 DataFrame → 프론트 호환 dict."""
+def _sentiment_record(
+    label: str, symbol: str, df: pd.DataFrame, ohlc_df: pd.DataFrame | None = None
+) -> dict:
+    """fear_greed_real/proxy 결과 DataFrame → 프론트 호환 dict.
+
+    ohlc_df 가 주어지면 history 각 일자에 o/h/l/c/v 를 실어 프론트가 지수도
+    종목 차트와 동일한 일봉 캔들 + 거래량으로 그릴 수 있게 한다.
+    (종가 선 하나로는 그날 위/아래꼬리와 거래량이 안 보인다 — 종목 차트가
+     캔들로 바뀐 뒤 지수만 선으로 남아 같은 화면에서 따로 놀았다.)
+    """
     last = df.dropna(subset=["fear_greed"]).tail(1)
     if last.empty:
         return {"label": label, "error": "insufficient data"}
@@ -95,16 +103,47 @@ def _sentiment_record(label: str, symbol: str, df: pd.DataFrame) -> dict:
     osc = float(last["fg_oscillator"].iloc[0]) if pd.notna(last["fg_oscillator"].iloc[0]) else 0.0
     close = float(last["price"].iloc[0])
 
+    # OHLCV 조회용 인덱스 — ohlc_df 미제공 시 df 자체에 컬럼이 있으면 사용(proxy 경로)
+    src = ohlc_df if ohlc_df is not None else df
+    has_ohlc = all(c in getattr(src, "columns", []) for c in ("Open", "High", "Low", "Close"))
+
+    def _ohlc_for(idx) -> dict | None:
+        if not has_ohlc:
+            return None
+        try:
+            row = src.loc[idx]
+        except (KeyError, TypeError):
+            return None
+        try:
+            o, h, l, c = (float(row["Open"]), float(row["High"]),
+                          float(row["Low"]), float(row["Close"]))
+        except (TypeError, ValueError):
+            return None
+        if any(pd.isna(v) for v in (o, h, l, c)) or h <= 0:
+            return None
+        v = 0.0
+        if "Volume" in getattr(src, "columns", []):
+            try:
+                vv = float(row["Volume"])
+                v = 0.0 if pd.isna(vv) else vv
+            except (TypeError, ValueError):
+                v = 0.0
+        return {"o": round(o, 2), "h": round(h, 2), "l": round(l, 2),
+                "c": round(c, 2), "v": round(v, 0)}
+
     hist = df[["price", "fear_greed", "fg_oscillator"]].tail(120)
-    history = [
-        {
+    history = []
+    for idx, row in hist.iterrows():
+        entry = {
             "date": idx.strftime("%Y-%m-%d"),
             "close": round(float(row["price"]), 2),
             "fearGreed": round(float(row["fear_greed"]) * 100, 2) if pd.notna(row["fear_greed"]) else None,
             "oscillator": round(float(row["fg_oscillator"]), 4) if pd.notna(row["fg_oscillator"]) else None,
         }
-        for idx, row in hist.iterrows()
-    ]
+        candle = _ohlc_for(idx)
+        if candle:
+            entry["ohlc"] = candle
+        history.append(entry)
     return {
         "label": label,
         "symbol": symbol,
@@ -227,20 +266,23 @@ def _build_market_sentiment_real() -> dict:
     # MA125 + minmax 윈도우 + 4달 표시 확보
     days = int(os.getenv("FG_KRX_DAYS", "420"))
 
-    kospi = fetch_index_ohlcv("KS11", days=days)["Close"]
-    kospi.index = pd.to_datetime(kospi.index)
+    # OHLCV 전체를 유지한다 — 종가만 뽑으면 프론트에서 지수를 캔들로 못 그린다.
+    kospi_ohlc = fetch_index_ohlcv("KS11", days=days)
+    kospi_ohlc.index = pd.to_datetime(kospi_ohlc.index)
+    kospi = kospi_ohlc["Close"]
     krx_kospi = krx_source.fetch_real_fg_inputs(kospi, cache_path=cache_path, max_fetch=max_fetch)
     kospi_df = fear_greed_real(kospi, krx_kospi)
 
     # KOSDAQ — 원본대로 VKOSPI·옵션·국채선물 공유, 지수만 KQ11 (cache 재사용 → 추가 fetch 거의 없음)
-    kosdaq = fetch_index_ohlcv("KQ11", days=days)["Close"]
-    kosdaq.index = pd.to_datetime(kosdaq.index)
+    kosdaq_ohlc = fetch_index_ohlcv("KQ11", days=days)
+    kosdaq_ohlc.index = pd.to_datetime(kosdaq_ohlc.index)
+    kosdaq = kosdaq_ohlc["Close"]
     krx_kosdaq = krx_source.fetch_real_fg_inputs(kosdaq, cache_path=cache_path, max_fetch=max_fetch)
     kosdaq_df = fear_greed_real(kosdaq, krx_kosdaq)
 
     return {
-        "kospi": _sentiment_record("KOSPI", "KS11", kospi_df),
-        "kosdaq": _sentiment_record("KOSDAQ", "KQ11", kosdaq_df),
+        "kospi": _sentiment_record("KOSPI", "KS11", kospi_df, ohlc_df=kospi_ohlc),
+        "kosdaq": _sentiment_record("KOSDAQ", "KQ11", kosdaq_df, ohlc_df=kosdaq_ohlc),
         "source": "krx-real",
     }
 

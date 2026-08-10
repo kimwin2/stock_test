@@ -1547,7 +1547,7 @@ body {
   font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 2px;
 }
 /* 가격창+지표창 2단 구성이라 세로가 늘었다 (130 → 150) */
-.dual-chart { width: 100%; height: auto; aspect-ratio: 360 / 150; display: block; }
+.mini-chart.dual-chart { width: 100%; height: auto; aspect-ratio: auto; display: block; }
 .legend-pos { color: #E53935; }
 .legend-neg { color: #1E88E5; }
 .legend-bar {
