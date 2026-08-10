@@ -1639,6 +1639,10 @@ def _build_theme_from_price_candidate(candidate: dict, articles: list[dict]) -> 
         "reasoning": candidate.get("reasoning", "가격 기반 급등주 군집에서 포착된 강한 테마입니다."),
         "injectedByPostProcess": True,
         "source": "price_signals",
+        # 이 테마의 존재 근거인 클러스터 종목. 종목 선정 단계에서 이 중 하나도
+        # 살아남지 못하면 테마 자체를 버려야 한다 — 이름·설명만 남기고 무관한
+        # 소스의 종목으로 채우면 정체불명 테마가 된다 (2026-08-10 실사고).
+        "_cluster_stocks": list(candidate.get("matchedStocks", [])),
     }
 
 

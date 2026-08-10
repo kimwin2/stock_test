@@ -10,6 +10,8 @@ from .models import PriceThemeCandidate
 
 
 LLM_MODEL = os.getenv("PRICE_SIGNAL_MODEL", "gemini-3.5-flash-lite")
+# theme_stocks.MIN_PRICE 와 같은 값. 이 밑의 종목은 대시보드에 절대 노출되지 않는다.
+DASHBOARD_MIN_PRICE = 1500
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 MAX_MOVER_INPUT = 36
 MAX_ARTICLE_SNIPPETS_PER_STOCK = 2
@@ -211,6 +213,8 @@ def _label_theme_candidates_with_llm(movers: list[dict], articles: list[dict], t
 - 어떤 테마에도 속하지 않는 종목은 무리하게 넣지 말고 제외하세요.
 - 저가 상한가(5000원 이하 + 상한가) 종목이라도 공통 업종/재료가 없으면 같은 테마로 묶지 마세요.
 - 각 테마의 reasoning에 종목들의 공통 업종/재료를 명확히 설명하세요.
+- reasoning 에 "모두 ~ 전문 기업"처럼 확인되지 않은 사업 내용을 단정하지 마세요.
+  기사/텔레그램 문맥에서 확인된 근거만 쓰고, 근거가 종목명뿐이면 그렇게 밝히세요.
 - 검증에 도움이 되도록 keywords를 3~6개 넣으세요.
 
 JSON만 출력하세요."""
@@ -443,7 +447,11 @@ def _select_theme_stocks(
         for keyword in keywords:
             if keyword and keyword in context_text:
                 score += 1.0
-        if mover.get("upperLimit"):
+        # 모멘텀 보너스는 테마와의 연관 근거(시드 지목·이름 조각·키워드·문맥)가
+        # 하나라도 있을 때만 준다. 무조건 주면 상한가(+5)+저가(+4)=9.0 이 통과선
+        # 2.5 를 넘어, 저가 상한가 종목이 "모든" 테마에 자동 편입된다 —
+        # 2026-08-10 실사고: 동일 저가주 8종이 무관한 테마 3개를 전부 점령했다.
+        if score > 0.0 and mover.get("upperLimit"):
             score += 5.0
             # 저가 상한가 추가 보너스 (5000원 이하)
             price = int(mover.get("price", 99999) or 99999)
@@ -557,6 +565,19 @@ def _validate_labeled_themes(
             2,
         )
 
+        # 대시보드 종목 게이트(theme_stocks.MIN_PRICE=1500, 완화 불가)를 전 종목이
+        # 통과 못 하는 클러스터는 테마로 승격해봐야 화면에 낼 종목이 하나도 없다.
+        # 그대로 두면 이름·설명만 남고 종목은 다른 소스에서 차입되는 정체불명
+        # 테마가 만들어진다 (2026-08-10 실사고: 저가 상한가 8종목 클러스터가
+        # '반도체 소부장'으로 승격 → 종목은 무관한 개미승리 테마에서 차입됨).
+        gate_eligible = sum(
+            1 for item in matched_movers
+            if float(item.get("price", 99999) or 99999) >= DASHBOARD_MIN_PRICE
+        )
+        if matched_movers and gate_eligible == 0:
+            print(f"  [배제] '{theme_name}': 전 종목이 저가 게이트({DASHBOARD_MIN_PRICE}원) 미달 — 후보 제외")
+            continue
+
         reasoning_parts = []
         reasoning = (theme.get("reasoning") or "").strip()
         if reasoning:
@@ -600,7 +621,14 @@ def _validate_labeled_themes(
         stock_set = set(candidate.get("matchedStocks", []))
         if any((saved.get("themeName") or "").strip().lower() == normalized_name for saved in deduped):
             continue
-        if any(len(stock_set & saved_set) >= min(len(stock_set), len(saved_set)) for saved_set in used_stock_sets):
+        # 완전 부분집합만 걸러내면 8종목 중 7개가 겹치고 1개만 다른 "이름만 다른
+        # 같은 클러스터"가 전부 통과한다 (2026-08-10: 동일 저가주 묶음이 바이오/
+        # 반도체 소부장/건기식 3개 테마로 중복 제출됨). 겹침 비율로 판정한다.
+        if any(
+            saved_set and stock_set
+            and len(stock_set & saved_set) / min(len(stock_set), len(saved_set)) >= 0.6
+            for saved_set in used_stock_sets
+        ):
             continue
         deduped.append(candidate)
         used_stock_sets.append(stock_set)
