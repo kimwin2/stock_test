@@ -1498,7 +1498,7 @@ body {
   background: var(--teal); color: #fff;
   font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 8px;
 }
-.dual-chart { width: 100%; height: auto; aspect-ratio: 360 / 130; display: block; }
+.dual-chart { width: 100%; height: auto; aspect-ratio: 360 / 130; display: block; flex: 1; min-width: 0; }
 .dual-legend {
   display: flex; gap: 12px; font-size: 0.7rem; color: var(--text-muted);
   margin-top: 2px; padding-left: 4px; flex-wrap: wrap;
@@ -1926,6 +1926,7 @@ body {
 .chart-legend .ln-orange { border-color: #FB8C00; }
 .chart-legend .ln-dash-red { border-top: 0; border-bottom: 1.5px dashed #E53935; height: 4px; }
 .chart-legend .ln-dash-blue { border-top: 0; border-bottom: 1.5px dashed #1E88E5; height: 4px; margin-left: 5px; }
+.chart-legend .ln-dash-grey { border-top: 0; border-bottom: 1.5px dashed #9aa6b2; height: 4px; }
 .chart-legend .cl-zone { color: #9aa49c; }
 
 /* 태그行 */

@@ -141,123 +141,118 @@ function computeCurrentMddPct(closes) {
 //   - 0선만 표시, fill 없음, 가이드 없음
 //   - matplotlib 스타일의 옅은 그리드
 // ─────────────────────────────────────────┘
+// 지수 차트 — 종목 차트(renderMiniPriceChart) 와 동일한 시각 언어로 통일.
+//   · 오실레이터 자기분포 파스텔 5밴드 음영 (상단 과열 → 하단 빈집)
+//   · 상위/중앙/하위 분위 점선 (빨강 / 회색 / 파랑)
+//   · 오실레이터는 주황선 + 끝점 도트 + 마지막 값 라벨
+//   · 지수는 검정선 + 끝점 도트, MA10 은 파랑, MA3 는 보조(연회색 점선)
+//   · 좌우 축 눈금 대신 풀블리드 + 내부 라벨 (수치는 카드 헤더에 이미 있음)
+// 종목 차트와 다른 점은 X축 라벨 포맷뿐 — 지수는 6개월 이상이라 'YY.MM' 을 쓴다.
 function renderDualAxisChart(history, opts = {}) {
-  const w = opts.width || 360;
-  const h = opts.height || 130;
-  const padL = 30, padR = 38, padT = 6, padB = 22;
-
   if (!history || history.length < 5) return '<div class="sparkline-empty">데이터 부족</div>';
 
-  const closes = history.map(p => p.close).filter(v => v != null);
-  // Oscillator: backend 가 fearGreed/100 의 MACD line 을 보냄 (±0.03 스케일).
-  // 폴백: 구 데이터에 oscillator 가 큰 스케일이면 자동 정규화.
-  const oscRaw = history.map(p => p.oscillator).filter(v => v != null);
+  const closeArr = history.map(p => p.close);
+  const closes = closeArr.filter(v => v != null);
+  const oscArr = history.map(p => (p.oscillator != null ? p.oscillator : null));
+  const oscRaw = oscArr.filter(v => v != null);
   if (closes.length < 2 || oscRaw.length < 2) return '<div class="sparkline-empty">데이터 부족</div>';
 
-  const cMin = Math.min(...closes), cMax = Math.max(...closes);
-  const cSpan = cMax - cMin || 1;
+  // ── 차트 형상 — 종목 차트와 동일 레시피 ──────────────────
+  const W = opts.width || 360, H = opts.height || 130;
+  const padL = 6, padR = 6, padT = 9, padB = 16;
+  const x0 = padL, x1 = W - padR, y0 = padT, y1 = H - padB;
+  const n = history.length;
+  const X = (i) => x0 + (n <= 1 ? 0 : (i / (n - 1)) * (x1 - x0));
 
-  // Oscillator y축 — 0선 중심 대칭 스케일, 데이터에서 자동 추출
-  const oAbsMax = Math.max(...oscRaw.map(v => Math.abs(v))) || 0.01;
-  const oRange = oAbsMax * 1.15;  // 위·아래 약간의 여백
-
-  const innerW = w - padL - padR;
-  const innerH = h - padT - padB;
-  const stepX = innerW / (history.length - 1);
-  const yMid = padT + innerH * 0.5;
-
-  const closeArr = history.map(p => p.close);
+  // 지수 · MA — 전체 높이 스케일
   const ma3 = computeMA(closeArr, 3);
   const ma10 = computeMA(closeArr, 10);
-  const projectClose = (v, i) => {
-    if (v == null) return null;
-    const x = padL + i * stepX;
-    const y = padT + (1 - (v - cMin) / cSpan) * innerH;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  const pAll = closes.concat(ma10.filter(v => v != null));
+  let pMin = Math.min(...pAll), pMax = Math.max(...pAll);
+  const pPad = (pMax - pMin) * 0.08 || 1; pMin -= pPad; pMax += pPad;
+  const yP = (v) => y0 + (1 - (v - pMin) / (pMax - pMin)) * (y1 - y0);
+  const toPts = (arr) => arr.map((v, i) => v == null ? null : `${X(i).toFixed(1)},${yP(v).toFixed(1)}`)
+                            .filter(Boolean).join(' ');
+  const closePts = toPts(closeArr);
+  const ma3Pts = toPts(ma3);
+  const ma10Pts = toPts(ma10);
+
+  // 오실레이터 — 자기분포 밴드 + 분위 점선 + 주황선
+  const oscVals = oscArr.map(v => v == null ? 0 : v);
+  let oMin = Math.min(...oscVals), oMax = Math.max(...oscVals);
+  const oPad = (oMax - oMin) * 0.12 || 0.001; oMin -= oPad; oMax += oPad;
+  const yO = (v) => y0 + (1 - (v - oMin) / (oMax - oMin)) * (y1 - y0);
+  const lastOsc = oscVals[oscVals.length - 1];
+
+  const sorted = [...oscVals].sort((a, b) => a - b);
+  const pq = (q) => sorted[Math.max(0, Math.min(sorted.length - 1, Math.round(q * (sorted.length - 1))))];
+  const p90 = pq(0.90), p75 = pq(0.75), p50 = pq(0.50), p25 = pq(0.25), p10 = pq(0.10);
+
+  const band = (a, b, fill) => {
+    const t = Math.min(a, b), bt = Math.max(a, b), hh = bt - t;
+    return hh < 0.5 ? '' : `<rect x="${x0}" y="${t.toFixed(1)}" width="${(x1 - x0).toFixed(1)}" height="${hh.toFixed(1)}" fill="${fill}"/>`;
   };
-  const closePts = closeArr.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
-  const ma3Pts = ma3.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
-  const ma10Pts = ma10.map((v, i) => projectClose(v, i)).filter(Boolean).join(' ');
+  const bands =
+    band(y0, yO(p90), '#fdecee') +
+    band(yO(p90), yO(p75), '#fcf4f5') +
+    band(yO(p75), yO(p25), '#f7f8fa') +
+    band(yO(p25), yO(p10), '#eef6f1') +
+    band(yO(p10), y1, '#e6f4ec');
+  const dl = (y, color, dash) =>
+    `<line x1="${x0}" y1="${y.toFixed(1)}" x2="${x1}" y2="${y.toFixed(1)}" stroke="${color}" stroke-width="0.9"${dash ? ` stroke-dasharray="${dash}"` : ''} opacity="0.6"/>`;
+  const dashed = dl(yO(p90), '#E53935', '3 3') + dl(yO(p10), '#1E88E5', '3 3') + dl(yO(p50), '#cbb8bb', '');
+  const oscPts = oscVals.map((v, i) => `${X(i).toFixed(1)},${yO(v).toFixed(1)}`).join(' ');
+  const oscLine = `<polyline points="${oscPts}" fill="none" stroke="#FB8C00" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`;
 
-  const oscPts = history.map((p, i) => {
-    if (p.oscillator == null) return null;
-    const x = padL + i * stepX;
-    const y = yMid - (p.oscillator / oRange) * (innerH * 0.5);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).filter(Boolean).join(' ');
+  // 오실레이터 0선 — F&G 는 부호(공포/탐욕 전환)가 의미를 가지므로 유지.
+  const zeroLine = (oMin < 0 && oMax > 0)
+    ? `<line x1="${x0}" y1="${yO(0).toFixed(1)}" x2="${x1}" y2="${yO(0).toFixed(1)}" stroke="#b9c2b9" stroke-width="0.8"/>`
+    : '';
 
-  // y축 ticks — oscillator 는 5개 단계 (위 2 / 0 / 아래 2)
-  const niceStep = (() => {
-    const candidates = [0.005, 0.01, 0.02, 0.05];
-    for (const s of candidates) {
-      if (oRange / s <= 3) return s;
-    }
-    return 0.05;
-  })();
-  const oTicks = [];
-  for (let i = -2; i <= 2; i++) {
-    const v = i * niceStep;
-    if (Math.abs(v) > oRange) continue;
-    const y = yMid - (v / oRange) * (innerH * 0.5);
-    oTicks.push({ v, y });
+  const oscFg =
+    `<circle cx="${X(n - 1).toFixed(1)}" cy="${yO(lastOsc).toFixed(1)}" r="2.2" fill="#FB8C00"/>` +
+    // '과열' 은 좌측에 둔다 — 우측 끝은 오실레이터 끝점 도트·값 라벨이 쓰는 자리라
+    // 종목 차트처럼 우측에 두면 상승 구간에서 선과 겹친다.
+    `<text x="${(x0 + 3).toFixed(1)}" y="${(yO(p90) - 3).toFixed(1)}" font-size="8.5" font-weight="700" fill="#E53935" text-anchor="start">과열</text>` +
+    `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(lastOsc) + (lastOsc >= p50 ? 11 : 3)).toFixed(1)}" font-size="9.5" font-weight="900" fill="#E65100" text-anchor="end">${lastOsc.toFixed(3)}</text>`;
+
+  // 지수 끝점 + 내부 라벨 (종목 차트의 시총 라벨 자리)
+  const lastClose = [...closeArr].reverse().find(v => v != null);
+  const closeDot = `<circle cx="${X(n - 1).toFixed(1)}" cy="${yP(lastClose).toFixed(1)}" r="2" fill="#1A1A1A"/>`;
+  const closeLabelSvg = `<text x="${x0 + 3}" y="${yP((pMin + pMax) / 2).toFixed(1)}" font-size="9.5" font-weight="800" fill="#5a6675">${fEscape(Math.round(lastClose).toLocaleString('ko-KR'))}</text>`;
+
+  // X축 라벨 — 종목 차트와 같은 5틱. 지수는 기간이 길고 연도를 넘기므로 'YY.MM'.
+  let axisLabels = '';
+  const dates = history.map(p => p.date);
+  if (dates.length >= 2 && dates[0]) {
+    const fmt = (s) => {
+      const m = /^(\d{2})(\d{2})-(\d{2})-\d{2}$/.exec(s);
+      return m ? `${m[2]}.${m[3]}` : s;
+    };
+    const last = dates.length - 1;
+    const ticks = [[0, 'start'], [Math.round(last * 0.25), 'middle'], [Math.round(last * 0.5), 'middle'], [Math.round(last * 0.75), 'middle'], [last, 'end']];
+    axisLabels = ticks
+      .filter(([i]) => dates[i])
+      .map(([i, a]) => `<text x="${X(i).toFixed(1)}" y="${H - 4}" font-size="9" fill="#9aa49c" text-anchor="${a}">${fmt(dates[i])}</text>`)
+      .join('');
   }
-
-  const cTickCount = 4;
-  const cTicks = [];
-  for (let i = 0; i <= cTickCount; i++) {
-    const v = cMin + (cSpan * i) / cTickCount;
-    const y = padT + (1 - (v - cMin) / cSpan) * innerH;
-    cTicks.push({ v, y });
-  }
-
-  const oAxis = oTicks.map(t => `
-    <line x1="${padL}" y1="${t.y.toFixed(1)}" x2="${w - padR}" y2="${t.y.toFixed(1)}" stroke="#eee" stroke-width="0.5"/>
-    <text x="${(padL - 3).toFixed(1)}" y="${(t.y + 2.5).toFixed(1)}" text-anchor="end" font-size="7" fill="#6A5ACD">${t.v >= 0 ? ' ' : ''}${t.v.toFixed(2)}</text>
-  `).join('');
-
-  const cAxis = cTicks.map(t => `
-    <text x="${(w - padR + 3).toFixed(1)}" y="${(t.y + 2.5).toFixed(1)}" text-anchor="start" font-size="7" fill="#444">${t.v.toFixed(0)}</text>
-  `).join('');
-
-  // 0선 강조
-  const zeroLine = `<line x1="${padL}" y1="${yMid.toFixed(1)}" x2="${w - padR}" y2="${yMid.toFixed(1)}" stroke="#999" stroke-width="0.8"/>`;
-
-  // X축 월별 라벨 — 월이 바뀌는 첫 데이터 포인트마다 "YY.MM" 표기
-  const xLabels = [];
-  let prevMonth = null;
-  history.forEach((p, i) => {
-    if (!p.date) return;
-    const ym = p.date.slice(0, 7);  // "YYYY-MM"
-    if (ym === prevMonth) return;
-    prevMonth = ym;
-    const yy = p.date.slice(2, 4);
-    const mm = p.date.slice(5, 7);
-    const x = padL + i * stepX;
-    xLabels.push({ x, label: `${yy}.${mm}` });
-  });
-  // 너무 빽빽하면 격월로 솎아내기 (라벨 사이 최소 픽셀)
-  const minLabelGap = 36;
-  const xLabelsThin = [];
-  let lastX = -Infinity;
-  xLabels.forEach(l => {
-    if (l.x - lastX >= minLabelGap) { xLabelsThin.push(l); lastX = l.x; }
-  });
-  const xAxis = xLabelsThin.map(l => `
-    <line x1="${l.x.toFixed(1)}" y1="${(padT + innerH).toFixed(1)}" x2="${l.x.toFixed(1)}" y2="${(padT + innerH + 3).toFixed(1)}" stroke="#999" stroke-width="0.5"/>
-    <text x="${l.x.toFixed(1)}" y="${(padT + innerH + 11).toFixed(1)}" text-anchor="middle" font-size="7" fill="#666">${l.label}</text>
-  `).join('');
 
   return `
-    <svg viewBox="0 0 ${w} ${h}" class="dual-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-      ${oAxis}
-      ${zeroLine}
-      ${cAxis}
-      ${xAxis}
-      <polyline points="${oscPts}" fill="none" stroke="#6A5ACD" stroke-width="1.6"/>
-      <polyline points="${closePts}" fill="none" stroke="#1A1A1A" stroke-width="1.6"/>
-      ${ma3Pts ? `<polyline points="${ma3Pts}" fill="none" stroke="#FB8C00" stroke-width="1.1"/>` : ''}
-      ${ma10Pts ? `<polyline points="${ma10Pts}" fill="none" stroke="#1E88E5" stroke-width="1.2"/>` : ''}
-    </svg>
+    <div class="mini-chart-wrap">
+      <svg viewBox="0 0 ${W} ${H}" class="dual-chart" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+        ${bands}
+        ${dashed}
+        ${zeroLine}
+        ${oscLine}
+        ${ma3Pts ? `<polyline points="${ma3Pts}" fill="none" stroke="#9aa6b2" stroke-width="1" stroke-dasharray="2 2"/>` : ''}
+        ${ma10Pts ? `<polyline points="${ma10Pts}" fill="none" stroke="#1E88E5" stroke-width="1"/>` : ''}
+        <polyline points="${closePts}" fill="none" stroke="#1A1A1A" stroke-width="1.3"/>
+        ${closeDot}
+        ${oscFg}
+        ${closeLabelSvg}
+        ${axisLabels}
+      </svg>
+    </div>
   `;
 }
 
@@ -558,11 +553,13 @@ function buildStep1Card(sentiment, cash) {
           </div>
           ${renderDualAxisChart(q.history)}
         </div>
-        <div class="dual-legend">
-          <span class="legend-fg">━ Fear &amp; Greed Oscillator</span>
-          <span class="legend-price">━ 지수</span>
-          <span class="legend-ma3">━ MA3</span>
-          <span class="legend-ma10">━ MA10</span>
+        <div class="chart-legend">
+          <span><i class="ln ln-black"></i>지수</span>
+          <span><i class="ln ln-blue"></i>MA10</span>
+          <span><i class="ln ln-dash-grey"></i>MA3</span>
+          <span><i class="ln ln-orange"></i>Fear &amp; Greed 오실레이터</span>
+          <span><i class="ln ln-dash-red"></i>상위<i class="ln ln-dash-blue"></i>하위 분위</span>
+          <span class="cl-zone">음영: 공포·저평가 → 과열</span>
         </div>
       </div>
     </div>
