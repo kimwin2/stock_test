@@ -66,11 +66,51 @@ SECTOR_ALIASES: dict[str, str] = {
     "데이터센터": "전력기기",
     "데이터센터인프라": "전력기기",
     "배전": "전력기기",
+    # 기판·부품 — 종목군이 우리 '반도체장비'(심텍·대덕전자·코리아써키트·엠케이전자)와
+    # 같다. 이름만 다른데 '사전 누락' 으로 세면 없는 결함을 만들어낸다.
+    "기판": "반도체장비",
+    "PCB": "반도체장비",
+    "패키지기판": "반도체장비",
+    "리드프레임": "반도체장비",
+    "장비": "반도체장비",
+    "MLCC": "반도체",          # 삼성전기
+    "메모리": "반도체",
+    "파운드리": "반도체",        # DB하이텍
+    "전력반도체": "반도체",      # "전력" 부분일치로 전력기기에 끌려가던 것 고정
+    "연료전지": "연료전지/수소",
+    "원자력": "원전",
+    "항공방산": "방산",
+    "음식료": "유통/음식료",
+    "식품": "유통/음식료",
+    "지주사": "지주",
+    "친환경": "신재생",
+    "신재생에너지": "신재생",
+    # 레퍼런스가 국장 대응군으로 직접 지목한 이름이 현대오토에버·LG CNS·삼성SDS 다.
+    # 우리는 그 종목들을 '게임/IT' 에 두고 있으므로 같은 대상이다.
+    "소프트웨어": "게임/IT",
+    "클라우드": "게임/IT",
+    "SI": "게임/IT",
+    "보안": "게임/IT",
+    # 통신장비/광통신 — 이통3사(통신)와 다른 축이다. 레퍼런스도 '통신' 과 '네트워크' 를
+    # 같은 날 따로 적는다. 계열로 묶지 않고 별도 섹터로 대응시킨다.
+    "네트워크": "통신장비",
+    "네트워킹": "통신장비",
+    "광통신": "통신장비",
+    "통신장비": "통신장비",
 }
 
 # 개별 테마가 아니라 분류 체계 상위어. 매매 대상이 아니므로 대조에서 제외한다.
 # 이런 단어를 '사전 누락' 으로 세면 SECTOR_RULES 에 잡동사니를 추가하게 된다.
 UMBRELLA_TERMS = {"산업재", "경기소비재", "필수소비재", "소재", "IT", "성장주", "가치주", "대형주", "중소형주"}
+
+# 섹터가 아니라 여집합·부정 표현. 추출기가 "반도체 및 비반도체 차별화" 같은
+# 리포트 문구에서 그대로 긁어온다. 이걸 '사전 누락' 으로 세면 SECTOR_RULES 에
+# '비반도체' 를 추가하게 되는데, 그런 섹터는 존재할 수 없다.
+NON_SECTOR_TERMS = {"비반도체", "비주도업종", "낙폭과대", "기타"}
+
+# 한 항목에 두 섹터가 들어있는 표기 ("자동차 및 로봇", "PCB 및 기판").
+# 쪼개지 않으면 둘 다 맞혀도 문자열이 달라 '사전 누락' 으로 잡힌다.
+_COMPOUND_SPLIT = re.compile(r"\s*(?:및|and|·|,|＆|&)\s*")
 
 
 # 같은 계열로 볼 섹터 묶음.
@@ -99,6 +139,17 @@ def family_of(sector: str) -> set[str]:
     return {sector}
 
 
+def split_compound(name: str) -> list[str]:
+    """'자동차 및 로봇' → ['자동차', '로봇'], '네트워크(통신)' → ['네트워크'].
+
+    괄호 보충설명과 접속사 나열을 풀지 않으면, 두 섹터를 다 맞힌 날도
+    문자열이 달라 '사전 누락' 으로 집계된다.
+    """
+    base = re.sub(r"[（(].*?[)）]", "", name or "")
+    parts = [p.strip() for p in _COMPOUND_SPLIT.split(base) if p.strip()]
+    return parts or ([name.strip()] if (name or "").strip() else [])
+
+
 def normalize_sector(name: str) -> str:
     """레퍼런스 섹터 표현 → 우리 섹터명. 매핑이 없으면 원문 유지."""
     s = re.sub(r"\s+", "", (name or "")).strip()
@@ -121,10 +172,14 @@ def load_reference(date_str: str) -> dict | None:
     raw = json.loads(path.read_text())
 
     kr_cash = ((raw.get("cash") or {}).get("kr") or {})
-    sectors_raw = [
-        s for s in (raw.get("sectors") or [])
-        if s and re.sub(r"\s+", "", s) not in UMBRELLA_TERMS
-    ]
+    sectors_raw: list[str] = []
+    for entry in (raw.get("sectors") or []):
+        for s in split_compound(entry):
+            flat = re.sub(r"\s+", "", s)
+            if not flat or flat in UMBRELLA_TERMS or flat in NON_SECTOR_TERMS:
+                continue
+            if s not in sectors_raw:
+                sectors_raw.append(s)
     tickers = [t for t in (raw.get("tickers") or []) if t]
 
     return {
