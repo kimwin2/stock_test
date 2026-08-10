@@ -108,7 +108,7 @@ sam deploy --parameter-overrides "GeminiApiKey=AIza-your-key"
 | S3 | 5GB 무료 | $0 |
 | EventBridge | 무료 | $0 |
 | GitHub Pages | 무료 | $0 |
-| Gemini API | - | ~$1/월 (gemini-2.5-flash-lite) |
+| Gemini API | - | ~$1/월 (gemini-3.5-flash-lite) |
 
 ## 라이선스
 

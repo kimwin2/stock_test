@@ -19,7 +19,7 @@ from .dart_source import collect_disclosure_events
 KST = timezone(timedelta(hours=9))
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-DEFAULT_BRIEFING_MODEL = "gemini-2.5-flash-lite"
+DEFAULT_BRIEFING_MODEL = "gemini-3.5-flash-lite"
 
 DISCLAIMER = (
     "본 브리핑은 공개 데이터(자체 산출 시그널·금감원 DART 공시)의 요약이며, "

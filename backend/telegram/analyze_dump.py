@@ -31,7 +31,7 @@ except ImportError:
     OpenAI = None
 
 
-GPT_MODEL = os.getenv("TG_ANALYZE_MODEL", "gemini-2.5-flash-lite")
+GPT_MODEL = os.getenv("TG_ANALYZE_MODEL", "gemini-3.5-flash-lite")
 BATCH_SIZE = int(os.getenv("TG_ANALYZE_BATCH", "80"))
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 

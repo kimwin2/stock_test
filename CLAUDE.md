@@ -10,7 +10,7 @@
 2. **수급·주도** — Fear & Greed 오실레이터, 주도 ETF Mansfield RS, 수급 빈집, 거래대금 강도 (TI), 외인/기관 섹터별 매수, 매수 후보 차트
 3. **AI 브리핑** — 자체 시그널(F&G/주도섹터/수급/빈집) 변화 + DART 공시 이벤트를 Gemini 가 서술형 브리핑으로 작성 (`backend/briefing/`). 예측·조언 문장 금지, 데이터 서술만. DART_API_KEY 없으면 공시 섹션 스킵, LLM 실패 시 규칙 기반 fallback. S3 데이터에 briefing 키가 없으면 프론트는 `briefing_sample.json` 으로 샘플 미리보기 표시.
 
-**스택**: Python(AWS Lambda) + vanilla JS(GitHub Pages) · 데이터: Naver mobile API, FinanceDataReader, Telegram(Telethon), Gemini (OpenAI SDK + Gemini OpenAI-호환 endpoint, model `gemini-2.5-flash-lite`)
+**스택**: Python(AWS Lambda) + vanilla JS(GitHub Pages) · 데이터: Naver mobile API, FinanceDataReader, Telegram(Telethon), Gemini (OpenAI SDK + Gemini OpenAI-호환 endpoint, model `gemini-3.5-flash-lite`)
 
 **배포**:
 - Lambda: 평일 8~16시 10분 간격(theme), 평일 8~20시 정각(flow)

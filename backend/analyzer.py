@@ -46,7 +46,11 @@ if sys.stdout.encoding != 'utf-8':
 
 load_dotenv()
 
-DEFAULT_THEME_ANALYSIS_MODEL = "gemini-2.5-flash-lite"
+# 2026-08-10: gemini-2.5-flash-lite 의 무료 등급 일일 한도가 20회라 아침에 소진,
+# 이후 종일 429 로 테마 갱신이 멈췄다 (10분 간격 × 회당 2~3콜 = 하루 ~150콜 필요).
+# 3.5-flash-lite 는 같은 계정에서 그 이상을 감당하는 것이 실측 확인됨 (stock_chat 파이프라인).
+# 모델을 바꿀 땐 반드시 실호출로 일일 한도부터 확인할 것 — 문서 값과 다르다.
+DEFAULT_THEME_ANALYSIS_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_THEME_ANALYSIS_MAX_TOKENS = 3000
 DEFAULT_THEME_ANALYSIS_TEMPERATURE = 0.3
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -360,7 +364,7 @@ def _build_theme_analysis_request(model_name: str, user_prompt: str) -> dict:
     }
 
 
-# gemini-2.5-flash-lite 는 수요가 몰리면 503(UNAVAILABLE)/429 를 자주 돌려준다.
+# gemini-3.5-flash-lite 는 수요가 몰리면 503(UNAVAILABLE)/429 를 자주 돌려준다.
 # 재시도가 없으면 일시적 스파이크 한 번에 그날 테마 분석이 통째로 날아간다.
 THEME_ANALYSIS_RETRY_STATUSES = (429, 500, 502, 503, 504)
 THEME_ANALYSIS_MAX_ATTEMPTS = 4
