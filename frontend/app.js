@@ -36,6 +36,24 @@ function formatDatetime(isoStr) {
   return `${mm}-${dd}(${day}) ${hh}:${mi}`;
 }
 
+// 테마 분석이 실패한 회차에는 서버가 기존 themes 를 그대로 두고 updatedAt 만 갱신한다.
+// 그 사실을 화면에 드러내지 않으면 "갱신: 방금" 표시 때문에 낡은 테마를 최신으로 오인한다.
+function renderThemeStaleNotice(grid, data) {
+  const prev = document.getElementById('theme-stale-notice');
+  if (prev) prev.remove();
+  if (!data || !data.themesError) return;
+
+  const since = data.themesGeneratedAt ? formatDatetime(data.themesGeneratedAt) : null;
+  const el = document.createElement('div');
+  el.id = 'theme-stale-notice';
+  el.className = 'stale-notice';
+  el.innerHTML = `
+    <strong>테마 갱신이 멈춰 있습니다</strong>
+    <span>${escapeHTML(data.themesError)}${since ? ` · 마지막 성공 ${escapeHTML(since)}` : ''}</span>
+  `;
+  grid.parentNode.insertBefore(el, grid);
+}
+
 function getChangeClass(rate) {
   if (rate > 0) return 'up';
   if (rate < 0) return 'down';
@@ -134,28 +152,113 @@ function createStockItem(stock) {
 }
 
 /**
- * Theme Card 렌더링
+ * 등락률 → "+30.00%" / "-1.20%" (칩·대표종목용, 화살표 없이 부호로)
  */
-function createThemeCard(theme) {
+function formatPct(rate) {
+  const r = rate || 0;
+  return `${r >= 0 ? '+' : ''}${r.toFixed(2)}%`;
+}
+
+/**
+ * 당일 레인지 바 (Day's Range) — HTS·블룸버그가 쓰는 표준 표현.
+ *
+ * 반원 아크는 등락률 하나만 인코딩했는데, 그 값은 행 우측에 숫자로 이미
+ * 있어서 정보가 중복됐다. 레인지 바는 "오늘 저가~고가 중 현재가가 어디에
+ * 있나"를 보여준다 — 고가 부근 마감인지 밀린 마감인지가 한눈에 읽힌다.
+ *
+ *   저가 ├───[ 시가 ▓▓▓▓ 현재가 ]───┤ 고가
+ *                  ╎ 전일종가
+ */
+function dayRangeBar(stock) {
+  const W = 108, H = 34;
+  const x0 = 4, x1 = W - 4, trackY = 14, trackH = 8;
+  const mid = (x0 + x1) / 2;
+  const half = (x1 - x0) / 2;
+
+  const rate = stock.changeRate || 0;
+  const up = rate >= 0;
+  const color = up ? '#E53935' : '#1565C0';
+
+  // 한국장 상·하한 ±30% 를 반쪽 꽉 참으로 매핑한다.
+  //
+  // 예전에는 저가~고가 안에서 현재가 위치를 그렸는데, 그러면 변동폭이 좁은 날
+  // 2% 종목도 30% 종목도 똑같이 가득 차 보인다 — 막대 길이가 등락률과 무관해
+  // 카드끼리 비교가 안 됐다. 0% 를 가운데 두고 |등락률|/30 만큼 채운다.
+  const MAX_RATE = 30;
+  const f = Math.min(1, Math.abs(rate) / MAX_RATE);
+  const segW = Math.max(1.5, f * half);
+  const segX = up ? mid : mid - segW;
+
+  const gid = `rb-${Math.random().toString(36).slice(2, 7)}`;
+  const tick = (frac) => {
+    const x = mid + frac * half;
+    return `<line x1="${x.toFixed(1)}" y1="${trackY - 1.5}" x2="${x.toFixed(1)}" y2="${trackY + trackH + 1.5}" stroke="#DDD3C0" stroke-width="0.8"/>`;
+  };
+
+  return `<svg class="bs-range" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <defs>
+      <linearGradient id="${gid}" x1="${up ? 0 : 1}" y1="0" x2="${up ? 1 : 0}" y2="0">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="1"/>
+      </linearGradient>
+    </defs>
+    <rect x="${x0}" y="${trackY}" width="${x1 - x0}" height="${trackH}" rx="4" fill="#F2EADB"/>
+    ${tick(-0.5)}${tick(0.5)}
+    <rect x="${segX.toFixed(1)}" y="${trackY}" width="${segW.toFixed(1)}" height="${trackH}" rx="${Math.min(4, segW / 2).toFixed(1)}" fill="url(#${gid})"/>
+    <line x1="${mid}" y1="${trackY - 3}" x2="${mid}" y2="${trackY + trackH + 3}" stroke="#8C8474" stroke-width="1.2"/>
+    <text x="${x0}" y="9" font-size="6.8" fill="#bdb4a2">-30%</text>
+    <text x="${mid}" y="9" font-size="6.8" fill="#bdb4a2" text-anchor="middle">0</text>
+    <text x="${x1}" y="9" font-size="6.8" fill="#bdb4a2" text-anchor="end">+30%</text>
+  </svg>`;
+}
+
+/**
+ * Theme Card 렌더링 — 매거진 브리핑 (C안)
+ * 큰 세리프 타이틀 + 뉴스 한 줄 + 대표종목(레인지 바) + 종목 칩
+ */
+// 테마 종목을 우리 수급 데이터와 대조한다.
+//
+// 재료·테마 자체는 무료 서비스와 겹치고, 수동 실시간 중계를 하는 업체와도
+// 경쟁이 안 된다. 우리가 더할 수 있는 건 "이 테마에서 수급이 빈 종목은
+// 어느 것인가" — 뉴스로 뜬 테마 중 아직 외인·기관이 안 들어온 자리다.
+function supplyTagFor(name) {
+  const flow = (typeof flowData !== 'undefined' && flowData) ? flowData : null;
+  if (!flow || !name) return '';
+  const n = String(name).replace(/\s+/g, '');
+  const hit = (flow.buyCandidates || []).find(c => String(c.name || '').replace(/\s+/g, '') === n);
+  if (hit) return `<span class="ts-tag ts-cand" title="수급 빈집 조건 통과 종목">빈집 · 조건통과</span>`;
+  const uni = (flow.universeMetadata || []).find(m => String(m.name || '').replace(/\s+/g, '') === n);
+  if (uni) return `<span class="ts-tag ts-uni" title="분석 유니버스에 포함">유니버스</span>`;
+  return '';
+}
+
+function createThemeCard(theme, index = 0) {
   const card = document.createElement('div');
-  card.className = 'theme-card';
+  card.className = 'brief';
+
   const primaryHeadlineLink = theme.headlineUrl
     || theme.headlineLink?.url
     || (Array.isArray(theme.headlineLinks) ? theme.headlineLinks[0]?.url : '')
     || '';
 
-  // Header
-  const header = document.createElement('div');
-  header.className = 'card-header';
-  header.innerHTML = `
-    <span class="card-theme-name">${escapeHTML(theme.themeName)}</span>
-    <span class="card-volume">${escapeHTML(theme.totalVolume)}</span>
-  `;
-  card.appendChild(header);
+  // 상장·시세 있는 종목만 (미상장 skip)
+  const stocks = (theme.stocks || []).filter(s => !(s.price === 0 && s.changeRate === 0));
+  const kicker = index === 0 ? 'TODAY · 오늘의 주도 테마' : '급등 테마';
 
-  // Headline
-  const headlineDiv = document.createElement('div');
-  headlineDiv.className = 'card-headline';
+  // 상단(키커 + 타이틀/거래대금 + 뉴스 한 줄)
+  const head = document.createElement('div');
+  head.innerHTML = `
+    <div class="brief-kick">${escapeHTML(kicker)}</div>
+    <div class="brief-row1">
+      <div class="brief-title">${escapeHTML(theme.themeName)}</div>
+      <div class="brief-vol">${escapeHTML(theme.totalVolume || '')}</div>
+    </div>
+  `;
+  card.appendChild(head);
+
+  // 뉴스 한 줄 (근거) — 링크 유지
+  const why = document.createElement('div');
+  why.className = 'brief-why';
   if (primaryHeadlineLink) {
     const a = document.createElement('a');
     a.href = primaryHeadlineLink;
@@ -163,20 +266,34 @@ function createThemeCard(theme) {
     a.rel = 'noopener noreferrer';
     a.textContent = theme.headline || '';
     a.title = '관련 뉴스 보기';
-    headlineDiv.appendChild(a);
+    why.appendChild(a);
   } else {
-    headlineDiv.textContent = theme.headline || '';
+    why.textContent = theme.headline || '';
   }
-  card.appendChild(headlineDiv);
+  if (theme.headline) card.appendChild(why);
 
-  // Stock list
-  const stocks = theme.stocks || [];
-  stocks.forEach(stock => {
-    const stockEl = createStockItem(stock);
-    if (stockEl) {
-      card.appendChild(stockEl);
-    }
-  });
+  // 종목 행 — 전 종목 리치 표현 (아크 게이지 + 이름 + 가격·거래대금 + 정확한 등락%)
+  if (stocks.length) {
+    const list = document.createElement('div');
+    list.className = 'brief-stocks';
+    list.innerHTML = stocks.map(s => {
+      const cls = getChangeClass(s.changeRate);
+      const sub = [
+        `${formatPrice(s.price)}원`,
+        s.time ? escapeHTML(s.time) : '',
+        s.volume ? `거래대금 ${escapeHTML(s.volume)}` : '',
+      ].filter(Boolean).join(' · ');
+      return `<div class="brief-stock">
+        <div class="bs-info">
+          <div class="bs-name">${escapeHTML(s.name)}${s.isTop ? '<span class="bs-top">대표</span>' : ''}${supplyTagFor(s.name)}</div>
+          <div class="bs-sub">${sub}</div>
+        </div>
+        ${dayRangeBar(s)}
+        <div class="bs-chg ${cls}">${formatPct(s.changeRate)}</div>
+      </div>`;
+    }).join('');
+    card.appendChild(list);
+  }
 
   return card;
 }
@@ -228,10 +345,20 @@ async function loadAndRender() {
     // Clear loading
     if (loading) loading.remove();
 
+    // 테마 분석이 실패하면 updatedAt 만 갱신되고 테마는 마지막 성공분이 그대로 남는다.
+    // 이걸 표시하지 않으면 "갱신: 방금"으로 보여 몇 달 지난 데이터를 최신으로 오인한다.
+    renderThemeStaleNotice(grid, data);
+
+    // 수급 대조 태그를 붙이려면 flow 데이터가 먼저 있어야 한다.
+    // 실패해도 테마 자체는 그려야 하므로 조용히 넘어간다.
+    if (typeof loadFlow === 'function') {
+      try { await loadFlow(); } catch (e) { /* 태그만 생략 */ }
+    }
+
     // Render theme cards
     const themes = data.themes || [];
-    themes.forEach(theme => {
-      grid.appendChild(createThemeCard(theme));
+    themes.forEach((theme, i) => {
+      grid.appendChild(createThemeCard(theme, i));
     });
 
     // Render ticker

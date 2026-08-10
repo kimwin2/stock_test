@@ -10,7 +10,7 @@
 2. **수급·주도** — Fear & Greed 오실레이터, 주도 ETF Mansfield RS, 수급 빈집, 거래대금 강도 (TI), 외인/기관 섹터별 매수, 매수 후보 차트
 3. **AI 브리핑** — 자체 시그널(F&G/주도섹터/수급/빈집) 변화 + DART 공시 이벤트를 Gemini 가 서술형 브리핑으로 작성 (`backend/briefing/`). 예측·조언 문장 금지, 데이터 서술만. DART_API_KEY 없으면 공시 섹션 스킵, LLM 실패 시 규칙 기반 fallback. S3 데이터에 briefing 키가 없으면 프론트는 `briefing_sample.json` 으로 샘플 미리보기 표시.
 
-**스택**: Python(AWS Lambda) + vanilla JS(GitHub Pages) · 데이터: Naver mobile API, FinanceDataReader, Telegram(Telethon), Gemini (OpenAI SDK + Gemini OpenAI-호환 endpoint, model `gemini-2.5-flash-lite`)
+**스택**: Python(AWS Lambda) + vanilla JS(GitHub Pages) · 데이터: Naver mobile API, FinanceDataReader, Telegram(Telethon), Gemini (OpenAI SDK + Gemini OpenAI-호환 endpoint, model `gemini-3.5-flash-lite`)
 
 **배포**:
 - Lambda: 평일 8~16시 10분 간격(theme), 평일 8~20시 정각(flow)
@@ -92,7 +92,41 @@ sam build && sam deploy --parameter-overrides "GeminiApiKey=AIza..."
 # 텔레그램 채널 덤프 + 분석 (개인 분석 도구)
 cd backend && python -m telegram.fetch_dump --channel "https://t.me/+..." --limit 1000 --out telegram/dev/<name>_raw.json
 cd backend && python -m telegram.analyze_dump --in telegram/dev/<name>_raw.json
+
+# 참고 채널 대조 (개발용 — 자세한 내용은 backend/benchmark/README.md)
+cd backend && python -m benchmark.compare --all
+
+# flow 수동 실행 (스케줄은 평일 8~20시라 주말·장외에는 안 돈다)
+printf '{"mode":"flow"}' > /tmp/p.json
+aws lambda invoke --function-name stock-pipeline --invocation-type Event --payload file:///tmp/p.json /tmp/out.json
 ```
+
+> **주의**: 섹터 분류·주도섹터 로직을 고치면 반드시 배포 후 `mode=flow` 로 돌려
+> `candidateFilterStats` 의 `beforeFilter`/`afterFilter`/`scoreCutoffRelaxed` 를
+> 이전 값과 비교할 것. 코드만 보고 끝내면 후보가 30% 줄어든 걸 놓친다 (실제로 겪음).
+
+## 참고 채널 대조 (backend/benchmark/)
+
+수급·시황 탭이 숙련 트레이더의 판단에 얼마나 수렴하는지 **측정**하는 개발용 도구.
+
+- **경계**: 레퍼런스의 문장·수치를 제품에 실어 나르지 않는다. Lambda 배포·S3 산출물·
+  사용자 화면 어디에도 들어가지 않는다. 유료 상품이라 외부 코멘트에 의존할 수 없고,
+  의존하면 그 채널이 멈추는 순간 제품도 멈춘다. 정답지(평가용)로만 쓴다.
+- **개선 경로**: 대조에서 나온 격차는 항상 **우리 계산 로직**에 반영한다.
+  `사전 누락`(SECTOR_RULES 에 그 섹터 자체가 없음) → 코드 결함,
+  `순위 누락`(사전엔 있는데 주도섹터로 안 뽑힘) → 임계값 문제. 처방이 다르다.
+- 하루치 노이즈로 로직을 흔들지 않도록 **2일 이상 반복된 격차만** 조치 후보로 낸다.
+
+```bash
+cd backend
+python -m benchmark.compare --date 2026-08-01
+python -m benchmark.compare --all --flow-dir <일별 스냅샷 디렉터리>
+```
+
+레퍼런스 경로는 `REFERENCE_DAILY_DIR` 환경변수(기본 `~/repo/stock_chat/data/daily`).
+flow 산출물은 매 실행마다 `s3://<bucket>/history/flow/YYYY-MM-DD.json` 로 스냅샷이
+남으므로, 같은 날짜끼리 대조하려면 이걸 받아서 `--flow-dir` 로 준다. 날짜가 어긋나면
+도구가 경고한다 (다른 날 시장을 견주면 섹터 비교가 성립하지 않는다).
 
 ## 알려진 이슈 / 메모
 
@@ -117,6 +151,33 @@ cd backend && python -m telegram.analyze_dump --in telegram/dev/<name>_raw.json
   (추세·빈집은 전략의 정의라 완화 금지).
 - `exitSignals` 는 하드 필터 **이전** 풀(`pre_filter_candidates`)에서 산출한다. 필터 후 풀로
   계산하면 "10MA 이탈" 조건이 영원히 성립하지 않는다.
+
+### 섹터 분류 — 가장 조용하고 큰 결함 (2026-08-09)
+
+`classify_sector` 는 **회사명에 업종 키워드가 있을 때만** 동작한다. 한국 기업명에는
+업종이 잘 안 들어가서, 이 방식만으로는 절반이 '기타'로 빠진다.
+
+- 실측: 유니버스 550종목 중 327개(59%), **시총 기준 15.6%** 가 미분류였다.
+  LG에너지솔루션(84조)이 2차전지가 아니었고 두산에너빌리티(49조)가 원전이 아니었다.
+- 섹터 수급은 종목을 섹터별로 **합산**해 구한다. 대장주가 빠지면 그 섹터 합계가
+  통째로 어긋나고, 주도섹터 판정과 후보 필터가 전부 그 위에 서 있다.
+- 조치: 시총 상위 미분류를 `EXPLICIT_SECTOR_ADDITIONS` 에 코드로 직접 지정.
+  현재 시총 기준 미분류 3.2%.
+- **새 종목이 시총 상위로 올라오면 이 목록도 늘려야 한다.** 정기 점검 필요.
+
+**섹터를 잘게 쪼개면 반대 방향 함정이 열린다.** 정규화 강도(시총 대비)는 시총이
+작을수록 커지므로, 소형 섹터가 상위를 독식한다. 실측: 항공(3종목)이 강도 43.3 으로
+1위에 올라 반도체장비·원전을 밀어내고 후보를 39→21개로 깎았다.
+
+**하드 컷오프로 자르려다 두 번 실패했다.** 경계값에서 절벽이 생겨 어느 쪽으로
+잡아도 틀린다 — 기준 6이면 신재생(5종목)까지 잘리고, 기준 5면 신재생(강도 64.9)이
+반도체장비(39종목·2,492억)를 밀어내 주도섹터 커버리지가 86→54종목으로 준다.
+→ 순위를 `강도 × min(1, 종목수/10)` 으로 매긴다(`FLOW_SECTOR_BREADTH_FULL`).
+   항공 43.3→13.0, 통신 18.0→7.2, 해운 15.6→4.7 로 절벽 없이 강등된다.
+   3종목 미만은 애초에 섹터가 아니므로 그대로 제외.
+
+**어설프게 묶느니 '기타'로 두는 편이 낫다.** 업종이 다른 종목을 한 버킷에 넣으면
+(강원랜드+농심+CJ대한통운) 없던 섹터 강도가 만들어져 가짜 주도섹터가 된다.
 
 ### 주도섹터 판정 함정 (2026-08-07 실사고)
 

@@ -91,7 +91,10 @@ def build_cash_recommendation(market_sentiment: dict, crowding: dict) -> dict:
 # DB손해보험·서울보증보험이 매수 후보 11개 중 4개를 차지했다 — 사용자가 처음부터
 # 지적한 바로 그 종목들이다. RS 규칙상 '틀린' 건 아니지만 전략의 의도와 어긋나므로
 # 주도 섹터 후보에서 제외한다. (증권은 거래대금 테마로 움직여 유지)
-NON_THEME_SECTORS = {"보험", "은행"}
+# 주도 '테마' 로 보지 않는 섹터. 수급 집계에는 포함하되 주도섹터 후보에서만 뺀다.
+# 금리·밸류업으로 장기 RS 는 올라오지만 단타 테마로 움직이지 않는다.
+# 지주는 업종이 아니라 지배구조 형태라 애초에 테마가 될 수 없다.
+NON_THEME_SECTORS = {"보험", "은행", "지주"}
 
 
 def _resolve_leading_sectors_from_etfs(leading_etfs: list[dict]) -> list[str]:
@@ -299,6 +302,18 @@ def build_flow_dashboard(
     #   4) ETF RS 기반 섹터를 우선하고, 최종 개수를 MAX_LEADING_SECTORS 로 제한
     FLOW_STRENGTH_MIN = 5.0      # 만분율. 섹터 시총의 0.05% 이상 순매수
     FLOW_AMOUNT_MIN = 300 * 1e8  # 300억. 정규화만 쓰면 초소형 섹터가 상위를 독식한다.
+    # 주도 '섹터' 라면 폭이 있어야 한다. 종목 3개짜리 묶음이 움직인 건 섹터
+    # 테마가 아니라 개별 종목 움직임이고, 시총이 작아 정규화 강도만 비정상적으로
+    # 높게 나온다. 섹터 분류를 잘게 쪼갠 뒤 항공(3종목)이 강도 43.3 으로 1위에
+    # 올라 진짜 주도섹터를 밀어내고 매수 후보를 39개→21개로 깎았다.
+    # 종목 수가 이보다 적으면 섹터라 부를 수 없다 (개별 종목 움직임).
+    FLOW_SECTOR_MIN_MEMBERS = 3
+    # 폭 가중 — 정규화 강도는 시총이 작을수록 커지므로, 소수 종목 섹터가
+    # 상위를 독식한다. 하드 컷오프로 자르면 경계값에서 절벽이 생겨
+    # 정상 테마(신재생 5종목)까지 잘리거나, 반대로 통과시키면 대형 섹터
+    # (반도체장비 39종목·2,492억)가 밀려난다. 둘 다 실측으로 겪었다.
+    # 종목 수가 이 값에 이를 때까지 선형으로 가중해 절벽 없이 처리한다.
+    FLOW_SECTOR_BREADTH_FULL = 10
     FLOW_SECTOR_TOP_N = 4
     MAX_LEADING_SECTORS = 7
 
@@ -315,21 +330,25 @@ def build_flow_dashboard(
         for entry in (sector_flows.get(kind) or []):
             strength = entry.get("strength")
             amount = entry.get("amount") or 0
+            members = entry.get("stockCount") or 0
             if strength is None or strength < FLOW_STRENGTH_MIN:
                 continue
             if amount < FLOW_AMOUNT_MIN:
                 continue
+            if members < FLOW_SECTOR_MIN_MEMBERS:
+                continue
             sector = entry["sector"]
-            # 외인/기관 중 더 강한 쪽 값을 그 섹터의 대표 강도로 사용
-            if strength > flow_ranked.get(sector, 0.0):
-                flow_ranked[sector] = strength
+            # 폭 가중 후 순위를 매긴다. 외인/기관 중 더 강한 쪽을 대표값으로.
+            weighted = strength * min(1.0, members / FLOW_SECTOR_BREADTH_FULL)
+            if weighted > flow_ranked.get(sector, 0.0):
+                flow_ranked[sector] = weighted
 
     leading_sectors_flow = [
         s for s, _ in sorted(flow_ranked.items(), key=lambda kv: kv[1], reverse=True)
         if s not in NON_THEME_SECTORS
     ][:FLOW_SECTOR_TOP_N]
     print(
-        f"   수급 강도 기반 섹터(정규화 {FLOW_STRENGTH_MIN}+ 상위 {FLOW_SECTOR_TOP_N}): "
+        f"   수급 강도 기반 섹터(폭가중 상위 {FLOW_SECTOR_TOP_N}, 괄호는 폭가중 점수): "
         f"{[(s, round(flow_ranked[s], 1)) for s in leading_sectors_flow] or '(없음)'}"
     )
 
@@ -552,10 +571,10 @@ def build_flow_dashboard(
     # 점수 + 근거를 각 후보 dict 에 부착
     for c in enriched_candidates:
         s, r = _candidate_score_with_reasons(c)
-        c["taerinScore"] = s
-        c["taerinReasons"] = r
+        c["flowScore"] = s
+        c["flowReasons"] = r
 
-    enriched_candidates.sort(key=lambda c: c.get("taerinScore", 0), reverse=True)
+    enriched_candidates.sort(key=lambda c: c.get("flowScore", 0), reverse=True)
 
     # ─────────────────────────────────────────
     # Step 7a: 하드 필터 — 점수만으로는 걸러지지 않던 미달 종목 배제
@@ -592,7 +611,7 @@ def build_flow_dashboard(
     dropped_trend = total_before - len(trend_ok)
     vacant_ok = [c for c in trend_ok if _is_vacant(c)]
     dropped_vacancy = len(trend_ok) - len(vacant_ok)
-    scored_ok = [c for c in vacant_ok if c.get("taerinScore", 0) >= MIN_CANDIDATE_SCORE]
+    scored_ok = [c for c in vacant_ok if c.get("flowScore", 0) >= MIN_CANDIDATE_SCORE]
     dropped_score = len(vacant_ok) - len(scored_ok)
 
     score_relaxed = False
@@ -607,9 +626,17 @@ def build_flow_dashboard(
     MAX_PER_SECTOR = 4
     per_sector: dict[str, int] = {}
     diversified: list[dict] = []
+    overflow: list[dict] = []
     for c in scored_ok:
         sec = c.get("sector") or "기타"
         if per_sector.get(sec, 0) >= MAX_PER_SECTOR:
+            # 조건은 다 통과했는데 섹터 상한에만 걸린 종목이다. 버리면
+            # "우리가 그 종목을 못 봤다" 로 오해된다. 따로 담아 화면에 남긴다.
+            overflow.append({
+                "code": c.get("code"), "name": c.get("name"), "sector": sec,
+                "flowScore": c.get("flowScore"), "ret5d": c.get("ret5d"),
+                "oscPercentile": c.get("oscPercentile"), "vacancyZone": c.get("vacancyZone"),
+            })
             continue
         per_sector[sec] = per_sector.get(sec, 0) + 1
         diversified.append(c)
@@ -758,6 +785,8 @@ def build_flow_dashboard(
         "newHighs": new_highs,
         "tradingIntensity": ti_results,
         "exitSignals": exit_signals[:15],
+        # 조건은 통과했으나 섹터 상한(4개)에만 걸린 종목. 숨기면 "못 봤다"로 오해된다.
+        "overflowCandidates": overflow,
         "universeMetadata": universe_metadata,
         "universeSize": int(len(universe)),
         "vacancyAnalyzed": int(len(vacancy_df)),

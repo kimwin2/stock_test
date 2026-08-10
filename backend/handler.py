@@ -65,6 +65,45 @@ def _sanitize_for_json(obj):
     return obj
 
 
+def _compute_changes(payload: dict, previous: dict | None) -> dict:
+    """직전 실행 대비 변화.
+
+    매일 같은 목록을 다시 읽게 하면 며칠 만에 안 열게 된다. "어제와 뭐가
+    달라졌나"가 매일 열어볼 이유다. 종목은 code, 섹터는 이름으로 대조한다.
+
+    직전 데이터가 없으면 전부 '신규' 로 잡히는 오서술이 되므로 available=False
+    로 두고 화면에서 감춘다.
+    """
+    if not previous:
+        return {"available": False, "reason": "직전 데이터 없음"}
+
+    def codes(d, key):
+        return {c.get("code"): c for c in (d.get(key) or []) if c.get("code")}
+
+    now_c, prev_c = codes(payload, "buyCandidates"), codes(previous, "buyCandidates")
+    now_s = [s for s in (payload.get("leadingSectorLabels") or []) if s]
+    prev_s = [s for s in (previous.get("leadingSectorLabels") or []) if s]
+    now_e, prev_e = codes(payload, "exitSignals"), codes(previous, "exitSignals")
+
+    entered = [{"code": k, "name": v.get("name"), "sector": v.get("sector")}
+               for k, v in now_c.items() if k not in prev_c]
+    left = [{"code": k, "name": v.get("name"), "sector": v.get("sector")}
+            for k, v in prev_c.items() if k not in now_c]
+    new_exit = [{"code": k, "name": v.get("name"),
+                 "drawdownFromHighPct": v.get("drawdownFromHighPct")}
+                for k, v in now_e.items() if k not in prev_e]
+
+    return {
+        "available": True,
+        "since": previous.get("updatedAt"),
+        "candidatesEntered": entered,
+        "candidatesLeft": left,
+        "sectorsEntered": [s for s in now_s if s not in prev_s],
+        "sectorsLeft": [s for s in prev_s if s not in now_s],
+        "newExitSignals": new_exit,
+    }
+
+
 def _fetch_existing_dashboard(bucket: str, key: str) -> dict | None:
     """S3 에서 기존 dashboard_data.json 을 조회. 없거나 파싱 실패 시 None."""
     try:
@@ -85,7 +124,10 @@ def _is_llm_unavailable_error(exc: BaseException) -> bool:
         return False
     if isinstance(exc, (RateLimitError, AuthenticationError)):
         return True
-    if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) in (400, 401, 402, 403, 429):
+    # 5xx 는 provider 과부하(503 UNAVAILABLE 등). analyzer 가 재시도를 모두 소진한
+    # 뒤에도 남으면 fatal 로 죽이지 말고 기존 dashboard 를 보존해야 한다.
+    # (이게 빠져 있어서 503 한 번에 파이프라인이 통째로 죽고 S3 업로드조차 못 했다.)
+    if isinstance(exc, APIStatusError) and getattr(exc, "status_code", None) in (400, 401, 402, 403, 429, 500, 502, 503, 504):
         msg = str(exc).lower()
         # 400 은 'API key not valid'/'invalid argument' 같은 인증·한도 사례만 graceful 처리
         if getattr(exc, "status_code", None) == 400:
@@ -156,7 +198,21 @@ def _run_flow_pipeline(bucket: str) -> dict:
         from .briefing.generator import attach_briefing
     attach_briefing(payload, previous_payload=previous_payload)
 
+    # 직전 실행 대비 변화 — 매일 열어볼 이유는 "어제와 뭐가 달라졌나"에서 나온다.
+    # 같은 목록을 매일 다시 읽게 하면 며칠 만에 안 열게 된다.
+    payload["changes"] = _compute_changes(payload, previous_payload)
+
     flow_url = upload_to_s3(payload, bucket, flow_key)
+
+    # 일별 스냅샷 — 최신본만 두면 "그날 우리가 뭐라고 했는지"가 남지 않아
+    # 사후 대조·성능 추적이 불가능하다. 덮어쓰기 전에 날짜별로 한 벌 남긴다.
+    # 실패해도 파이프라인은 계속한다 (본 산출물은 이미 올라갔다).
+    try:
+        snapshot_key = f"history/flow/{datetime.now(KST).strftime('%Y-%m-%d')}.json"
+        upload_to_s3(payload, bucket, snapshot_key)
+        print(f"  [OK] flow 스냅샷 저장: {snapshot_key}")
+    except Exception as e:
+        print(f"  [!] flow 스냅샷 저장 실패 (파이프라인 계속): {e}")
 
     return {
         "statusCode": 200,
@@ -237,7 +293,7 @@ def lambda_handler(event, context):
                 existing = _fetch_existing_dashboard(bucket, s3_key) or {}
                 degraded = dict(existing)
                 degraded["updatedAt"] = datetime.now(KST).isoformat()
-                degraded["themesError"] = "LLM 호출 불가 — themes 갱신 실패 (Gemini API 키/한도 확인 필요)"
+                degraded["themesError"] = "테마 분석 실패 — 아래 테마는 마지막 성공 시점의 데이터입니다"
                 degraded["themesErrorDetail"] = str(e)[:500]
                 upload_to_s3(degraded, bucket, s3_key)
                 return {
@@ -258,14 +314,18 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "테마를 추출하지 못했습니다."})
             }
 
-        # ── Step 4: 종목 데이터 조회 ──
-        print("\n[Step 4] 테마별 종목 데이터 조회")
-        completed_themes = get_stock_details_for_themes(themes)
+        # ── Step 4: 종목 선정 + 데이터 조회 ──
+        # analysis 를 넘겨야 개미승리·급등클러스터 등 실측 시그널이 종목 선정에 개입한다.
+        print("\n[Step 4] 테마별 종목 선정 및 데이터 조회")
+        completed_themes = get_stock_details_for_themes(themes, analysis)
 
         # ── Step 5: JSON 조립 및 S3 업로드 ──
         print("\n[Step 5] JSON 조립 및 S3 업로드")
         dashboard_data = {
             "updatedAt": datetime.now(KST).isoformat(),
+            # themes 가 실제로 갱신된 시각. 분석 실패 회차에는 updatedAt 만 오르고
+            # 이 값은 그대로 남아, 프론트가 "언제 기준 테마인지" 표시할 수 있다.
+            "themesGeneratedAt": datetime.now(KST).isoformat(),
             "antwinnerSignals": analysis.get("antwinnerSignals", []),
             "infostockSignals": analysis.get("infostockSignals", []),
             "youtubeSignals": analysis.get("youtubeSignals", []),

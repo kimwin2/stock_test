@@ -1,6 +1,6 @@
 """시장 심리 — Fear & Greed Oscillator.
 
-태린이아빠 원본 한국 F&G 오실레이터를 **실제 KRX 데이터**로 재현한다.
+참고 자료 원본 한국 F&G 오실레이터를 **실제 KRX 데이터**로 재현한다.
 (이전엔 무료 proxy 로 근사했으나 원본 그림과 어긋나 KRX 실데이터로 교체.
  검증: 엑셀 원본 진짜값 오실레이터와 상관 r=0.94, 119일 겹침.)
 
@@ -53,7 +53,7 @@ def _minmax(series: pd.Series) -> pd.Series:
 def fear_greed_real(close: pd.Series, krx: pd.DataFrame) -> pd.DataFrame:
     """지수 종가 + KRX 실데이터(vkospi/call_vol/put_vol/ktb5/ktb10) → F&G + Oscillator.
 
-    원본 태린이아빠 수식 그대로. Fear_Greed_Index 는 0~1 스케일.
+    참고 자료 원본 수식 그대로. Fear_Greed_Index 는 0~1 스케일.
     """
     df = pd.DataFrame(index=close.index)
     df["price"] = close

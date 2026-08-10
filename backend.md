@@ -18,7 +18,7 @@
 │          ├── 📺 유튜브 시그널 ──── youtube_signals.py              │
 │          ├── 📡 텔레그램 시그널 ── telegram/collector.py            │
 │          ├── 📈 가격 기반 시그널 ── price_signals/cluster.py        │
-│          └── 🤖 Gemini API ──── gemini-2.5-flash-lite                    │
+│          └── 🤖 Gemini API ──── gemini-3.5-flash-lite                    │
 │                                                                 │
 │  Step 3. 종목 데이터 조회 ─────── stock_data.py                    │
 │                                                                 │
@@ -136,7 +136,7 @@ python3 main.py --skip-analysis
 
 ### GPT 분석
 
-- **모델**: `gemini-2.5-flash-lite` (temperature=0.3)
+- **모델**: `gemini-3.5-flash-lite` (temperature=0.3)
 - **입력**: 뉴스 기사 + 5개 시그널 소스를 하나의 프롬프트로 조립
 - **출력**: 7개 테마 (테마명, 헤드라인, 관련종목 6개, 선정이유)
 - **후처리**:

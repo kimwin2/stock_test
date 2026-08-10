@@ -113,8 +113,8 @@ def run_pipeline(skip_crawl: bool = False, crawl_only: bool = False, skip_analys
     # ─────────────────────────────────────────────
     # Step 4: 종목 데이터 조회
     # ─────────────────────────────────────────────
-    print("\n[Step 4] 테마별 종목 데이터 조회")
-    completed_themes = get_stock_details_for_themes(themes)
+    print("\n[Step 4] 테마별 종목 선정 및 데이터 조회")
+    completed_themes = get_stock_details_for_themes(themes, analysis)
 
     # ─────────────────────────────────────────────
     # Step 5: 최종 JSON 조립 및 저장

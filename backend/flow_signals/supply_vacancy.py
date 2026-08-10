@@ -207,7 +207,7 @@ def _vacancy_zone(percentile: float) -> str:
 def _zone_from_osc(osc_series: list[float]) -> tuple[str, float | None]:
     """수급 오실레이터(MACD Histogram) 의 마지막 값과 자기 종목 historical 분포로 zone 결정.
 
-    참고 자료(태린이아빠) 정의:
+    참고 자료 정의:
       - osc < 0  →  "빈집"  (수급이 빠져나간 상태, 추세 안에서 눌림목 공략 후보)
       - osc 의 historical 상위 25% 초과 → "찼음" (xlsm 수급오실레이터 시트 점선 기준)
       - 그 외 → "정상"
@@ -263,6 +263,23 @@ def enrich_with_chart_and_buyzone(
         recent = df.tail(60).copy()
         price_hist = [round(float(v), 0) for v in recent["Close"]]
         date_hist = [d.strftime("%Y-%m-%d") for d in recent.index]
+
+        # 일봉 캔들 + 거래량 — 종가 선 하나로는 그날 무슨 일이 있었는지 안 보인다.
+        # 종가베팅 대상을 고르는 사람은 위꼬리/아래꼬리와 거래량을 같이 본다.
+        # OHLC 는 이미 df 에 있는데 Close 만 쓰고 있었다.
+        def _col(name):
+            return recent[name] if name in recent.columns else recent["Close"]
+        ohlc_hist = [
+            {
+                "o": round(float(o), 0), "h": round(float(h), 0),
+                "l": round(float(l), 0), "c": round(float(c), 0),
+                "v": int(v) if v == v else 0,
+            }
+            for o, h, l, c, v in zip(
+                _col("Open"), _col("High"), _col("Low"), recent["Close"],
+                recent["Volume"] if "Volume" in recent.columns else [0] * len(recent),
+            )
+        ]
 
         # 이동평균
         ma10_series = df["Close"].rolling(10).mean() if len(df) >= 10 else None
@@ -367,7 +384,7 @@ def enrich_with_chart_and_buyzone(
                         "osc": o,
                     })
 
-        # 수급 오실레이터 기반 zone 재정의 — 참고 자료(태린이아빠) 기준이 1차.
+        # 수급 오실레이터 기반 zone 재정의 — 참고 자료 기준이 1차.
         # osc 시계열이 있으면 그 부호로 빈집/정상/찼음 결정 (universe percentile 무시).
         osc_last = None
         ratio_last = None
@@ -381,6 +398,7 @@ def enrich_with_chart_and_buyzone(
         enriched = {
             **item,
             "priceHistory60d": price_hist,
+            "ohlc60d": ohlc_hist,
             "dateHistory60d": date_hist,
             "capHistory60d": cap_history_won,
             "supplyOscHistory": supply_osc_series,

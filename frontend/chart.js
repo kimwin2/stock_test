@@ -284,7 +284,7 @@ function renderCandlestickSVG(candles, timeframe) {
       `<polyline points="${pts.join(' ')}" fill="none" stroke="${ma.color}" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>`
     );
     maLegend.push(
-      `<text x="${legendX.toFixed(1)}" y="${(padT - 3).toFixed(1)}" font-size="9.5" font-weight="600" fill="${ma.color}">MA${ma.p}</text>`
+      `<text x="${legendX.toFixed(1)}" y="${(padT - 3).toFixed(1)}" font-size="9.5" font-weight="600" fill="${ma.color}">${ma.p}일선</text>`
     );
     legendX += 34;
   }

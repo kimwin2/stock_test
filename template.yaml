@@ -125,8 +125,8 @@ Resources:
           FLOW_S3_KEY: flow_dashboard.json
           FLOW_TOP_KOSPI: '300'
           FLOW_TOP_KOSDAQ: '250'
-          THEME_ANALYSIS_MODEL: gemini-2.5-flash-lite
-          PRICE_SIGNAL_MODEL: gemini-2.5-flash-lite
+          THEME_ANALYSIS_MODEL: gemini-3.5-flash-lite
+          PRICE_SIGNAL_MODEL: gemini-3.5-flash-lite
           ANTWINNER_SIGNAL_S3_KEY: signals/antwinner_themes_latest.json
           PRICE_SIGNAL_S3_KEY: signals/price_theme_signals_latest.json
           TELEGRAM_SIGNAL_S3_KEY: signals/telegram_faststocknews_latest.json
@@ -136,7 +136,7 @@ Resources:
           KRX_PW: !Ref KrxPw
           # AI 데이터 브리핑 — DART 공시 이벤트. 키 없으면 시그널만으로 브리핑 생성.
           DART_API_KEY: !Ref DartApiKey
-          BRIEFING_MODEL: gemini-2.5-flash-lite
+          BRIEFING_MODEL: gemini-3.5-flash-lite
           FG_KRX_CACHE: !Sub 's3://${S3BucketName}/signals/fg_krx_cache.json'
           FG_KRX_MAX_FETCH: '5'   # 콜드 백필(15분) 방지 — 매 실행 최근 결측일만
       Policies:

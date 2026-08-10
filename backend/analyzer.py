@@ -10,6 +10,7 @@ import io
 import json
 import os
 import re
+import time
 import requests
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
@@ -45,7 +46,11 @@ if sys.stdout.encoding != 'utf-8':
 
 load_dotenv()
 
-DEFAULT_THEME_ANALYSIS_MODEL = "gemini-2.5-flash-lite"
+# 2026-08-10: gemini-2.5-flash-lite 의 무료 등급 일일 한도가 20회라 아침에 소진,
+# 이후 종일 429 로 테마 갱신이 멈췄다 (10분 간격 × 회당 2~3콜 = 하루 ~150콜 필요).
+# 3.5-flash-lite 는 같은 계정에서 그 이상을 감당하는 것이 실측 확인됨 (stock_chat 파이프라인).
+# 모델을 바꿀 땐 반드시 실호출로 일일 한도부터 확인할 것 — 문서 값과 다르다.
+DEFAULT_THEME_ANALYSIS_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_THEME_ANALYSIS_MAX_TOKENS = 3000
 DEFAULT_THEME_ANALYSIS_TEMPERATURE = 0.3
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -357,6 +362,46 @@ def _build_theme_analysis_request(model_name: str, user_prompt: str) -> dict:
             os.getenv("THEME_ANALYSIS_MAX_TOKENS", str(DEFAULT_THEME_ANALYSIS_MAX_TOKENS))
         ),
     }
+
+
+# gemini-3.5-flash-lite 는 수요가 몰리면 503(UNAVAILABLE)/429 를 자주 돌려준다.
+# 재시도가 없으면 일시적 스파이크 한 번에 그날 테마 분석이 통째로 날아간다.
+THEME_ANALYSIS_RETRY_STATUSES = (429, 500, 502, 503, 504)
+THEME_ANALYSIS_MAX_ATTEMPTS = 4
+THEME_ANALYSIS_RETRY_BASE_SEC = 3.0
+
+
+def _is_retryable_llm_status(exc: BaseException) -> bool:
+    """일시적 과부하/레이트리밋이라 재시도할 가치가 있는 오류인가."""
+    status = getattr(exc, "status_code", None)
+    if status in THEME_ANALYSIS_RETRY_STATUSES:
+        return True
+    msg = str(exc).lower()
+    return any(kw in msg for kw in ("unavailable", "high demand", "overloaded", "try again later"))
+
+
+def _create_theme_completion_with_retry(client, model_name: str, user_prompt: str):
+    """테마 분석 LLM 호출 — 일시적 오류에 지수 백오프로 재시도.
+
+    재시도 불가 오류(인증·잘못된 요청)는 즉시 올려보내고, 재시도를 모두
+    소진하면 마지막 예외를 그대로 올린다 (handler 가 graceful degrade 처리).
+    """
+    request = _build_theme_analysis_request(model_name, user_prompt)
+    last_exc: BaseException | None = None
+    for attempt in range(1, THEME_ANALYSIS_MAX_ATTEMPTS + 1):
+        try:
+            return client.chat.completions.create(**request)
+        except Exception as e:
+            last_exc = e
+            if attempt >= THEME_ANALYSIS_MAX_ATTEMPTS or not _is_retryable_llm_status(e):
+                raise
+            wait = THEME_ANALYSIS_RETRY_BASE_SEC * (2 ** (attempt - 1))
+            print(
+                f"  [!] LLM 일시 오류 (attempt {attempt}/{THEME_ANALYSIS_MAX_ATTEMPTS}) — "
+                f"{wait:.0f}초 후 재시도: {str(e)[:120]}"
+            )
+            time.sleep(wait)
+    raise last_exc  # 도달하지 않음 (방어)
 
 
 SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다. 단타 트레이딩에 특화되어 있으며, 
@@ -2239,7 +2284,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
     print(f"  [>] 프롬프트 길이: {len(user_prompt):,}자")
 
     try:
-        response = client.chat.completions.create(**_build_theme_analysis_request(model_name, user_prompt))
+        response = _create_theme_completion_with_retry(client, model_name, user_prompt)
 
         result_text = response.choices[0].message.content
         print(f"  [OK] LLM 응답 수신 완료")

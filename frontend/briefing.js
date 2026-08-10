@@ -1,7 +1,7 @@
 /**
- * Briefing Tab — AI 데이터 브리핑
+ * 오늘의 시황 탭 — 하루 시장을 한 화면으로 압축
  *
- * 자체 시그널(F&G, 주도섹터, 수급, 빈집) 변화 + DART 공시 이벤트를
+ * 자체 시그널(공포·탐욕, 주도섹터, 수급, 빈집) 변화 + DART 공시 이벤트를
  * 백엔드(briefing/generator.py)가 서술형으로 정리한 것을 표시한다.
  *
  * 데이터: flow_dashboard.json 의 briefing 키 (flow.js 의 loadFlow 재사용).
@@ -40,7 +40,7 @@ function buildBriefingStats(facts) {
     const deltaHtml = (delta != null && Math.abs(delta) >= 0.05)
       ? `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`
       : '';
-    chips.push(`<div class="brief-chip"><span class="brief-chip-label">KOSPI F&amp;G</span><span class="brief-chip-value">${fg.kospi}${deltaHtml}</span></div>`);
+    chips.push(`<div class="brief-chip"><span class="brief-chip-label">코스피 공포·탐욕</span><span class="brief-chip-value">${fg.kospi}${deltaHtml}</span></div>`);
   }
   if (cash.nowPct != null) {
     chips.push(`<div class="brief-chip"><span class="brief-chip-label">권고 현금</span><span class="brief-chip-value">${cash.nowPct}%</span></div>`);
@@ -56,20 +56,379 @@ function buildBriefingStats(facts) {
 }
 
 // ─────────────────────────────────────────┐
+// 시장 온도계 — 공포↔탐욕 가로 게이지        │
+// ─────────────────────────────────────────┘
+// 숫자 하나(38.7)만 보면 그게 높은 건지 낮은 건지 모른다. 구간을 색으로
+// 깔고 바늘을 꽂아야 "지금 어디쯤"이 0.5초에 읽힌다.
+const FG_ZONES = [
+  { to: 25, label: '극단적 공포', color: '#1565C0' },
+  { to: 45, label: '공포', color: '#4E8FCB' },
+  { to: 55, label: '중립', color: '#C9B896' },
+  { to: 75, label: '탐욕', color: '#E58A3C' },
+  { to: 100, label: '극단적 탐욕', color: '#D2402F' },
+];
+
+function fgZoneLabel(v) {
+  for (const z of FG_ZONES) if (v <= z.to) return z;
+  return FG_ZONES[FG_ZONES.length - 1];
+}
+
+// 백엔드가 내려주는 zone 은 '레벨'이 아니라 '오실레이터(모멘텀)' 기준이다.
+// 이 둘은 다른 축이라 섞으면 정반대 결론이 나온다 — 실측(2026-08-07):
+//   레벨 38.7 만 보면 '공포', 오실레이터 +0.01 로 보면 '강세'(과열 직전).
+//   레퍼런스도 같은 날 "과열권 진입"으로 읽고 현금을 7%→19% 로 올렸다.
+// 즉 방향을 말해주는 건 오실레이터다. 백엔드 판정을 그대로 쓴다.
+const OSC_ZONE_COLORS = {
+  '과열': '#D2402F', '강세': '#E58A3C', '중립': '#C9B896',
+  '약세': '#4E8FCB', '공포': '#1565C0',
+};
+
+function zoneOf(marketNode, fgValue) {
+  const z = (marketNode || {}).zone;
+  if (z && OSC_ZONE_COLORS[z]) return { label: z, color: OSC_ZONE_COLORS[z], byOsc: true };
+  return { ...fgZoneLabel(fgValue), byOsc: false };   // 구버전 페이로드 폴백
+}
+
+// ─────────────────────────────────────────┐
+// 용어 한 줄 설명                            │
+// ─────────────────────────────────────────┘
+// 숫자만 크게 띄워도 뜻을 모르면 안 읽힌다. 지표마다 "이게 무엇인지"를
+// 한 줄로 붙인다. 판단을 대신하지 않고 정의만 말한다.
+function whatIs(text) {
+  return `<p class="what-is">${bEscape(text)}</p>`;
+}
+
+// 오늘 시장을 한 문장으로. 구간 이름을 가장 크게 보여준다 — '38.7'만으로는
+// 높은 건지 낮은 건지 알 수 없기 때문이다.
+function buildMarketVerdict(fg, sentiment, flow) {
+  const v = fg.kospi;
+  if (v == null) return '';
+  const zone = zoneOf(sentiment.kospi, v);
+  const osc = (sentiment.kospi || {}).oscillator;
+  const d = fg.kospiDelta;
+  const move = (d == null || Math.abs(d) < 0.05) ? '전일과 비슷'
+    : (d > 0 ? `전일 대비 ${d.toFixed(1)} 상승` : `전일 대비 ${Math.abs(d).toFixed(1)} 하락`);
+  const cash = (flow || {}).cashRecommendation || {};
+  const crowding = (flow || {}).crowding || {};
+  const safety = ((sentiment.buySafety || {}).kospi) || {};
+  const nCand = ((flow || {}).buyCandidates || []).length;
+  const nExit = ((flow || {}).exitSignals || []).length;
+  const sectors = (((flow || {}).leadingSectorLabels) || []).slice(0, 3);
+
+  // 아침에 필요한 사실을 한 줄에 모은다. 칩이 둘뿐이면 화면이 비어 보이고,
+  // 정작 "오늘 뭘 봐야 하나" 로 이어지지 않는다.
+  const chips = [];
+  if (safety.stageLabel) {
+    chips.push(['매수 환경', bEscape(safety.stageLabel),
+      `${safety.stageIndex ?? '-'}/${safety.totalStages ?? 5}단계`]);
+  }
+  if (cash.cashPct != null) chips.push(['권고 현금비중', `${cash.cashPct}%`, cash.level || '']);
+  if (crowding.signal) {
+    chips.push(['업종 쏠림', crowding.signal,
+      crowding.latest != null ? `지수 ${crowding.latest.toFixed(1)}` : '']);
+  }
+  if (sectors.length) chips.push(['주도 업종', sectors.join(' · '), `상위 ${sectors.length}`]);
+  if (nCand) chips.push(['조건 통과', `${nCand}종목`, nExit ? `이탈 신호 ${nExit}` : '']);
+
+  return `
+    <div class="verdict">
+      <div class="verdict-zone" style="color:${zone.color}">${zone.label}</div>
+      <div class="verdict-num">
+        <strong style="color:${zone.color}">${v.toFixed(1)}</strong>
+        <span>공포·탐욕 레벨 /100 · ${bEscape(move)}${
+          zone.byOsc && osc != null ? ` · 방향 ${osc >= 0 ? '+' : ''}${osc.toFixed(3)}` : ''}</span>
+        ${(sentiment.kospi || {}).close != null
+          ? `<span class="verdict-idx">코스피 ${Number(sentiment.kospi.close).toLocaleString('ko-KR')}` +
+            `${(sentiment.kosdaq || {}).close != null ? ` · 코스닥 ${Number(sentiment.kosdaq.close).toLocaleString('ko-KR')}` : ''}</span>`
+          : ''}
+      </div>
+      ${chips.length ? `<div class="verdict-chips">${chips.map(([k, val, sub]) => `
+        <div class="vc-item">
+          <div class="vc-key">${bEscape(k)}</div>
+          <div class="vc-val">${bEscape(val)}</div>
+          ${sub ? `<div class="vc-sub">${bEscape(sub)}</div>` : ''}
+        </div>`).join('')}</div>` : ''}
+    </div>`;
+}
+
+// 점수 근거 문자열은 디버그용 raw 값이 섞여 있다 ("빈집 osc=-0.00188 pct=30.3").
+// 사용자에게는 뜻이 통하는 것만, 가점이 큰 순으로 두 개까지 보여준다.
+// 숫자 꼬리(+40)와 osc/pct 같은 내부 표기는 떼어낸다.
+function pickReasons(reasons) {
+  const clean = (reasons || [])
+    .filter(r => r && !/osc=|pct=|ratio=/.test(r))
+    .map(r => ({
+      text: r.replace(/\s*[+-]\d+(\.\d+)?$/, '').replace(/^★\s*/, '').trim(),
+      pts: Math.abs(parseFloat((r.match(/([+-]\d+(?:\.\d+)?)\s*$/) || [])[1] || 0)),
+      up: !/-\d/.test(r.slice(-4)),
+    }))
+    .filter(x => x.text && x.up)
+    .sort((a, b) => b.pts - a.pts);
+  return clean.slice(0, 2).map(x => x.text).join(' · ');
+}
+
+// 직전 실행 대비 변화. 매일 같은 목록을 다시 읽게 하면 며칠 만에 안 열게 된다.
+// "어제와 뭐가 달라졌나"가 매일 여는 이유다. 변화가 없으면 카드를 그리지 않는다.
+function buildChanges(flow) {
+  const ch = (flow || {}).changes;
+  if (!ch || !ch.available) return '';
+  const items = [];
+  const names = (a) => (a || []).map(x => bEscape(x.name || x)).join(', ');
+  if ((ch.candidatesEntered || []).length)
+    items.push(['새로 진입', names(ch.candidatesEntered), 'in']);
+  if ((ch.candidatesLeft || []).length)
+    items.push(['목록에서 빠짐', names(ch.candidatesLeft), 'out']);
+  if ((ch.sectorsEntered || []).length)
+    items.push(['주도 업종 진입', names(ch.sectorsEntered), 'in']);
+  if ((ch.sectorsLeft || []).length)
+    items.push(['주도 업종 이탈', names(ch.sectorsLeft), 'out']);
+  if ((ch.newExitSignals || []).length)
+    items.push(['새 이탈 신호', names(ch.newExitSignals), 'out']);
+  if (!items.length) return '';
+
+  return `
+    <div class="flow-card brief-card-changes">
+      <div class="card-header">
+        <span class="card-theme-name">직전 대비 변화</span>
+        <span class="card-volume">${items.length}건</span>
+      </div>
+      <div class="chg-body">${items.map(([k, v, dir]) => `
+        <div class="chg-row">
+          <span class="chg-key chg-${dir}">${bEscape(k)}</span>
+          <span class="chg-val">${v}</span>
+        </div>`).join('')}</div>
+    </div>`;
+}
+
+// 조건은 다 통과했는데 '섹터당 4개' 상한에만 걸린 종목.
+//
+// 숨기면 "우리가 그 종목을 못 봤다"로 오해된다. 실제로 주도섹터가 반도체장비인
+// 날에는 여기서 6~7개가 잘려나가는데, 그게 곧 그 섹터가 강하다는 뜻이기도 하다.
+// 목록을 좁게 유지하는 규율은 지키되, 잘린 사실은 드러낸다.
+function buildOverflow(flow) {
+  const ov = (flow || {}).overflowCandidates || [];
+  if (!ov.length) return '';
+  const bySector = {};
+  ov.forEach(o => { (bySector[o.sector || '기타'] ||= []).push(o.name); });
+  const parts = Object.entries(bySector)
+    .map(([sec, names]) => `<span><b>${bEscape(sec)}</b> ${names.map(bEscape).join(', ')}</span>`);
+  return `
+    <div class="sr-overflow">
+      <span class="sr-ov-key">섹터 상한(4개)으로 제외 ${ov.length}종목</span>
+      ${parts.join('')}
+    </div>`;
+}
+
+// 조건을 통과한 종목 — 이 제품의 본체. '오늘' 화면에서 결론까지 보여주고
+// 상세는 종목 탭으로 넘긴다. 몇 개에서 몇 개로 좁혔는지를 함께 적어
+// 걸러진 과정이 보이게 한다 (근거 없는 목록은 신뢰를 못 얻는다).
+function buildScreenResult(flow) {
+  const cands = (flow || {}).buyCandidates || [];
+  if (!cands.length) return '';
+  const st = (flow || {}).candidateFilterStats || {};
+  const uni = ((flow || {}).universeMetadata || []).length;
+
+  // 11개가 전부 '빈집' 이면 그 칸은 정보가 0 이다. 얼마나 깊은 빈집인지를
+  // 자기 종목 osc 히스토리 백분위로 보여줘야 종목끼리 구별이 된다.
+  const depth = (c) => {
+    const p = c.oscPercentile;
+    if (p == null) return { label: c.vacancyZone || '-', w: 0 };
+    return { label: `하위 ${Math.round(p)}%`, w: Math.max(4, 100 - p) };
+  };
+  const row = (c) => {
+    const ret = c.ret5d;
+    const cls = ret == null ? '' : (ret >= 0 ? 'up' : 'down');
+    const d = depth(c);
+    const why = pickReasons(c.flowReasons);
+    return `
+      <div class="sr-row" data-stock-code="${bEscape(c.code)}" data-stock-name="${bEscape(c.name)}">
+        <span class="sr-name">${bEscape(c.name)}
+          ${why ? `<em class="sr-why">${bEscape(why)}</em>` : ''}
+        </span>
+        <span class="sr-sector">${bEscape(c.sector || '-')}</span>
+        <span class="sr-depth" title="자기 종목 수급 이력 대비 위치 — 낮을수록 깊은 빈집">
+          <span class="sr-depth-bar"><i style="width:${d.w}%"></i></span>
+          <em>${bEscape(d.label)}</em>
+        </span>
+        <span class="sr-ret ${cls}">${ret == null ? '-' : `${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%`}</span>
+      </div>`;
+  };
+
+  const funnel = (uni && st.beforeFilter)
+    ? `검토 ${uni}종목 → 추세·수급 조건 ${st.beforeFilter} → 최종 ${cands.length}`
+    : `최종 ${cands.length}종목`;
+
+  return `
+    <div class="flow-card brief-card-screen">
+      <div class="card-header">
+        <span class="card-theme-name">조건 통과 종목</span>
+        <span class="card-volume">${cands.length}개</span>
+      </div>
+      ${whatIs('외국인·기관이 최근 5일 순매수를 줄인(수급이 빠진) 자리 중, 10일선 위에서 추세가 살아있는 종목만 남겼습니다. 빈집 깊이는 그 종목의 과거 수급 이력에서 지금이 얼마나 아래인지를 뜻합니다 — 낮을수록 매물이 비어 있습니다. 매수 권유가 아니라 관찰 대상입니다.')}
+      <div class="sr-funnel">${bEscape(funnel)}</div>
+      <div class="sr-head"><span>종목 · 뽑힌 이유</span><span>업종</span><span>빈집 깊이</span><span>5일</span></div>
+      <div class="sr-body">${cands.map(row).join('')}</div>
+      ${buildOverflow(flow)}
+      <button class="sr-more" data-goto-tab="flow">종목별 차트·근거 보기 →</button>
+    </div>`;
+}
+
+// 보유 종목 점검용. 기회보다 리스크를 먼저 보는 사람이 오래 살아남는다.
+function buildExitList(flow) {
+  const ex = (flow || {}).exitSignals || [];
+  if (!ex.length) return '';
+  return `
+    <div class="flow-card brief-card-exit">
+      <div class="card-header">
+        <span class="card-theme-name">이탈 신호</span>
+        <span class="card-volume">${ex.length}건</span>
+      </div>
+      ${whatIs('수급 빈집 화면에 올랐던 종목 중, 최근 고점에서 밀리면서 10일 이동평균선까지 내준 종목입니다. 추세가 꺾였다는 사실만 알립니다.')}
+      <div class="ex-head"><span>종목</span><span>업종</span><span>고점 대비</span><span>종가</span></div>
+      <div class="ex-body">${ex
+        .slice()
+        .sort((a, b) => (a.drawdownFromHighPct ?? 0) - (b.drawdownFromHighPct ?? 0))
+        .slice(0, 12).map(e => `
+        <div class="ex-row">
+          <span class="ex-name">${bEscape(e.name)}</span>
+          <span class="ex-sector">${bEscape(e.sector || '-')}</span>
+          <span class="ex-dd">${e.drawdownFromHighPct != null ? `${e.drawdownFromHighPct.toFixed(1)}%` : '-'}</span>
+          <span class="ex-px">${e.lastClose != null ? Number(e.lastClose).toLocaleString('ko-KR') : ''}</span>
+        </div>`).join('')}</div>
+    </div>`;
+}
+
+function buildThermometer(name, value, delta, node) {
+  if (value == null) return '';
+  const v = Math.max(0, Math.min(100, value));
+  const zone = zoneOf(node, v);
+  const stops = FG_ZONES.map((z, i) => {
+    const from = i === 0 ? 0 : FG_ZONES[i - 1].to;
+    return `${z.color} ${from}%, ${z.color} ${z.to}%`;
+  }).join(', ');
+  const deltaHtml = (delta != null && Math.abs(delta) >= 0.05)
+    ? `<span class="tm-delta ${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</span>` : '';
+  return `
+    <div class="tm-row">
+      <div class="tm-head">
+        <span class="tm-name">${bEscape(name)}</span>
+        <span class="tm-value" style="color:${zone.color}">${v.toFixed(1)}</span>
+        <span class="tm-zone" style="color:${zone.color}">${zone.label}</span>
+        ${deltaHtml}
+      </div>
+      <div class="tm-track" style="background:linear-gradient(90deg, ${stops})">
+        <span class="tm-needle" style="left:${v}%"></span>
+      </div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────┐
+// 돈의 흐름 — 업종별 외인·기관 순매수 대칭 바 │
+// ─────────────────────────────────────────┘
+// 이 페이지의 핵심 그림. "오늘 돈이 어디로 갔나"를 한 장으로 보여준다.
+// 공시 리스트보다 시황 파악에 훨씬 직접적이다.
+function buildMoneyFlow(flows) {
+  if (!flows) return '';
+  // 한쪽 목록에만 있는 섹터를 0 으로 채우면 "순매수 0원"으로 읽혀 오해를 부른다.
+  // 상위 목록에 안 들어왔을 뿐이므로 null 로 두고 '—' 로 표기한다.
+  const map = {};
+  const merge = (arr, key) => (arr || []).forEach(e => {
+    if (!e || !e.sector) return;
+    map[e.sector] = map[e.sector] || { sector: e.sector, foreigner: null, organ: null };
+    map[e.sector][key] = e.amount == null ? null : e.amount;
+  });
+  merge(flows.foreigner, 'foreigner');
+  merge(flows.organ, 'organ');
+
+  const rows = Object.values(map)
+    .map(r => ({ ...r, total: (r.foreigner || 0) + (r.organ || 0) }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 8);
+  if (!rows.length) return '';
+
+  // 0선을 가운데 두면 순매도가 작은 날 왼쪽 절반이 통째로 비어 허전하다.
+  // 0선을 왼쪽 ZERO% 로 옮기고 양·음을 각자 최댓값으로 스케일해 폭을 다 쓴다.
+  const ZERO = 18;
+  const vals = rows.flatMap(r => [r.foreigner, r.organ]).filter(v => v != null);
+  const maxPos = Math.max(...vals.filter(v => v > 0), 1);
+  const maxNeg = Math.max(...vals.filter(v => v < 0).map(Math.abs), 1);
+  const eok = (v) => {
+    if (v == null) return '—';
+    const e = v / 1e8;
+    return Math.abs(e) >= 10000 ? `${(e / 10000).toFixed(1)}조` : `${Math.round(e).toLocaleString('ko-KR')}억`;
+  };
+  const bar = (v, cls) => {
+    if (v == null) return '';
+    if (v >= 0) {
+      const w = Math.max(1.2, (v / maxPos) * (100 - ZERO));
+      return `<span class="mf-bar mf-${cls} mf-pos" style="left:${ZERO}%;width:${w.toFixed(1)}%"></span>`;
+    }
+    const w = Math.max(1.2, (Math.abs(v) / maxNeg) * ZERO);
+    return `<span class="mf-bar mf-${cls} mf-neg" style="left:${(ZERO - w).toFixed(1)}%;width:${w.toFixed(1)}%"></span>`;
+  };
+
+  return `
+    <div class="flow-card brief-card-money">
+      <div class="card-header">
+        <span class="card-theme-name">업종별 자금 유입</span>
+        <span class="card-volume">외국인 · 기관 5일 순매수</span>
+      </div>
+      <div class="mf-legend">
+        <span><i class="mf-swatch mf-foreigner"></i>외국인</span>
+        <span><i class="mf-swatch mf-organ"></i>기관</span>
+      </div>
+      <div class="mf-body">
+        ${rows.map(r => `
+          <div class="mf-row">
+            <span class="mf-sector">${bEscape(r.sector)}</span>
+            <span class="mf-track">${bar(r.foreigner, 'foreigner')}</span>
+            <span class="mf-amt ${r.foreigner == null ? 'na' : (r.foreigner >= 0 ? 'up' : 'down')}">${eok(r.foreigner)}</span>
+            <span class="mf-track">${bar(r.organ, 'organ')}</span>
+            <span class="mf-amt ${r.organ == null ? 'na' : (r.organ >= 0 ? 'up' : 'down')}">${eok(r.organ)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────┐
+// 오늘의 숫자 — 시장 폭 요약                 │
+// ─────────────────────────────────────────┘
+function buildTodayNumbers(flow, facts) {
+  if (!flow) return '';
+  const items = [];
+  const sectors = ((facts || {}).leadingSectors || {}).now || [];
+  if (sectors.length) items.push(['주도 업종', sectors.slice(0, 3).join(' · '), '']);
+  if (Array.isArray(flow.newHighs)) items.push(['신고가', `${flow.newHighs.length}종목`, 'up']);
+  if (Array.isArray(flow.exitSignals)) items.push(['이탈 신호', `${flow.exitSignals.length}종목`, 'down']);
+  if (Array.isArray(flow.buyCandidates)) items.push(['빈집 시그널', `${flow.buyCandidates.length}종목`, '']);
+  const cash = (flow.cashRecommendation || {});
+  if (cash.cashPct != null) items.push(['권고 현금비중', `${cash.cashPct}% · ${bEscape(cash.level || '')}`, '']);
+  const crowd = (flow.crowding || {});
+  if (crowd.signal) items.push(['업종 쏠림', bEscape(crowd.signal), '']);
+  if (!items.length) return '';
+  return `
+    <div class="flow-card brief-card-nums">
+      <div class="card-header"><span class="card-theme-name">오늘의 숫자</span></div>
+      <div class="tn-grid">
+        ${items.map(([k, v, cls]) => `
+          <div class="tn-item">
+            <div class="tn-key">${bEscape(k)}</div>
+            <div class="tn-val ${cls}">${v}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────┐
 // 브리핑 본문 섹션                          │
 // ─────────────────────────────────────────┘
-const BRIEF_SECTION_ICONS = {
-  '시장 온도': '🌡️',
-  '수급 흐름': '💧',
-  '빈집 시그널': '🏚️',
-  '공시 체크': '📋',
-};
+
 
 function buildBriefingSections(sections) {
   if (!sections || !sections.length) return '';
   return sections.map(s => `
     <div class="brief-section">
-      <div class="brief-section-title">${BRIEF_SECTION_ICONS[s.title] || '•'} ${bEscape(s.title)}</div>
+      <div class="brief-section-title">${bEscape(s.title)}</div>
       <p class="brief-section-body">${bEscape(s.body)}</p>
     </div>
   `).join('');
@@ -93,7 +452,7 @@ function buildDisclosureCard(disclosures) {
       : '공시 데이터 미연결 — DART API 키 설정 후 표시됩니다.';
     return `
       <div class="flow-card brief-card-dart">
-        <div class="card-header"><span class="card-theme-name">📋 DART 공시 이벤트</span></div>
+        <div class="card-header"><span class="card-theme-name">DART 공시</span></div>
         <div class="brief-dart-empty">${bEscape(msg)}</div>
       </div>
     `;
@@ -103,7 +462,7 @@ function buildDisclosureCard(disclosures) {
   if (!cand.length && !uni.length) {
     return `
       <div class="flow-card brief-card-dart">
-        <div class="card-header"><span class="card-theme-name">📋 DART 공시 이벤트</span></div>
+        <div class="card-header"><span class="card-theme-name">DART 공시</span></div>
         <div class="brief-dart-empty">최근 3일 내 후보·유니버스 종목의 특이 공시가 없습니다.</div>
       </div>
     `;
@@ -111,16 +470,16 @@ function buildDisclosureCard(disclosures) {
   const row = (e) => `
     <a class="brief-dart-row" href="${bEscape(e.url)}" target="_blank" rel="noopener">
       <span class="brief-dart-date">${bFmtDate(e.date)}</span>
-      <span class="brief-dart-name">${bEscape(e.name)}${e.isCandidate ? ' <span class="brief-cand-chip">매수후보</span>' : ''}</span>
+      <span class="brief-dart-name">${bEscape(e.name)}${e.isCandidate ? ' <span class="brief-cand-chip">시그널</span>' : ''}</span>
       <span class="brief-dart-cat">${bEscape(e.category)}</span>
       ${toneBadge(e.tone)}
     </a>
   `;
   return `
     <div class="flow-card brief-card-dart">
-      <div class="card-header"><span class="card-theme-name">📋 DART 공시 이벤트</span><span class="card-volume">${cand.length + uni.length}건</span></div>
+      <div class="card-header"><span class="card-theme-name">DART 공시</span><span class="card-volume">${cand.length + uni.length}건</span></div>
       <div class="brief-dart-body">
-        ${cand.length ? `<div class="brief-dart-group">매수 후보 종목</div>${cand.map(row).join('')}` : ''}
+        ${cand.length ? `<div class="brief-dart-group">수급 시그널 종목</div>${cand.map(row).join('')}` : ''}
         ${uni.length ? `<div class="brief-dart-group">유니버스 (시총 상위 600)</div>${uni.slice(0, 12).map(row).join('')}` : ''}
       </div>
     </div>
@@ -131,29 +490,67 @@ function buildDisclosureCard(disclosures) {
 // 렌더링                                    │
 // ─────────────────────────────────────────┘
 function sourceBadge(source) {
-  if (source === 'llm') return '<span class="brief-badge brief-badge-ai">AI 생성</span>';
+  if (source === 'llm') return '<span class="brief-badge brief-badge-rule">데이터 요약</span>';
   if (source === 'sample') return '<span class="brief-badge brief-badge-sample">샘플 미리보기 — Lambda 배포 후 실데이터로 교체</span>';
   return '<span class="brief-badge brief-badge-rule">데이터 요약</span>';
 }
 
-function renderBriefing(briefing) {
+function renderBriefing(briefing, flow) {
   const container = document.getElementById('briefing-content');
   const generated = briefing.generatedAt ? new Date(briefing.generatedAt).toLocaleString('ko-KR') : '-';
+  const facts = briefing.signalFacts || {};
+  const fg = facts.fearGreed || {};
+  const sentiment = (flow || {}).marketSentiment || {};
+
+  // 화면 위에서부터 "한 줄 요약 → 온도 → 돈의 흐름 → 숫자 → 서술 → 공시".
+  // 공시는 근거 자료라 아래로 내린다 — 시황 파악의 출발점이 아니다.
   container.innerHTML = `
     <div class="flow-meta">
-      <span>브리핑 생성: ${generated}</span>
+      <span>기준 시각: ${generated}</span>
       ${sourceBadge(briefing.source)}
     </div>
     <div class="brief-wrap">
-      <div class="flow-card brief-card-main">
+      <div class="flow-card brief-card-hero">
+        <div class="brief-eyebrow">오늘 시장</div>
         <div class="brief-headline">${bEscape(briefing.headline)}</div>
-        ${buildBriefingStats(briefing.signalFacts)}
-        ${buildBriefingSections(briefing.sections)}
+        ${buildMarketVerdict(fg, sentiment, flow)}
+        <div class="tm-wrap">
+          ${buildThermometer(sentiment.kospi?.label || '코스피', fg.kospi, fg.kospiDelta, sentiment.kospi)}
+          ${buildThermometer(sentiment.kosdaq?.label || '코스닥', fg.kosdaq, null, sentiment.kosdaq)}
+        </div>
+        ${whatIs('공포·탐욕 지수는 주가 흐름·거래량·변동성·안전자산 선호를 하나로 합친 0~100 레벨입니다. 큰 글씨의 구간 이름은 레벨이 아니라 그 지수의 방향(오실레이터)으로 판정합니다 — 레벨이 낮아도 방향이 위를 향하면 과열로 올라가는 중입니다.')}
       </div>
-      ${buildDisclosureCard(briefing.disclosures)}
+
+      ${buildChanges(flow)}
+      ${buildScreenResult(flow)}
+      ${buildExitList(flow)}
+      ${buildMoneyFlow((flow || {}).sectorFlows)}
+
+      <details class="brief-more">
+        <summary>서술 요약 · 오늘의 숫자 · 공시 자세히 보기</summary>
+        <div class="brief-more-body">
+          <div class="flow-card brief-card-main">
+            ${buildBriefingSections(briefing.sections)}
+          </div>
+          ${buildTodayNumbers(flow, facts)}
+          ${buildDisclosureCard(briefing.disclosures)}
+        </div>
+      </details>
+
       <p class="brief-disclaimer">${bEscape(briefing.disclaimer || '')}</p>
     </div>
   `;
+
+  // 종목 행 클릭 → 차트 모달, 버튼 → 종목 탭
+  container.querySelectorAll('.sr-row').forEach(el => {
+    el.addEventListener('click', () => {
+      const c = ((flow || {}).buyCandidates || []).find(x => x.code === el.dataset.stockCode);
+      if (c && typeof openStockModal === 'function') openStockModal(c);
+    });
+  });
+  container.querySelector('.sr-more')?.addEventListener('click', () => {
+    document.querySelector('.tab-btn[data-tab="flow"]')?.click();
+  });
 }
 
 // ─────────────────────────────────────────┐
@@ -174,13 +571,15 @@ async function loadBriefing() {
         if (resp.ok) briefing = await resp.json();
       }
       if (!briefing) throw new Error('briefing 데이터 없음');
-      renderBriefing(briefing);
+      // flow 원본도 넘긴다 — 온도계·돈의 흐름·오늘의 숫자는 briefing 요약이
+      // 아니라 flow payload 의 원자료(sectorFlows/newHighs/…)로 그린다.
+      renderBriefing(briefing, flowData);
       briefingLoaded = true;
     } catch (err) {
       console.error('briefing load error:', err);
       container.innerHTML = `
         <div class="error-state">
-          <p>브리핑을 불러올 수 없습니다.</p>
+          <p>시황을 불러올 수 없습니다.</p>
           <p style="font-size:0.8rem;color:#999">${bEscape(err.message)}</p>
           <button class="retry-btn" onclick="loadBriefing()">다시 시도</button>
         </div>

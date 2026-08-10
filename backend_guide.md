@@ -18,7 +18,7 @@
 | `backend/main.py` | 로컬 실행 진입점입니다. 크롤링, 분석, 시세 조회를 순서대로 실행하고 `frontend/dashboard_data.json`을 생성합니다. |
 | `backend/handler.py` | AWS Lambda 진입점입니다. `main.py`와 같은 파이프라인을 돌린 뒤 결과를 S3에 업로드합니다. |
 | `backend/crawler.py` | 네이버 금융 뉴스를 수집합니다. 메인 뉴스가 부족하면 뉴스 리스트로 보충합니다. 기사 캐시는 `crawled_articles.json`에 저장합니다. |
-| `backend/analyzer.py` | 기사 목록을 `gemini-2.5-flash-lite`에 보내 테마 7개를 추출합니다. 대표 기사 URL을 붙이고 분석 캐시는 `theme_analysis.json`에 저장합니다. |
+| `backend/analyzer.py` | 기사 목록을 `gemini-3.5-flash-lite`에 보내 테마 7개를 추출합니다. 대표 기사 URL을 붙이고 분석 캐시는 `theme_analysis.json`에 저장합니다. |
 | `backend/stock_data.py` | 종목명을 종목코드로 찾고, 네이버 모바일/데스크톱 소스에서 시세를 조회해 테마별 종목 리스트를 완성합니다. |
 | `backend/youtube_signals.py` | `심플 관심종목 TV` 채널에서 `내일 관심테마!`, `당일 관심테마!` 영상을 읽어 분석 보조 시그널로 제공합니다. |
 | `backend/wownet_signals.py` | `와우넷 오늘의 특징주`에서 제목 날짜가 당일·전일인 게시글만 골라 `4. 강세업종`, `5. 특징주`를 추출해 분석 보조 시그널로 제공합니다. |

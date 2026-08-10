@@ -7,7 +7,7 @@
   <meta name="description" content="실시간 주식 테마 분석 대시보드. 오늘의 주도 테마와 관련 종목을 한눈에 확인하세요.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Noto+Serif+KR:wght@600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:,">
 </head>
@@ -42,20 +42,21 @@
       </button>
       <div class="search-suggestions" id="search-suggestions" hidden></div>
     </div>
+    <!-- 순서 = 아침에 답이 필요한 순서. 뉴스 테마는 근거 자료라 맨 뒤로 보냈다. -->
     <nav class="tabs" id="tab-nav">
-      <button class="tab-btn active" data-tab="themes">급등·테마</button>
-      <button class="tab-btn" data-tab="flow">수급·주도</button>
-      <button class="tab-btn" data-tab="briefing">AI 브리핑</button>
+      <button class="tab-btn active" data-tab="briefing">오늘</button>
+      <button class="tab-btn" data-tab="flow">수급·종목</button>
+      <button class="tab-btn" data-tab="themes">재료·테마</button>
     </nav>
   </header>
 
   <!-- ===== Main Content ===== -->
   <main>
-    <section id="tab-themes" class="tab-panel active">
-      <div id="theme-grid">
-        <div class="loading-state" id="loading-state">
+    <section id="tab-briefing" class="tab-panel active">
+      <div id="briefing-content">
+        <div class="loading-state" id="briefing-loading">
           <div class="spinner"></div>
-          <p>테마 데이터를 불러오는 중...</p>
+          <p>오늘 시장을 정리하는 중...</p>
         </div>
       </div>
     </section>
@@ -69,11 +70,11 @@
       </div>
     </section>
 
-    <section id="tab-briefing" class="tab-panel" hidden>
-      <div id="briefing-content">
-        <div class="loading-state" id="briefing-loading">
+    <section id="tab-themes" class="tab-panel" hidden>
+      <div id="theme-grid">
+        <div class="loading-state" id="loading-state">
           <div class="spinner"></div>
-          <p>브리핑을 불러오는 중...</p>
+          <p>테마 데이터를 불러오는 중...</p>
         </div>
       </div>
     </section>

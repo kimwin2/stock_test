@@ -9,7 +9,7 @@ from openai import OpenAI
 from .models import PriceThemeCandidate
 
 
-LLM_MODEL = os.getenv("PRICE_SIGNAL_MODEL", "gemini-2.5-flash-lite")
+LLM_MODEL = os.getenv("PRICE_SIGNAL_MODEL", "gemini-3.5-flash-lite")
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 MAX_MOVER_INPUT = 36
 MAX_ARTICLE_SNIPPETS_PER_STOCK = 2
