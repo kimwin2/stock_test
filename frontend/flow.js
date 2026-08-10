@@ -807,37 +807,106 @@ function buyGradeBadge(score) {
 // HTS 에서는 종목마다 투자자별 매매동향을 일일이 열어봐야 보이는데,
 // 우리는 후보 전 종목에 대해 이미 계산해 두고 화면에 안 쓰고 있었다.
 // 외인/기관 각각 일별 순매수 부호와 크기를 칸 색으로 보여준다.
+// 수급 상태 — '지금 비어 있나 / 채워지기 시작했나'를 한 곳에서 판정한다.
+// 빈집 타임라인(수급 탭)과 오늘 탭의 종목 리스트가 같은 문구를 쓰도록 공유한다.
+// 두 화면이 다른 규칙으로 같은 말을 하면 사용자는 어느 쪽을 믿을지 알 수 없다.
+function supplyStateOf(c) {
+  const days = (c && c.dailyFlow10d) || [];
+  let turnIdx = -1;
+  for (let i = 1; i < days.length; i++) {
+    const prev = days[i - 1].instAmount || 0, cur = days[i].instAmount || 0;
+    if (prev <= 0 && cur > 0) turnIdx = i;          // 순매도 → 순매수 전환
+  }
+  const sinceTurn = turnIdx >= 0 ? (days.length - 1 - turnIdx) : -1;
+  const streak = (c && c.currentVacancyDays) || 0;
+
+  if (sinceTurn === 0) return { label: '오늘 채우기 시작', cls: 'fh-state-turn', turnIdx, sinceTurn, streak };
+  if (sinceTurn > 0 && sinceTurn <= 2) return { label: `${sinceTurn}일 전 채우기 시작`, cls: 'fh-state-turn', turnIdx, sinceTurn, streak };
+  if (streak > 0) return { label: `${streak}일째 비어있음`, cls: 'fh-state-empty', turnIdx, sinceTurn, streak };
+  return { label: '수급 관망', cls: 'fh-state-flat', turnIdx, sinceTurn, streak };
+}
+
 function renderFlowHeatmap(c) {
   const days = c.dailyFlow10d || [];
   if (days.length < 3) return '';
-  const vals = days.flatMap(d => [Math.abs(d.foreigner || 0), Math.abs(d.organ || 0)]);
-  const max = Math.max(...vals, 1);
-  const cell = (v) => {
+
+  // ── 이 그림이 답해야 하는 것 ────────────────────────────
+  // 후보 목록은 "지금 비어 있다"는 정적 사실만 말한다. 매매에 필요한 건
+  // "언제 채워지기 시작하나"다 — 빈집 논리의 값은 기관·외인이 돌아서는
+  // 순간에 나오기 때문이다. 그래서 이 표의 일은 셋이다:
+  //   ① 지금 비어 있나  ② 얼마나 깊게·오래  ③ 채워지기 시작했나(전환)
+  //
+  // [이전 결함] 일별 순매수 '원' 을 그 종목 자체의 10일 최대값으로 정규화했다.
+  //   - 같은 진한 칸이 A 종목 8.8, B 종목 227(만분율) 을 뜻해 종목 간 비교 불가
+  //     (실측 26배 차이)
+  //   - 빈집 판정 지표(시총 정규화 오실레이터)와 단위·기간이 달라
+  //     "빈집이라는데 칸은 빨갛다" 는 불일치가 생겼다
+  // → (1) 오실레이터 행을 맨 위에 둬 빈집 판정과 같은 지표·같은 분포를 쓴다.
+  //   (2) 외인·기관은 시총 대비 만분율 + 고정 스케일로 바꿔 종목 간 채도가
+  //       같은 뜻을 갖게 한다.
+  const mc = c.marketCap || 0;
+
+  // 고정 스케일 — 후보 종목 일별 |순매수/시총| 의 p90 실측치(만분율).
+  // 제곱근 곡선이라 중간값(p50≈8)도 또렷하고 극단만 포화된다.
+  const FLOW_FULL = 53;
+  const localMax = Math.max(...days.flatMap(d => [Math.abs(d.foreigner || 0), Math.abs(d.organ || 0)]), 1);
+
+  const flowCell = (v) => {
     const amt = v || 0;
-    const t = Math.min(1, Math.abs(amt) / max);
-    // 0.14 아래는 사실상 보합 — 옅은 회색으로 두고 색을 낭비하지 않는다
-    const bg = t < 0.14 ? '#F1EADC'
-      : `${amt >= 0 ? 'rgba(229,57,53,' : 'rgba(21,101,192,'}${(0.16 + t * 0.72).toFixed(2)})`;
-    return `<i style="background:${bg}" title="${amt >= 0 ? '+' : ''}${fmtBillion(amt)}"></i>`;
+    const t = mc
+      ? Math.min(1, Math.sqrt(Math.abs(amt) / mc * 1e4 / FLOW_FULL))
+      : Math.min(1, Math.sqrt(Math.abs(amt) / localMax));
+    const bg = t < 0.12 ? '#F1EADC'
+      : `${amt >= 0 ? 'rgba(229,57,53,' : 'rgba(21,101,192,'}${(0.14 + t * 0.74).toFixed(2)})`;
+    const per = mc ? ` (시총 대비 ${(amt / mc * 1e4).toFixed(1)}bp)` : '';
+    return `<i style="background:${bg}" title="${amt >= 0 ? '+' : ''}${fmtBillion(amt)}${per}"></i>`;
   };
+
+  // 빈집도 행 — 빈집 판정과 동일한 시계열·동일한 자기분포 백분위.
+  // 뱃지가 '빈집' 이면 이 행의 마지막 칸은 반드시 파랗다 (같은 지표라서).
+  const oscHist = c.supplyOscHistory || [];
+  const oscAll = oscHist.map(o => o.osc).filter(v => v != null).sort((a, b) => a - b);
+  const oscByDate = new Map(oscHist.filter(o => o.osc != null).map(o => [o.date, o.osc]));
+  const pctOf = (v) => oscAll.length ? oscAll.filter(x => x < v).length / oscAll.length * 100 : 50;
+  const oscCell = (d) => {
+    const v = oscByDate.get(d.date);
+    if (v == null) return '<i style="background:#F1EADC" title="데이터 없음"></i>';
+    const pct = pctOf(v);
+    const t = Math.min(1, Math.abs(pct - 50) / 50);
+    const bg = t < 0.12 ? '#F1EADC'
+      : `${pct >= 50 ? 'rgba(229,57,53,' : 'rgba(21,101,192,'}${(0.14 + t * 0.74).toFixed(2)})`;
+    return `<i style="background:${bg}" title="빈집도 하위 ${pct.toFixed(0)}%"></i>`;
+  };
+
   const md = (s) => { const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(s || ''); return m ? `${+m[1]}/${+m[2]}` : ''; };
-  const streak = c.currentVacancyDays || 0;
+  const ss = supplyStateOf(c);
+  const { turnIdx, label: state, cls: stateCls } = ss;
+  const pctLast = c.oscPercentile;
+  const depth = (pctLast != null) ? `빈집도 하위 ${Math.round(pctLast)}%` : '';
 
   return `
     <div class="fh">
       <div class="fh-head">
-        <span class="fh-title">일별 수급 (10거래일)</span>
-        ${streak > 0 ? `<span class="fh-streak">외인·기관 ${streak}일째 순매도</span>` : ''}
+        <span class="fh-title">빈집 타임라인 <em>10거래일</em></span>
+        <span class="fh-badges">
+          ${depth ? `<span class="fh-depth">${depth}</span>` : ''}
+          <span class="fh-state ${stateCls}">${state}</span>
+        </span>
       </div>
       <div class="fh-grid">
+        <span class="fh-lab fh-lab-key">빈집도</span>
+        <span class="fh-cells">${days.map(d => oscCell(d)).join('')}</span>
         <span class="fh-lab">외국인</span>
-        <span class="fh-cells">${days.map(d => cell(d.foreigner)).join('')}</span>
+        <span class="fh-cells">${days.map(d => flowCell(d.foreigner)).join('')}</span>
         <span class="fh-lab">기관</span>
-        <span class="fh-cells">${days.map(d => cell(d.organ)).join('')}</span>
+        <span class="fh-cells">${days.map(d => flowCell(d.organ)).join('')}</span>
+        <span class="fh-lab"></span>
+        <span class="fh-cells fh-marks">${days.map((_, i) => `<em>${i === turnIdx ? '▲' : ''}</em>`).join('')}</span>
         <span class="fh-lab"></span>
         <span class="fh-cells fh-dates">${days.map((d, i) =>
           `<em>${(i === 0 || i === days.length - 1) ? md(d.date) : ''}</em>`).join('')}</span>
       </div>
+      <div class="fh-legend">푸를수록 비어있음 · 붉을수록 채워짐${turnIdx >= 0 ? ' · ▲ 순매수 전환일' : ''}</div>
     </div>`;
 }
 

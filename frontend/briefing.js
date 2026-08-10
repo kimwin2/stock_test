@@ -94,8 +94,13 @@ function zoneOf(marketNode, fgValue) {
 // ─────────────────────────────────────────┘
 // 숫자만 크게 띄워도 뜻을 모르면 안 읽힌다. 지표마다 "이게 무엇인지"를
 // 한 줄로 붙인다. 판단을 대신하지 않고 정의만 말한다.
+// [정보 설계] 예전에는 이 설명을 항상 펼쳐진 문단으로 깔았다. 카드마다
+// 70~150자짜리 문단이 붙으니 화면이 '줄글 나열' 로 읽히고, 정작 숫자가
+// 눈에 안 들어왔다 (모바일 기준 탭 전체 높이 2,127px).
+// 뜻을 모르는 사람에겐 여전히 필요한 정보라 지우지 않고, 기본은 접어두고
+// 필요한 사람만 펼치게 한다. 처음 보는 사람도 한 번 열면 되는 성격의 글이다.
 function whatIs(text) {
-  return `<p class="what-is">${bEscape(text)}</p>`;
+  return `<details class="what-is"><summary>이게 무슨 뜻인가요?</summary><p>${bEscape(text)}</p></details>`;
 }
 
 // 오늘 시장을 한 문장으로. 구간 이름을 가장 크게 보여준다 — '38.7'만으로는
@@ -113,7 +118,9 @@ function buildMarketVerdict(fg, sentiment, flow) {
   const safety = ((sentiment.buySafety || {}).kospi) || {};
   const nCand = ((flow || {}).buyCandidates || []).length;
   const nExit = ((flow || {}).exitSignals || []).length;
-  const sectors = (((flow || {}).leadingSectorLabels) || []).slice(0, 3);
+  // 칩 한 칸에 긴 섹터명 3개를 넣으면 3줄로 접혀 히어로가 무너진다. 2개까지.
+  const sectorsAll = ((flow || {}).leadingSectorLabels) || [];
+  const sectors = sectorsAll.slice(0, 2);
 
   // 아침에 필요한 사실을 한 줄에 모은다. 칩이 둘뿐이면 화면이 비어 보이고,
   // 정작 "오늘 뭘 봐야 하나" 로 이어지지 않는다.
@@ -127,7 +134,8 @@ function buildMarketVerdict(fg, sentiment, flow) {
     chips.push(['업종 쏠림', crowding.signal,
       crowding.latest != null ? `지수 ${crowding.latest.toFixed(1)}` : '']);
   }
-  if (sectors.length) chips.push(['주도 업종', sectors.join(' · '), `상위 ${sectors.length}`]);
+  if (sectors.length) chips.push(['주도 업종', sectors.join(' · '),
+    sectorsAll.length > sectors.length ? `외 ${sectorsAll.length - sectors.length}개` : `상위 ${sectors.length}`]);
   if (nCand) chips.push(['조건 통과', `${nCand}종목`, nExit ? `이탈 신호 ${nExit}` : '']);
 
   return `
@@ -235,24 +243,35 @@ function buildScreenResult(flow) {
     if (p == null) return { label: c.vacancyZone || '-', w: 0 };
     return { label: `하위 ${Math.round(p)}%`, w: Math.max(4, 100 - p) };
   };
-  const row = (c) => {
+  // [레이아웃] 5열 한 줄로 깔았더니 모바일 430px 에서 행이 2줄로 흐트러지고
+  // 상태 칩이 잘렸다. 정보량을 줄이는 대신 2줄 구조로 바꾼다.
+  //   1줄: 순위 · 종목명 ................ 5일 등락
+  //   2줄: 업종 · 수급상태 · 빈집 깊이
+  // 이름과 등락률이 같은 줄에서 좌우로 대비되어 훑기 쉽고, 부가 정보는
+  // 아래줄에 모여 시선이 두 번만 움직인다.
+  const row = (c, i) => {
     const ret = c.ret5d;
     const cls = ret == null ? '' : (ret >= 0 ? 'up' : 'down');
     const d = depth(c);
-    const why = pickReasons(c.flowReasons);
+    const ss = (typeof supplyStateOf === 'function') ? supplyStateOf(c) : null;
     return `
       <div class="sr-row" data-stock-code="${bEscape(c.code)}" data-stock-name="${bEscape(c.name)}">
-        <span class="sr-name">${bEscape(c.name)}
-          ${why ? `<em class="sr-why">${bEscape(why)}</em>` : ''}
-        </span>
-        <span class="sr-sector">${bEscape(c.sector || '-')}</span>
-        <span class="sr-depth" title="자기 종목 수급 이력 대비 위치 — 낮을수록 깊은 빈집">
-          <span class="sr-depth-bar"><i style="width:${d.w}%"></i></span>
-          <em>${bEscape(d.label)}</em>
-        </span>
+        <span class="sr-rank">${i + 1}</span>
+        <span class="sr-name">${bEscape(c.name)}</span>
         <span class="sr-ret ${cls}">${ret == null ? '-' : `${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%`}</span>
+        <span class="sr-meta">
+          <em class="sr-sector-in">${bEscape(c.sector || '-')}</em>
+          ${ss ? `<em class="sr-state ${ss.cls}">${bEscape(ss.label)}</em>` : ''}
+          <em class="sr-depth" title="자기 종목 수급 이력 대비 위치 — 낮을수록 깊은 빈집">
+            <i class="sr-depth-bar"><b style="width:${d.w}%"></b></i>
+            ${bEscape(d.label)}
+          </em>
+        </span>
       </div>`;
   };
+
+  // 한 화면에 들어오는 만큼만 펼친다. 10행을 통째로 깔면 순위가 안 읽힌다.
+  const TOP_N = 5;
 
   const funnel = (uni && st.beforeFilter)
     ? `검토 ${uni}종목 → 추세·수급 조건 ${st.beforeFilter} → 최종 ${cands.length}`
@@ -266,8 +285,11 @@ function buildScreenResult(flow) {
       </div>
       ${whatIs('외국인·기관이 최근 5일 순매수를 줄인(수급이 빠진) 자리 중, 10일선 위에서 추세가 살아있는 종목만 남겼습니다. 빈집 깊이는 그 종목의 과거 수급 이력에서 지금이 얼마나 아래인지를 뜻합니다 — 낮을수록 매물이 비어 있습니다. 매수 권유가 아니라 관찰 대상입니다.')}
       <div class="sr-funnel">${bEscape(funnel)}</div>
-      <div class="sr-head"><span>종목 · 뽑힌 이유</span><span>업종</span><span>빈집 깊이</span><span>5일</span></div>
-      <div class="sr-body">${cands.map(row).join('')}</div>
+      <div class="sr-body">${cands.slice(0, TOP_N).map(row).join('')}</div>
+      ${cands.length > TOP_N ? `<details class="sr-rest">
+        <summary>나머지 ${cands.length - TOP_N}종목 보기</summary>
+        <div class="sr-body">${cands.slice(TOP_N).map((c, i) => row(c, i + TOP_N)).join('')}</div>
+      </details>` : ''}
       ${buildOverflow(flow)}
       <button class="sr-more" data-goto-tab="flow">종목별 차트·근거 보기 →</button>
     </div>`;

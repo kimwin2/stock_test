@@ -1759,10 +1759,28 @@ body {
 
 /* 용어 한 줄 설명 */
 /* 용어 설명 — 각주처럼. 배경 박스를 깔면 본문보다 눈에 띄어 주객이 바뀐다. */
+/* 용어 설명 — 기본은 접힌 상태. 펼쳐진 문단으로 두면 화면이 줄글로 읽힌다. */
 .what-is {
-  font-size: 0.73rem; line-height: 1.65; color: #8a8272;
-  padding: 9px 0 2px; margin: 9px 0 0;
+  margin: 9px 0 0;
+  padding: 8px 0 0;
   border-top: 1px solid var(--rule);
+}
+.what-is > summary {
+  font-size: 0.7rem; font-weight: 700; color: #a89f8d;
+  cursor: pointer; list-style: none; user-select: none;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.what-is > summary::-webkit-details-marker { display: none; }
+.what-is > summary::before { content: '?'; 
+  display: inline-grid; place-items: center;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: #ebe4d6; color: #8a8272; font-size: 0.62rem; font-weight: 900;
+}
+.what-is > summary:hover { color: #6f6858; }
+.what-is > summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 3px; }
+.what-is[open] > summary { margin-bottom: 6px; }
+.what-is > p {
+  font-size: 0.73rem; line-height: 1.65; color: #8a8272;
   word-break: keep-all;
 }
 
@@ -1790,10 +1808,47 @@ body {
   margin: 9px 2px 4px; letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
-.sr-head, .sr-row {
-  display: grid; grid-template-columns: 1.5fr 1fr 62px 60px;
-  align-items: center; gap: 8px; padding: 8px 8px;
+/* 조건 통과 종목 행 — 2줄 구조.
+   1줄: 순위 · 종목명 ...... 5일 등락 / 2줄: 업종 · 수급상태 · 빈집 깊이.
+   5열 한 줄은 모바일 430px 에서 흐트러지고 상태 칩이 잘렸다. */
+.sr-row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  grid-template-areas: "rank name ret" "rank meta meta";
+  align-items: center; gap: 2px 8px; padding: 9px 6px;
+  border-bottom: 1px solid #F4EEE2; cursor: pointer; border-radius: 2px;
 }
+.sr-row:hover { background: #FBF6EC; }
+.sr-rank {
+  grid-area: rank; align-self: center;
+  font-size: 0.74rem; font-weight: 900; color: #b8ad96;
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.sr-name { grid-area: name; font-size: 0.95rem; font-weight: 900; color: var(--text-primary); }
+.sr-ret  { grid-area: ret; font-size: 0.88rem; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums; }
+.sr-meta {
+  grid-area: meta; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  font-size: 0.7rem;
+}
+.sr-meta em { font-style: normal; }
+.sr-sector-in { color: #a89f8d; font-weight: 700; }
+/* 수급 상태 — 수급 탭 빈집 타임라인과 같은 규칙·같은 색 */
+.sr-state { font-size: 0.66rem; font-weight: 900; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+.sr-depth { display: inline-flex; align-items: center; gap: 5px; color: #8a8272; font-weight: 700; }
+.sr-depth-bar {
+  display: inline-block; width: 34px; height: 5px; border-radius: 3px;
+  background: #EFE7D8; overflow: hidden;
+}
+.sr-depth-bar b { display: block; height: 100%; background: linear-gradient(90deg, #D8C39A, #B4791E); }
+.sr-rest { margin-top: 2px; }
+.sr-rest > summary {
+  font-size: 0.72rem; font-weight: 800; color: #8a8272; cursor: pointer;
+  padding: 8px 6px; list-style: none;
+}
+.sr-rest > summary::-webkit-details-marker { display: none; }
+.sr-rest > summary::after { content: ' ▾'; }
+.sr-rest[open] > summary::after { content: ' ▴'; }
+.sr-rest > summary:hover { color: var(--teal); }
 .sr-head { font-size: 0.7rem; color: #a89f8d; font-weight: 800; border-bottom: 1px solid #EFE7D8; }
 .sr-row { border-bottom: 1px solid #F4EEE2; cursor: pointer; border-radius: 2px; }
 .sr-row:hover { background: #FBF6EC; }
@@ -1855,9 +1910,11 @@ body {
 
 @media (max-width: 560px) {
   .verdict-zone { font-size: 1.72rem; }
-  .sr-head, .sr-row { grid-template-columns: 1.4fr 1fr 54px 52px; gap: 5px; padding: 8px 4px; }
-  .sr-sector { font-size: 0.7rem; }
-  .sr-zone { font-size: 0.66rem; padding: 2px 5px; }
+  /* .sr-row 는 2줄 grid-template-areas 구조라 열 개수를 덮어쓰면 무너진다.
+     좁은 화면에서는 여백만 줄인다. */
+  .sr-row { gap: 2px 6px; padding: 8px 4px; }
+  .sr-name { font-size: 0.9rem; }
+  .sr-meta { font-size: 0.67rem; gap: 5px; }
   .ex-head, .ex-row { grid-template-columns: 1.1fr 0.9fr 58px 64px; gap: 5px; font-size: 0.76rem; }
 }
 
@@ -2330,9 +2387,20 @@ body {
    종가베팅 관점의 핵심 — "수급이 언제 돌아섰나"가 색 전환으로 읽힌다.
    HTS 에서는 종목마다 투자자별 매매동향을 열어야 보이는 정보다. */
 .fh { margin: 10px 2px 2px; }
-.fh-head { display: flex; align-items: baseline; gap: 9px; margin-bottom: 5px; }
+.fh-head { display: flex; align-items: baseline; gap: 9px; margin-bottom: 5px; flex-wrap: wrap; }
 .fh-title { font-size: 0.72rem; font-weight: 800; color: #8a8272; letter-spacing: 0.04em; }
-.fh-streak { font-size: 0.7rem; font-weight: 800; color: #1565C0; }
+.fh-title em { font-style: normal; font-weight: 700; color: #b8b0a0; margin-left: 3px; }
+.fh-badges { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.fh-depth { font-size: 0.68rem; font-weight: 800; color: #6b7a8f; }
+/* 상태 pill — 표를 안 읽어도 결론(비었나/채워지기 시작했나)이 잡히게 */
+.fh-state { font-size: 0.68rem; font-weight: 900; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+.fh-state-empty { color: #0d47a1; background: #e6eefb; }
+.fh-state-turn  { color: #fff;    background: #E53935; }
+.fh-state-flat  { color: #8a8272; background: #F1EADC; }
+.fh-lab-key { color: #6b7a8f !important; font-weight: 900 !important; }
+.fh-marks em { font-style: normal; font-size: 0.62rem; color: #E53935; text-align: center; line-height: 1; font-weight: 900; }
+.fh-marks { align-items: center; }
+.fh-legend { margin-top: 5px; font-size: 0.63rem; color: #b0a894; letter-spacing: 0.01em; }
 .fh-grid { display: grid; grid-template-columns: 42px 1fr; gap: 3px 8px; align-items: center; }
 .fh-lab { font-size: 0.68rem; color: #a89f8d; font-weight: 700; }
 .fh-cells { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
