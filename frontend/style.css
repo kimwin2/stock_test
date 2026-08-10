@@ -2485,3 +2485,16 @@ body {
   margin-top: 8px; font-size: 0.72rem; line-height: 1.6; color: #8a8272;
   word-break: keep-all; border-top: 1px solid var(--rule, #EFE7D8); padding-top: 8px;
 }
+
+/* 포착 경로 — 주도 ETF(RS) → 섹터 → 종목. 주장이 아니라 근거로 읽히게. */
+.pp { margin: 10px 2px 0; padding-top: 9px; border-top: 1px solid var(--rule, #EFE7D8); }
+.pp-title { font-size: 0.68rem; font-weight: 900; color: #8a8272; letter-spacing: 0.05em; }
+.pp-chain { display: flex; align-items: stretch; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.pp-step {
+  display: inline-flex; flex-direction: column; gap: 1px;
+  background: #F7F2E7; border: 1px solid #EFE7D8; border-radius: 7px; padding: 5px 9px;
+}
+.pp-step em { font-style: normal; font-size: 0.76rem; font-weight: 900; color: #2b332c; }
+.pp-step small { font-size: 0.64rem; font-weight: 700; color: #a89f8d; }
+.pp-step .pp-src { color: #00695C; }
+.pp-arrow { align-self: center; font-size: 0.9rem; font-weight: 900; color: #c9bfa8; }

@@ -940,6 +940,42 @@ function renderChartLegend() {
 // 공용 종목 카드 (STEP3 = 빈집, 주도섹터 거래대금 공용) │
 //   헤더行 + 풀폭 차트박스 + 선 범례 + 빈집 태그行 + 분위 바
 // ─────────────────────────────────────────┘
+// 포착 경로 — "왜 이 종목이 나왔나" 를 한 줄로 되짚는다.
+//   주도 ETF(RS) → 섹터 → 종목 → 빈집·추세 상태
+// 리스트만 던지면 "AI 가 뽑았다" 는 주장이 되고, 경로를 보여주면 근거가 된다.
+// 출처(leadingSectorSources)는 백엔드가 ETF 매칭 시점에 기록해 내려준다.
+function renderPickPath(c) {
+  const flow = (typeof flowData !== 'undefined' && flowData) ? flowData : null;
+  const sector = c.sector;
+  if (!flow || !sector) return '';
+  const labels = flow.leadingSectorLabels || [];
+  const rank = labels.indexOf(sector);
+  if (rank < 0) return '';
+  const src = (flow.leadingSectorSources || {})[sector] || {};
+
+  const steps = [];
+  if (src.via === 'etf' && src.etf) {
+    steps.push(`<em class="pp-src">${fEscape(src.etf)}</em><small>RS ${src.rsNorm}</small>`);
+  } else if (src.via === 'flow' && src.strength != null) {
+    steps.push(`<em class="pp-src">외인·기관 자금 유입</em><small>강도 ${src.strength}</small>`);
+  }
+  steps.push(`<em>${fEscape(sector)}</em><small>주도 ${rank + 1}위</small>`);
+
+  const state = (typeof supplyStateOf === 'function') ? supplyStateOf(c) : null;
+  const last = [];
+  if (c.oscPercentile != null) last.push(`빈집 하위 ${Math.round(c.oscPercentile)}%`);
+  if (c.aboveMA10) last.push('10일선 위');
+  if (state) last.push(state.label);
+  steps.push(`<em>${fEscape(c.name)}</em><small>${fEscape(last.join(' · '))}</small>`);
+
+  return `
+    <div class="pp">
+      <span class="pp-title">포착 경로</span>
+      <div class="pp-chain">${steps.map((h, i) =>
+        `${i ? '<span class="pp-arrow">›</span>' : ''}<span class="pp-step">${h}</span>`).join('')}</div>
+    </div>`;
+}
+
 function renderCandCardV2(c, idx) {
   const sectorLabel = c.sector || '-';
   const rankBadge = `<span class="rank-badge${idx === 0 ? ' rank-badge-top' : ''}">#${idx + 1}</span>`;
@@ -959,6 +995,7 @@ function renderCandCardV2(c, idx) {
       <div class="cand-v2-chartbox">${renderMiniPriceChart(c)}</div>
       ${renderChartLegend()}
       ${renderCloseBetLine(c)}
+      ${renderPickPath(c)}
       ${renderFlowHeatmap(c)}
       ${renderVacancyTags(c)}
     </div>

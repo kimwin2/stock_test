@@ -97,8 +97,14 @@ def build_cash_recommendation(market_sentiment: dict, crowding: dict) -> dict:
 NON_THEME_SECTORS = {"보험", "은행", "지주"}
 
 
-def _resolve_leading_sectors_from_etfs(leading_etfs: list[dict]) -> list[str]:
-    """주도 ETF 라벨에서 우리 sector taxonomy 라벨 추출."""
+def _resolve_leading_sectors_from_etfs(
+    leading_etfs: list[dict],
+) -> tuple[list[str], dict[str, dict]]:
+    """주도 ETF 라벨에서 우리 sector taxonomy 라벨 추출.
+
+    Returns: (RS 강도순 섹터 리스트, 섹터별 출처 dict)
+    출처는 "이 종목이 왜 뽑혔나"를 ETF → 섹터 → 종목으로 되짚기 위한 근거다.
+    """
     # 매핑은 ETF 명에 키워드가 등장하는 순서대로 매칭. 더 specific 한 키워드를 위에 둔다.
     # (예: "200 IT" 는 사실상 반도체 ETF 라 게임/IT 가 아닌 반도체로 매핑)
     sector_map = [
@@ -171,6 +177,7 @@ def _resolve_leading_sectors_from_etfs(leading_etfs: list[dict]) -> list[str]:
     # 섹터가 최고 가산점을 받고 있었다 (실측: 반도체 RS 92.8 이 5위 +14,
     # 2차전지 RS 31.5 가 1위 +40). RS 강도 순으로 정렬해 순위를 의미 있게 만든다.
     sector_rs: dict[str, float] = {}
+    sector_src: dict[str, str] = {}      # 섹터 → 그 섹터를 만든 ETF 이름
     for etf in leading_etfs:
         name = etf.get("name") or ""
         try:
@@ -187,13 +194,21 @@ def _resolve_leading_sectors_from_etfs(leading_etfs: list[dict]) -> list[str]:
             if kw in name:
                 if sector != "기타" and rs > sector_rs.get(sector, float("-inf")):
                     sector_rs[sector] = rs
+                    sector_src[sector] = name
                 break
 
     # 방어적 섹터는 주도 테마에서 제외 — 아래 NON_THEME_SECTORS 주석 참고.
-    return [
+    ordered = [
         s for s, _ in sorted(sector_rs.items(), key=lambda kv: kv[1], reverse=True)
         if s not in NON_THEME_SECTORS
     ]
+    # 근거 체인용 출처. "이 종목이 왜 뽑혔나" 를 ETF → 섹터 → 종목으로 되짚으려면
+    # 어느 ETF 가 그 섹터를 주도로 만들었는지를 버리면 안 된다.
+    sources = {
+        s: {"via": "etf", "etf": sector_src.get(s), "rsNorm": round(sector_rs[s], 1)}
+        for s in ordered
+    }
+    return ordered, sources
 
 
 def build_flow_dashboard(
@@ -228,7 +243,7 @@ def build_flow_dashboard(
         print(f"  [!] 실패: {e}")
         leading = {"items": [], "top": [], "leading": [], "error": str(e)}
 
-    leading_sectors_etf = _resolve_leading_sectors_from_etfs(leading.get("leading", []))
+    leading_sectors_etf, sector_sources = _resolve_leading_sectors_from_etfs(leading.get("leading", []))
     leading_sectors = list(leading_sectors_etf)
     print(f"   ETF RS70+ 기반 주도 섹터: {leading_sectors_etf or '(미해결)'}")
 
@@ -355,6 +370,10 @@ def build_flow_dashboard(
     for sector in leading_sectors_flow:
         if sector not in leading_sectors:
             leading_sectors.append(sector)
+            sector_sources[sector] = {
+                "via": "flow",
+                "strength": round(flow_ranked.get(sector, 0.0), 1),
+            }
 
     # ETF RS 섹터를 앞에 두고 전체 개수 제한 — 주도 섹터가 많아질수록 필터 의미가 사라진다.
     dropped_sectors = leading_sectors[MAX_LEADING_SECTORS:]
@@ -776,6 +795,8 @@ def build_flow_dashboard(
         "cashRecommendation": cash_recommendation,
         "leadingSectors": leading,
         "leadingSectorLabels": leading_sectors,
+        # 섹터별 '왜 주도인가' 출처 — ETF(RS) 인지 수급 강도인지. 근거 체인 렌더용.
+        "leadingSectorSources": {s: sector_sources.get(s) for s in leading_sectors if sector_sources.get(s)},
         "supplyVacancy": vacancy_result,
         "buyCandidates": enriched_candidates[:30],
         "candidateFilterStats": candidate_filter_stats,
