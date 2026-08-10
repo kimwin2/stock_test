@@ -216,3 +216,34 @@ def available_dates() -> list[str]:
     if not d.exists():
         return []
     return sorted(p.stem for p in d.glob("*.json") if re.fullmatch(r"\d{4}-\d{2}-\d{2}", p.stem))
+
+
+def collector_failure() -> str | None:
+    """레퍼런스 수집기가 마지막 실행에서 실패했는가. 실패 사유 문자열 또는 None.
+
+    staleness_days() 만으로는 부족하다. 그건 **데이터 나이**를 보는데,
+    수집기가 오늘 죽어도 어제 데이터가 있으면 3일간 조용하다. 그 사이
+    "레퍼런스가 오늘을 안 다뤘나 보다" 로 오해하고 대조 결과를 그대로 믿게 된다.
+    (실측 2026-08-10: invite 링크가 또 만료돼 crawl 이 죽었는데 데이터 나이는
+     1일이라 경고가 안 떴다.)
+
+    수집기가 실행 결과를 data/state.json 에 남기므로 그걸 직접 읽는다.
+    """
+    state = daily_dir().parent / "state.json"
+    if not state.exists():
+        return None
+    try:
+        raw = json.loads(state.read_text())
+    except Exception:
+        return None
+    if raw.get("ok"):
+        return None
+    failed = [
+        f"{name}: {(info or {}).get('error', '실패')}"
+        for name, info in (raw.get("steps") or {}).items()
+        if isinstance(info, dict) and info.get("error")
+    ]
+    if not failed:
+        return None
+    when = (raw.get("finished_at") or raw.get("started_at") or "")[:16].replace("T", " ")
+    return f"마지막 실행({when}) 실패 — " + " / ".join(failed)
