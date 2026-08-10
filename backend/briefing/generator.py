@@ -202,7 +202,14 @@ def build_signal_facts(payload: dict, previous: dict | None) -> dict:
         },
         # 장 난이도 — 이 제품이 '오늘' 탭에서 답하는 질문. 절대값이 아니라
         # 자기 이력 대비 백분위와 방향으로 준다 (프론트 판정과 같은 정의).
-        "marketDifficulty": crowd_state,
+        #
+        # 쏠림 지수의 원값(16.18)과 변화폭(-1.89)은 **일부러 뺀다.** 우리 산출
+        # 스케일이라 사용자에게 아무 뜻이 없는데, 넘겨주면 LLM 이 그대로 문장에
+        # 옮긴다 — 실측: "시장 쏠림 난이도는 16.18로 하위 4퍼센트이며 3일 전보다
+        # 1.89 내려가는 중". 숫자를 읽어주는 글을 막으려면 숫자를 안 주면 된다.
+        "marketDifficulty": {
+            k: v for k, v in crowd_state.items() if k not in ("value", "delta3d", "topPct")
+        },
         "leadingSectors": {"now": sectors_now[:8], "added": sectors_added, "removed": sectors_removed},
         "sectorFlows5d": {"foreignerTop": top_foreign, "organTop": top_organ},
         "buyCandidatesTop": top_candidates,

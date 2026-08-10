@@ -653,11 +653,12 @@ function renderSparkline(values, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
-// 매수 안전성 — 동그라미 + "매수가능 4/5단계" 만 한 줄에 표시
+// 지수 국면 — 동그라미 + "회복 흐름 4/5단계" 만 한 줄에 표시.
+// 툴팁에 현금·신용 권고를 달지 않는다 (행동 지시가 아니라 상태 서술).
 // ─────────────────────────────────────────┘
 function renderBuySafetyPill(safety) {
   if (!safety || safety.error) return '';
-  const tip = `${safety.score}점 · 현금 ${fEscape(safety.cashRecommend)} · 신용 ${fEscape(safety.creditRecommend)}`;
+  const tip = `지수 국면 점수 ${safety.score}/100 — 오실레이터 방향과 이동평균 위치로 산출`;
   return `<span class="safety-pill safety-pill-${safety.stage}" title="${tip}">${safety.stageEmoji} ${fEscape(safety.stageLabel)} ${safety.stageIndex + 1}/${safety.totalStages}단계</span>`;
 }
 

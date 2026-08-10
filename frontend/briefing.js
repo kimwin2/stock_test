@@ -121,7 +121,7 @@ function buildMarketVerdict(fg, sentiment, flow) {
   // 정작 "오늘 뭘 봐야 하나" 로 이어지지 않는다.
   const chips = [];
   if (safety.stageLabel) {
-    chips.push(['매수 환경', bEscape(safety.stageLabel),
+    chips.push(['지수 국면', bEscape(safety.stageLabel),
       `${safety.stageIndex ?? '-'}/${safety.totalStages ?? 5}단계`]);
   }
   // 쏠림은 '확산/쏠림' 같은 내부 라벨 대신 사용자가 쓰는 말로 — 이 탭의 결론이다.
