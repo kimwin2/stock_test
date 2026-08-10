@@ -396,6 +396,56 @@ function squarify(items, x, y, w, h) {
   return out;
 }
 
+// ── 면적 정규화 ────────────────────────────────────────────────
+// 거래대금 실값을 그대로 면적에 쓰면 1등이 나머지를 다 먹는다. 실측(2026-08-10):
+// 테마 그룹은 41억 ~ 1,639억으로 40배, 한 테마 안에서도 17배까지 벌어졌다.
+// 그러면 작은 칸은 몇 px 이 되어 종목 이름이 아예 안 들어가고, 지도가
+// "1등이 크다" 는 사실 하나만 반복한다 — 그건 이미 목록으로 알 수 있다.
+//
+// 두 단계로 누른다:
+//   1) 제곱근 — 면적 ∝ √거래대금 (한 변 ∝ 거래대금^0.25)
+//   2) 스프레드 상한 — 그래도 남는 격차를 최대 5배로 자른다
+// 정확한 거래대금은 툴팁과 큰 칸의 보조 라벨에 그대로 남긴다.
+// 그래서 캡션도 '= 거래대금' 이 아니라 '≈' 로 적는다. 면적을 손봤으면
+// 손봤다고 말해야 한다.
+const TM_GAMMA = 0.5;
+const TM_MAX_SPREAD = 5;
+
+function tmNormalize(items) {
+  const scaled = items.map(it => ({ ...it, raw: it.value, value: Math.pow(Math.max(it.value, 1), TM_GAMMA) }));
+  const max = Math.max(...scaled.map(i => i.value));
+  const floor = max / TM_MAX_SPREAD;
+  return scaled.map(it => ({ ...it, value: Math.max(it.value, floor) }));
+}
+
+// 칸 너비에 맞춰 이름을 자른다. 한글 글자폭 ≈ font-size.
+// 2글자도 못 넣을 만큼 좁을 때만 포기한다.
+function tmFitLabel(name, w, fontPx) {
+  const per = fontPx * 1.0;
+  const maxChars = Math.floor((w - 5) / per);
+  const s = String(name || '');
+  if (maxChars < 2) return '';
+  if (s.length <= maxChars) return s;
+  return s.slice(0, Math.max(1, maxChars - 1)) + '…';
+}
+
+// 칸에 이름을 넣는 가장 큰 글자크기를 찾는다.
+// 글자크기를 칸 높이로만 정하면 좁고 높은 칸에서 '와…' 처럼 잘려 이름 구실을
+// 못 한다. 이름이 통째로 들어가는 크기를 먼저 찾고, 그래도 안 되면 최소
+// 크기에서 자른다 — 잘린 이름이라도 있는 편이 빈 칸보다 낫다.
+const TM_FONT_MAX = 10.5;
+const TM_FONT_MIN = 7;
+
+function tmLabelFor(name, w, h) {
+  const s = String(name || '');
+  if (!s || h < 9 || w < 16) return { text: '', font: TM_FONT_MIN };
+  const cap = Math.min(TM_FONT_MAX, h * 0.4);
+  for (let f = cap; f >= TM_FONT_MIN; f -= 0.5) {
+    if (s.length * f <= w - 5) return { text: s, font: f };
+  }
+  return { text: tmFitLabel(s, w, TM_FONT_MIN), font: TM_FONT_MIN };
+}
+
 // 등락률 → 색. 국내 관례대로 상승 빨강 / 하락 파랑.
 // 상한가(+30%)와 -10% 를 양 끝으로 두고 제곱근 곡선이라 중간도 구별된다.
 function tmColor(rate) {
@@ -436,31 +486,33 @@ function buildThemeTreemap(themes) {
 
   const wide = (typeof window !== 'undefined' && window.innerWidth >= 760);
   const W = wide ? 900 : 380;
-  const H = wide ? 400 : 430;   // 모바일은 세로를 더 줘야 타일에 이름이 들어간다
+  const H = wide ? 400 : 470;   // 모바일은 세로를 더 줘야 타일에 이름이 들어간다
   const HEAD = 17;                       // 테마명 띠 높이
-  const groups = squarify(list, 0, 0, W, H);
+  const groups = squarify(tmNormalize(list), 0, 0, W, H);
 
   let tiles = '';
   let candCount = 0;
   groups.forEach(g => {
-    const inner = squarify(g.stocks, g.x + 1, g.y + HEAD, Math.max(0, g.w - 2), Math.max(0, g.h - HEAD - 1));
+    const inner = squarify(tmNormalize(g.stocks), g.x + 1, g.y + HEAD, Math.max(0, g.w - 2), Math.max(0, g.h - HEAD - 1));
     tiles += `<rect x="${g.x.toFixed(1)}" y="${g.y.toFixed(1)}" width="${g.w.toFixed(1)}" height="${g.h.toFixed(1)}" fill="#F7F2E7" stroke="#fff" stroke-width="2"/>`;
-    tiles += `<text x="${(g.x + 5).toFixed(1)}" y="${(g.y + 12).toFixed(1)}" font-size="11" font-weight="900" fill="#4a4336">${escapeHTML(g.name)}</text>`;
+    const gLabel = tmFitLabel(g.name, g.w - 4, 11);
+    tiles += `<title>${escapeHTML(g.name)} · 거래대금 ${fmtEok(g.raw)}</title>`;
+    tiles += `<text x="${(g.x + 5).toFixed(1)}" y="${(g.y + 12).toFixed(1)}" font-size="11" font-weight="900" fill="#4a4336">${escapeHTML(gLabel)}</text>`;
     inner.forEach(s => {
       const isCand = isVacancyCandidate(s.name);
       if (isCand) candCount++;
-      // 이름 길이를 고려해야 타일 밖으로 안 넘친다 (한글 1자 ≈ 10px @ font-size 10)
-      const label = String(s.name || '').slice(0, 7);
-      const showName = s.h > 20 && s.w > label.length * 10 + 6;
-      const showRate = showName && s.h > 31 && s.w > 40;
       const rate = (s.rate == null || !isFinite(s.rate)) ? 0 : s.rate;
+      // 칸에 맞춰 글자를 줄인다. 예전엔 고정 10px 라 조금만 좁아도 이름이
+      // 통째로 사라졌다 — 이름 없는 칸은 지도에서 아무 의미가 없다.
+      const { text: label, font } = tmLabelFor(s.name, s.w, s.h);
+      const showRate = label && s.h > font * 2.6 && s.w > 34;
       tiles += `<g class="tm-tile" data-code="${escapeHTML(s.code || '')}" data-name="${escapeHTML(s.name || '')}">
-        <title>${escapeHTML(s.name)} · ${rate >= 0 ? '+' : ''}${rate.toFixed(2)}% · 거래대금 ${fmtEok(s.value)}${isCand ? ' · 수급 빈집 조건통과' : ''}</title>
+        <title>${escapeHTML(s.name)} · ${rate >= 0 ? '+' : ''}${rate.toFixed(2)}% · 거래대금 ${fmtEok(s.raw)}${isCand ? ' · 수급 빈집 조건통과' : ''}</title>
         <rect x="${s.x.toFixed(1)}" y="${s.y.toFixed(1)}" width="${s.w.toFixed(1)}" height="${s.h.toFixed(1)}"
-          fill="${tmColor(rate)}" stroke="${isCand ? '#00695C' : '#fff'}" stroke-width="${isCand ? 2 : 1}"/>
-        ${showName ? `<text x="${(s.x + s.w / 2).toFixed(1)}" y="${(s.y + s.h / 2 + (showRate ? -2 : 3)).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="800" fill="${tmTextColor(rate)}">${escapeHTML(label)}</text>` : ''}
-        ${showRate ? `<text x="${(s.x + s.w / 2).toFixed(1)}" y="${(s.y + s.h / 2 + 10).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="900" fill="${tmTextColor(rate)}">${rate >= 0 ? '+' : ''}${rate.toFixed(1)}%</text>` : ''}
-        ${isCand ? `<circle cx="${(s.x + s.w - 5).toFixed(1)}" cy="${(s.y + 5).toFixed(1)}" r="2.6" fill="#00695C"/>` : ''}
+          fill="${tmColor(rate)}" stroke="${isCand ? 'var(--teal-dark, #8A5A12)' : '#fff'}" stroke-width="${isCand ? 2 : 1}"/>
+        ${label ? `<text x="${(s.x + s.w / 2).toFixed(1)}" y="${(s.y + s.h / 2 + (showRate ? -1.5 : font * 0.36)).toFixed(1)}" text-anchor="middle" font-size="${font.toFixed(1)}" font-weight="800" fill="${tmTextColor(rate)}">${escapeHTML(label)}</text>` : ''}
+        ${showRate ? `<text x="${(s.x + s.w / 2).toFixed(1)}" y="${(s.y + s.h / 2 + font + 1).toFixed(1)}" text-anchor="middle" font-size="${(font * 0.92).toFixed(1)}" font-weight="900" fill="${tmTextColor(rate)}">${rate >= 0 ? '+' : ''}${rate.toFixed(1)}%</text>` : ''}
+        ${isCand ? `<circle cx="${(s.x + s.w - 5).toFixed(1)}" cy="${(s.y + 5).toFixed(1)}" r="2.6" fill="var(--teal-dark, #8A5A12)"/>` : ''}
       </g>`;
     });
   });
@@ -469,7 +521,7 @@ function buildThemeTreemap(themes) {
     <div class="tm-card">
       <div class="tm-head">
         <span class="tm-title">오늘의 테마 지도</span>
-        <span class="tm-sub">칸 크기 = 거래대금 · 색 = 등락률</span>
+        <span class="tm-sub">칸 크기 ≈ 거래대금(제곱근 보정) · 색 = 등락률</span>
       </div>
       <svg viewBox="0 0 ${W} ${H}" class="tm-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">${tiles}</svg>
       <div class="tm-legend">
