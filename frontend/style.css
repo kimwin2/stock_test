@@ -1118,7 +1118,13 @@ body {
 .safety-pill-buy     { background: #E3F2FD; color: #0D47A1; border-color: #90CAF9; }
 
 .step2-body { padding: 8px 12px 12px; }
-.step2-label { font-size: 0.76rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+.step2-label {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  font-size: 0.76rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px;
+}
+/* 상위 6개는 항상 채워지므로, "지금 주도가 있느냐"는 이 배지가 혼자 답한다. */
+.step2-regime { font-weight: 700; white-space: nowrap; }
+.step2-empty { font-size: 0.82rem; color: var(--text-muted); padding: 6px 0; }
 .step2-rs-row {
   display: grid;
   grid-template-columns: 1.6fr 1fr 36px 80px;
@@ -1128,6 +1134,10 @@ body {
   font-size: 0.82rem;
 }
 .step2-rs-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 70+ 통과분과 그냥 상위권을 눈으로 구분한다 — 순위로 세우되 등급은 잃지 않는다. */
+.step2-rs-row.is-lead .step2-rs-name { font-weight: 800; }
+.step2-rs-row.is-lead .step2-rs-num { color: var(--text-primary); }
+.step2-rs-row.is-sub .step2-rs-name { color: var(--text-secondary); font-weight: 600; }
 .step2-rs-num { font-weight: 700; text-align: right; color: var(--text-secondary); }
 .step2-rs-mom { font-weight: 700; text-align: right; }
 .step2-rs-mom small { font-weight: 500; color: var(--text-muted); }

@@ -79,6 +79,20 @@ function rsBarWidth(rsNorm) {
   return Math.max(2, Math.min(100, (rsNorm - 50) * 2));
 }
 
+// 시장 대비 강도(rsNorm) 등급선. 백엔드가 rsNorm = 100·sigmoid(rsAvg/12) 로 만들므로
+//   70 → Mansfield RS +10.2 (지수 대비 뚜렷한 강세)
+//   50 → Mansfield RS 0     (지수와 동행)
+// 두 카드(STEP 2 · 주도 업종 ETF)가 같은 숫자에 같은 색을 써야 해서 여기로 모은다.
+const RS_LEAD = 70;
+const RS_EVEN = 50;
+
+function rsTierColor(rsNorm) {
+  if (rsNorm == null) return '#B9AE99';
+  if (rsNorm >= RS_LEAD) return '#E53935';
+  if (rsNorm >= RS_EVEN) return '#FB8C00';
+  return '#1E88E5';
+}
+
 // ─────────────────────────────────────────┐
 // Sentiment Gauge SVG                       │
 // ─────────────────────────────────────────┘
@@ -740,9 +754,25 @@ function buildStep1Card(sentiment, cash) {
 // CARD: STEP 2 — 섹터 강도 + 쏠림 통합     │
 // ─────────────────────────────────────────┘
 function buildStep2Card(leading, crowding, leadingLabels) {
+  // ── 절대 컷이 아니라 순위로 세운다 ──────────────────────
+  // [2026-08-11] 70 은 순위가 아니라 절대 임계값이다.
+  //   rsNorm = 100·sigmoid(rsAvg/12) 이므로 70 은 Mansfield RS ≥ +10.2 를 요구한다.
+  // KOSPI 가 3개월 -20.5% 인 국면에서는 지수보다 덜 빠진 방어주 둘
+  //   (TIGER 화장품 79.4 · KODEX 보험 77.7)만 통과해 카드가 2줄로 비었다.
+  //   3위 TIGER 200 IT(66.1) · 4위 KODEX 은행(65.5)이 바로 아래 붙어 있었는데도
+  //   보이지 않았다 — 폴백이 `length === 0` 일 때만 걸려 있어 2개에서는 안 돈다.
+  // → 항상 상위 6개를 세우고, 70 통과 여부는 **색과 요약 배지**로 말한다.
+  //   "무엇이 상대적으로 강한가"는 어떤 장세에도 답이 있고,
+  //   "지금은 주도가 약하다"는 사실 자체가 읽어야 할 정보다.
   const top = leading?.top || [];
-  const rsLeaders = top.filter(e => e.rsNorm >= 70).slice(0, 6);
-  const rsBackup = rsLeaders.length === 0 ? top.slice(0, 6) : rsLeaders;
+  const rsRanked = top.slice(0, 6);
+  // 70+ 개수는 상위 6개가 아니라 **전체 ETF**에서 센다.
+  // (leading.leadingCount 는 단기 모멘텀 경로까지 포함해 이 배지의 뜻과 다르다)
+  const rsUniverse = leading?.all || top;
+  const leadCount = rsUniverse.filter(e => e.rsNorm >= RS_LEAD).length;
+  const regime = leadCount >= 3 ? { label: '주도 뚜렷', color: '#E53935' }
+               : leadCount >= 1 ? { label: '주도 약함', color: '#FB8C00' }
+               : { label: '주도 없음', color: '#8D8578' };
 
   const crowdLatest = crowding?.latest;
   const crowdSignal = crowding?.signal || '-';
@@ -762,11 +792,15 @@ function buildStep2Card(leading, crowding, leadingLabels) {
       </div>
       <div class="step2-body">
         <div class="step2-rs">
-          <div class="step2-label">시장 대비 강도 70+ ETF</div>
-          ${rsBackup.map(e => `
-            <div class="step2-rs-row">
+          <div class="step2-label">
+            <span>시장 대비 강도 상위 ${rsRanked.length}</span>
+            <span class="step2-regime" style="color:${regime.color}">70+ ${leadCount}개 · ${regime.label}</span>
+          </div>
+          ${rsRanked.length === 0 ? '<div class="step2-empty">ETF 강도 데이터 없음</div>' : ''}
+          ${rsRanked.map(e => `
+            <div class="step2-rs-row ${e.rsNorm >= RS_LEAD ? 'is-lead' : 'is-sub'}">
               <span class="step2-rs-name">${fEscape(e.name)}</span>
-              <div class="rs-bar"><div class="rs-bar-fill" style="width:${rsBarWidth(e.rsNorm)}%; background:${e.rsNorm >= 70 ? '#E53935' : e.rsNorm >= 50 ? '#FB8C00' : '#1E88E5'}"></div></div>
+              <div class="rs-bar"><div class="rs-bar-fill" style="width:${rsBarWidth(e.rsNorm)}%; background:${rsTierColor(e.rsNorm)}"></div></div>
               <span class="step2-rs-num">${e.rsNorm}</span>
               <span class="step2-rs-mom ${changeClass(e.ret3m)}">${e.ret3m != null ? (e.ret3m > 0 ? '+' : '') + e.ret3m + '%' : '-'} <small>3M</small></span>
             </div>
@@ -1176,15 +1210,20 @@ function buildSectorFlowCard(flows) {
 // ─────────────────────────────────────────┘
 function buildLeadingCard(leading) {
   if (!leading || !leading.top || leading.top.length === 0) return '';
+  // 헤더는 '강도 70+' 라고 쓰면서 leadingCount 를 실었는데, 그 값은 단기 모멘텀
+  // 경로(ret1m ≥ 20% & 변동성조정모멘텀 ≥ 0.10)로 들어온 ETF 까지 센다.
+  // 실측: 2026-05-10 에 leadingCount 19 중 rsNorm 70+ 는 4개뿐이었다.
+  const universe = leading.all || leading.top;
+  const leadCount = universe.filter(e => e.rsNorm >= RS_LEAD).length;
   return `
     <div class="flow-card flow-card-leading">
-      <div class="card-header"><span class="card-theme-name">주도 업종 ETF</span><span class="card-volume">강도 70+ ${leading.leadingCount || 0}개</span></div>
+      <div class="card-header"><span class="card-theme-name">주도 업종 ETF</span><span class="card-volume">강도 70+ ${leadCount}개 / ${universe.length}</span></div>
       <div class="leading-body">
         <div class="leading-table-head"><span>ETF</span><span>시장대비강도</span><span>3개월</span><span>1개월</span></div>
         ${leading.top.slice(0, 12).map(e => `
-          <div class="leading-row ${e.rsNorm >= 70 ? 'is-leading' : ''}">
+          <div class="leading-row ${e.rsNorm >= RS_LEAD ? 'is-leading' : ''}">
             <span class="leading-name">${fEscape(e.name)}</span>
-            <span class="leading-rs"><div class="rs-bar"><div class="rs-bar-fill" style="width:${rsBarWidth(e.rsNorm)}%; background:${e.rsNorm >= 70 ? '#E53935' : e.rsNorm >= 50 ? '#FB8C00' : '#1E88E5'}"></div></div><span class="rs-text">${e.rsNorm}</span></span>
+            <span class="leading-rs"><div class="rs-bar"><div class="rs-bar-fill" style="width:${rsBarWidth(e.rsNorm)}%; background:${rsTierColor(e.rsNorm)}"></div></div><span class="rs-text">${e.rsNorm}</span></span>
             <span class="${changeClass(e.ret3m)}">${e.ret3m != null ? (e.ret3m > 0 ? '+' : '') + e.ret3m + '%' : '-'}</span>
             <span class="${changeClass(e.ret1m)}">${e.ret1m != null ? (e.ret1m > 0 ? '+' : '') + e.ret1m + '%' : '-'}</span>
           </div>
