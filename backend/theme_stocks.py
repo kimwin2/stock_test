@@ -50,7 +50,21 @@ THEME_MIN_LEAD_RATE = 3.0
 RELAXED_LEAD_RATE = 0.0
 MAX_POOL_PER_THEME = 12               # 시세 조회 예산 상한
 
-THEME_MERGE_OVERLAP = 0.6             # 선정 종목이 이 비율 이상 겹치면 같은 테마
+# 선정 종목 전부가 LLM 지목뿐인 테마 — 근거가 문장 하나다. 실측 시그널이 하나도
+# 없으므로 "오늘 이 테마가 실제로 뛰었다"는 증거가 화면 안에 존재하지 않는다.
+# 2026-08-11: '조선기자재'(지역난방공사 +4.31 / 산일전기 +0.49 / 일진전기 -1.28)와
+# '게임'(NC +4.93 / 컴투스 +3.19 / 데브시스터즈 -2.00)이 대장주 1종목의 +3% 만으로
+# 통과했다. 종목 구성도 테마명과 달랐다(조선기자재인데 전부 전력기기·집단에너지).
+# 이런 테마는 대장주가 누가 봐도 급등이어야만 살린다.
+UNBACKED_THEME_MIN_LEAD_RATE = 10.0
+UNBACKED_RELAXED_LEAD_RATE = 5.0
+
+THEME_MERGE_OVERLAP = 0.6             # 이름이 달라도 종목이 이만큼 겹치면 같은 테마
+# 이름에 같은 섹터어가 있고 대표 종목도 이만큼 겹치면 같은 테마로 본다.
+# 두 근거를 모두 요구하는 이유: 어느 한쪽만으로는 오판한다. '2차전지 소재'와
+# '반도체 소재'는 낱말을 공유하지만 다른 테마고, 대형주 몇 개가 겹치는 서로 다른
+# 테마도 흔하다. 임계값 하나를 내려서 맞추면 그날 숫자에만 맞는 조정이 된다.
+THEME_MERGE_TOKEN_OVERLAP = 0.3
 
 
 # 지수 추종 상품(ETF/ETN/레버리지/인버스). 지수 급등일엔 이들이 급등주 상위를
@@ -84,6 +98,21 @@ def _norm_name(name: str) -> str:
 
 def _norm_theme(name: str) -> str:
     return re.sub(r"[^0-9a-zA-Z가-힣]", "", (name or "")).lower()
+
+
+# 섹터를 가리키지 않는 조사·수식어. 이것만 공유하는 건 같은 섹터라는 근거가 아니다.
+_GENERIC_THEME_TOKENS = {"관련", "관련주", "테마", "종목", "그룹", "섹터", "기타", "강세", "수혜", "이슈"}
+
+
+def _sector_tokens(name: str) -> set[str]:
+    """테마명에서 섹터를 가리키는 낱말만 ('건설 및 토목 자재' → {건설, 토목, 자재}).
+
+    `_theme_matches` 의 3글자 슬라이스는 '건설'·'조선'·'방산'처럼 두 글자짜리
+    섹터어를 아예 만들지 못한다. 그래서 '반도체 A'와 '반도체 B'는 병합되는데
+    '건설 A'와 '건설 B'는 영원히 안 되는 비대칭이 있었다 (2026-08-11).
+    """
+    parts = re.split(r"[^0-9a-zA-Z가-힣]+", name or "")
+    return {p.lower() for p in parts if len(p) >= 2 and p.lower() not in _GENERIC_THEME_TOKENS}
 
 
 def _theme_matches(a: str, b: str) -> bool:
@@ -137,7 +166,15 @@ def _parse_eok(value) -> float | None:
 
 def build_candidates(theme: dict, analysis: dict) -> list[Candidate]:
     """테마 하나에 대한 후보 풀 — 여러 소스의 합집합."""
-    theme_name = theme.get("themeName", "")
+    # 병합으로 흡수된 이름까지 같이 조회한다. 대표명만 보면 흡수된 테마를 지목했던
+    # 실측 소스(개미승리·급등클러스터·인포스탁)의 태그가 통째로 사라져, 종목은
+    # 그대로인데 근거만 LLM 단독으로 바뀐다 — 교차확인 점수와 `is_unbacked`
+    # 판정이 동시에 틀어진다.
+    theme_names = [theme.get("themeName", "")] + list(theme.get("mergedThemes") or [])
+
+    def name_matches(other: str) -> bool:
+        return any(_theme_matches(n, other) for n in theme_names if n)
+
     pool: dict[str, Candidate] = {}
 
     def get(name: str) -> Candidate | None:
@@ -158,7 +195,7 @@ def build_candidates(theme: dict, analysis: dict) -> list[Candidate]:
 
     # 2) 개미승리 — 코드·등락률·거래대금까지 실측으로 들고 있는 최상급 소스
     for sig in analysis.get("antwinnerSignals") or []:
-        if not _theme_matches(theme_name, sig.get("thema", "")):
+        if not name_matches(sig.get("thema", "")):
             continue
         for comp in sig.get("companies") or []:
             c = get(comp.get("stockname", ""))
@@ -171,7 +208,7 @@ def build_candidates(theme: dict, analysis: dict) -> list[Candidate]:
 
     # 3) 가격 기반 급등 클러스터 — 실제 시세로 묶인 종목군
     for cand in analysis.get("priceSignalCandidates") or []:
-        if not _theme_matches(theme_name, cand.get("themeName", "")):
+        if not name_matches(cand.get("themeName", "")):
             continue
         for name in cand.get("matchedStocks") or []:
             c = get(name)
@@ -180,7 +217,7 @@ def build_candidates(theme: dict, analysis: dict) -> list[Candidate]:
 
     # 4) 인포스탁 장중 강세 테마
     for sig in analysis.get("infostockSignals") or []:
-        if not _theme_matches(theme_name, sig.get("themeName", "")):
+        if not name_matches(sig.get("themeName", "")):
             continue
         for name in (sig.get("matchedStocks") or []) + (sig.get("referenceStocks") or []):
             c = get(name)
@@ -189,7 +226,7 @@ def build_candidates(theme: dict, analysis: dict) -> list[Candidate]:
 
     # 5) 유튜브 선행 시그널 (섹터 매칭)
     for sig in analysis.get("youtubeSignals") or []:
-        if not any(_theme_matches(theme_name, s) for s in (sig.get("sectors") or [])):
+        if not any(name_matches(s) for s in (sig.get("sectors") or [])):
             continue
         for name in sig.get("stocks") or []:
             c = get(name)
@@ -200,7 +237,7 @@ def build_candidates(theme: dict, analysis: dict) -> list[Candidate]:
     for sig in analysis.get("wownetSignals") or []:
         names = (sig.get("stocks") or []) + (sig.get("featuredStocks") or [])
         sectors = sig.get("sectors") or []
-        if sectors and not any(_theme_matches(theme_name, s) for s in sectors):
+        if sectors and not any(name_matches(s) for s in sectors):
             continue
         for name in names:
             c = get(name)
@@ -209,7 +246,7 @@ def build_candidates(theme: dict, analysis: dict) -> list[Candidate]:
 
     # 7) 텔레그램 선행 시그널
     for sig in analysis.get("telegramSignals") or []:
-        if not _theme_matches(theme_name, sig.get("themeName", "") or sig.get("theme", "")):
+        if not name_matches(sig.get("themeName", "") or sig.get("theme", "")):
             continue
         for name in sig.get("stocks") or []:
             c = get(name)
@@ -227,20 +264,39 @@ def build_candidates(theme: dict, analysis: dict) -> list[Candidate]:
     return sorted(pool.values(), key=pool_priority)[:MAX_POOL_PER_THEME]
 
 
+def is_unbacked(cands) -> bool:
+    """이 종목들의 근거가 LLM 지목뿐인가.
+
+    하나라도 외부 소스(개미승리·급등클러스터·인포스탁·와우넷·유튜브·텔레그램)가
+    지목했다면 최소한 사람 또는 시세가 그 종목을 이 테마로 불렀다는 뜻이다.
+    전부 `뉴스분석` 단독이면 테마 전체가 LLM 문장 위에만 서 있다.
+    """
+    return all(not (c.sources - {SRC_LLM}) for c in cands)
+
+
+# 등락률과 거래대금의 배점. '급등·테마' 탭이므로 오른 폭이 유동성을 이겨야 한다.
+# 이전 배점(등락 ×1.2, 거래대금 ×8 무제한)에서는 산일전기 +0.49%(1,848억)가 18.7점,
+# 지역난방공사 +4.31%(751억)가 20.2점으로 사실상 동점이었다. 대형주가 거래대금으로
+# 대장주 자리를 사던 구조라 상한을 둔다 (2026-08-11).
+CHANGE_RATE_WEIGHT = 2.5
+VALUE_SCORE_WEIGHT = 5.0
+VALUE_SCORE_CAP = 12.0                # 1,000억 이상은 더 얹지 않는다
+
+
 def score_candidate(cand: Candidate, detail: dict) -> tuple[float, list[str]]:
     """후보 하나의 점수와 근거. 높을수록 테마 대표주에 가깝다."""
     score = 0.0
     reasons: list[str] = []
 
     rate = float(detail.get("changeRate") or 0.0)
-    pts = min(rate, 30.0) * 1.2
+    pts = min(rate, 30.0) * CHANGE_RATE_WEIGHT
     score += pts
     reasons.append(f"등락 {rate:+.2f}% {pts:+.0f}")
 
     value = float(detail.get("volumeRaw") or 0.0)
     if value > 0:
-        # 거래대금은 로그 스케일 — 10억 0점, 100억 +8, 1000억 +16
-        pts = max(0.0, math.log10(value / 1e9)) * 8.0
+        # 거래대금은 로그 스케일 — 10억 0점, 100억 +5, 1000억 이상 +10~12(상한)
+        pts = min(max(0.0, math.log10(value / 1e9)) * VALUE_SCORE_WEIGHT, VALUE_SCORE_CAP)
         if pts > 0:
             score += pts
             reasons.append(f"거래대금 {value / 1e8:,.0f}억 +{pts:.0f}")
@@ -348,8 +404,11 @@ def merge_similar_themes(themes: list[dict]) -> list[dict]:
             overlap = 0.0
             if stocks and kept_stocks:
                 overlap = len(stocks & kept_stocks) / min(len(stocks), len(kept_stocks))
+            shared_sector = _sector_tokens(name) & _sector_tokens(kept_name)
 
-            if same_name or overlap >= THEME_MERGE_OVERLAP:
+            if (same_name
+                    or overlap >= THEME_MERGE_OVERLAP
+                    or (shared_sector and overlap >= THEME_MERGE_TOKEN_OVERLAP)):
                 merged_into = kept
                 break
 
@@ -361,6 +420,10 @@ def merge_similar_themes(themes: list[dict]) -> list[dict]:
         if len(name) < len(merged_into.get("themeName", "")):
             merged_into["themeName"], name = name, merged_into["themeName"]
         merged_into.setdefault("mergedThemes", []).append(name)
+        # 흡수된 테마가 들고 있던 종목코드 매핑은 살린다 (이름 검색보다 정확하다).
+        codes = theme.get("_antwinner_stock_codes")
+        if codes:
+            merged_into.setdefault("_antwinner_stock_codes", {}).update(codes)
         # 후보 풀을 넓히기 위해 지목 종목은 순서를 지켜 합친다
         combined = list(merged_into.get("relatedStocks") or [])
         seen = {_norm_name(s) for s in combined}

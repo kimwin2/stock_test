@@ -559,6 +559,9 @@ def get_stock_details_for_themes(themes: list[dict], analysis: dict | None = Non
     themes = ts.merge_similar_themes(themes)
     if len(themes) < before_merge:
         print(f"[INFO] 유사 테마 {before_merge - len(themes)}개 병합 → {len(themes)}개")
+        for t in themes:
+            if t.get("mergedThemes"):
+                print(f"  [병합] {t['themeName']} ← {', '.join(t['mergedThemes'])}")
 
     result_themes = _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed=False)
 
@@ -579,7 +582,8 @@ def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool) -> l
     result_themes = []
     used_codes: set[str] = set()   # 한 종목은 전체 테마 통틀어 1번만
     stats = {"pool": 0, "unresolved": 0, "noQuote": 0, "penny": 0,
-             "illiquid": 0, "falling": 0, "duplicate": 0, "indexProduct": 0}
+             "illiquid": 0, "falling": 0, "duplicate": 0, "indexProduct": 0,
+             "weakLead": 0, "unbackedDrop": 0}
     min_stocks = 1 if relaxed else ts.MIN_STOCKS_PER_THEME
 
     for theme in themes:
@@ -652,11 +656,20 @@ def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool) -> l
             continue
 
         # 테마가 오늘 실제로 살아있는지 — 대장주가 의미 있게 올라야 한다.
+        # 외부 근거가 하나도 없는 테마(전 종목 `뉴스분석` 단독)는 기준을 크게 올린다.
+        # LLM 은 기사에서 그럴듯한 테마명을 언제든 만들어낼 수 있으므로, 시세가
+        # 그 이름을 확인해 주지 않으면 카드로 내보내지 않는다.
         lead_rate = max(float(d.get("changeRate") or 0) for *_, d in selected)
-        min_lead = ts.RELAXED_LEAD_RATE if relaxed else ts.THEME_MIN_LEAD_RATE
+        unbacked = ts.is_unbacked([x[2] for x in selected])
+        if unbacked:
+            min_lead = ts.UNBACKED_RELAXED_LEAD_RATE if relaxed else ts.UNBACKED_THEME_MIN_LEAD_RATE
+        else:
+            min_lead = ts.RELAXED_LEAD_RATE if relaxed else ts.THEME_MIN_LEAD_RATE
         if lead_rate < min_lead:
             print(f"  [DROP] {theme_name}: 최고 등락 {lead_rate:+.2f}% "
-                  f"(< {min_lead:+.1f}%) — 오늘 주도 테마 아님")
+                  f"(< {min_lead:+.1f}%{' · 외부 근거 없음' if unbacked else ''}) "
+                  f"— 오늘 주도 테마 아님")
+            stats["unbackedDrop" if unbacked else "weakLead"] += 1
             continue
 
         stock_details = []
