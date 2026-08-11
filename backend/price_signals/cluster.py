@@ -15,6 +15,7 @@ DASHBOARD_MIN_PRICE = 1500
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 MAX_MOVER_INPUT = 36
 MAX_ARTICLE_SNIPPETS_PER_STOCK = 2
+MAX_ARTICLE_SUMMARY_CHARS = 120   # 문맥에 붙이는 요약 길이 (LLM 프롬프트 크기 방어)
 MAX_TELEGRAM_SNIPPETS_PER_STOCK = 1
 MAX_THEME_COUNT = 10
 MIN_THEME_STOCKS = 2
@@ -139,8 +140,15 @@ def _select_movers_for_labeling(movers: list[dict], limit: int = MAX_MOVER_INPUT
 
 
 def _collect_context_for_stock(stock_name: str, articles: list[dict], telegram_signals: list[dict]) -> dict:
+    # 기사를 고를 땐 제목+요약(_article_text)으로 찾고, 문맥으로는 제목만 남기던
+    # 비대칭이 있었다. 요약에만 업종어가 있는 기사가 흔해서(제목은 "서산, 수요
+    # 증가에 급등", 요약은 "레미콘 건설 자재") 근거가 그대로 증발했다. 찾을 때 쓴
+    # 텍스트를 근거로도 쓴다. 프롬프트에도 들어가므로 길이는 제한한다.
     article_titles = [
-        article.get("title", "").strip()
+        " ".join(filter(None, [
+            article.get("title", "").strip(),
+            article.get("summary", "").strip()[:MAX_ARTICLE_SUMMARY_CHARS],
+        ]))
         for article in articles
         if stock_name and stock_name in _article_text(article)
     ]
@@ -319,29 +327,30 @@ def _normalize_fragment(fragment: str) -> str:
 
 
 def _common_name_fragments(stock_names: list[str]) -> list[str]:
+    """계열로 볼 만한 공통 이름 조각 — 그룹 안 **어느 종목의 사명 전체**만 인정한다.
+
+    접두사가 같다는 건 계열의 근거가 아니다. 한국 기업명에는 같은 앞머리를 쓰는
+    무관한 회사가 흔하다 (금호건설↔금호전기, 삼성전자↔삼성출판사, 한화솔루션↔
+    한화투자증권). 2026-08-11 실사고: 금호건설·금호건설우가 만든 2글자 조각
+    '금호'에 조명업체 금호전기(+29.94% 상한가)가 걸려 '건설 및 토목 자재'
+    테마에 편입됐다. 두 회사는 계열 관계조차 아니다.
+
+    반대로 '위메이드'↔'위메이드맥스'↔'위메이드플레이'처럼 조각이 상장사 사명
+    전체와 같으면 실제 계열이고, 이들은 같은 재료로 동반 등락한다. 그래서
+    "조각이 이 그룹 안 어떤 종목의 이름 그 자체인가"를 조건으로 삼는다.
+    """
     if len(stock_names) < 2:
         return []
 
-    fragment_counts: dict[str, int] = {}
-    for idx, stock_name in enumerate(stock_names):
-        normalized = _normalize_fragment(stock_name)
-        if len(normalized) < 2:
-            continue
-        seen_in_name: set[str] = set()
-        max_size = min(4, len(normalized))
-        for size in range(2, max_size + 1):
-            for start in range(0, len(normalized) - size + 1):
-                fragment = normalized[start:start + size]
-                if fragment in seen_in_name or fragment in GENERIC_NAME_FRAGMENTS:
-                    continue
-                seen_in_name.add(fragment)
-                fragment_counts[fragment] = fragment_counts.get(fragment, 0) + 1
-
-    return [
-        fragment
-        for fragment, count in sorted(fragment_counts.items(), key=lambda item: (item[1], len(item[0])), reverse=True)
-        if count >= 2
+    normalized = [_normalize_fragment(name) for name in stock_names]
+    fragments = [
+        base for base in normalized
+        if len(base) >= 2
+        and base not in GENERIC_NAME_FRAGMENTS
+        # 자기 자신 + 최소 1개 — 혼자만 쓰는 이름은 계열이 아니다.
+        and sum(1 for other in normalized if base in other) >= 2
     ]
+    return _unique_preserve_order(sorted(fragments, key=len, reverse=True))
 
 
 def _fragment_support_count(stock_names: list[str], fragment: str) -> int:
@@ -433,25 +442,33 @@ def _select_theme_stocks(
         context = _collect_context_for_stock(name, articles, telegram_signals)
         context_text = " ".join(context["articles"] + context["telegram"])
         score = 0.0
+        # 시드 지목(= LLM 이 이 테마로 묶어 준 것)을 뺀 근거. 모멘텀 보너스의
+        # 자격 조건이다. 이 함수 자체가 LLM 묶음이 맞는지 검증하는 자리라,
+        # 검증 대상인 LLM 지목을 근거 삼아 +9 를 얹으면 검증이 성립하지 않는다.
+        evidence = 0.0
 
         if name in seed_names:
             score += 1.5
         for fragment in common_fragments:
             if fragment and fragment in name:
                 score += 3.0
+                evidence += 3.0
         for token in theme_tokens:
             if token and token not in GENERIC_NAME_FRAGMENTS and token in name:
                 score += 2.0
+                evidence += 2.0
             if token and token in context_text:
                 score += 1.0
+                evidence += 1.0
         for keyword in keywords:
             if keyword and keyword in context_text:
                 score += 1.0
-        # 모멘텀 보너스는 테마와의 연관 근거(시드 지목·이름 조각·키워드·문맥)가
-        # 하나라도 있을 때만 준다. 무조건 주면 상한가(+5)+저가(+4)=9.0 이 통과선
-        # 2.5 를 넘어, 저가 상한가 종목이 "모든" 테마에 자동 편입된다 —
-        # 2026-08-10 실사고: 동일 저가주 8종이 무관한 테마 3개를 전부 점령했다.
-        if score > 0.0 and mover.get("upperLimit"):
+                evidence += 1.0
+        # 모멘텀 보너스는 계열·업종·문맥 근거가 하나라도 있을 때만 준다.
+        # 무조건 주면 상한가(+5)+저가(+4)=9.0 이 통과선 2.5 를 넘어, 저가 상한가
+        # 종목이 "모든" 테마에 자동 편입된다 — 2026-08-10 실사고: 동일 저가주
+        # 8종이 무관한 테마 3개를 전부 점령했다.
+        if evidence > 0.0 and mover.get("upperLimit"):
             score += 5.0
             # 저가 상한가 추가 보너스 (5000원 이하)
             price = int(mover.get("price", 99999) or 99999)
