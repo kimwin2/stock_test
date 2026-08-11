@@ -408,8 +408,12 @@ function squarify(items, x, y, w, h) {
 // 정확한 거래대금은 툴팁과 큰 칸의 보조 라벨에 그대로 남긴다.
 // 그래서 캡션도 '= 거래대금' 이 아니라 '≈' 로 적는다. 면적을 손봤으면
 // 손봤다고 말해야 한다.
-const TM_GAMMA = 0.5;
-const TM_MAX_SPREAD = 5;
+// 면적 지수. 0.5(제곱근)에서 0.25 로 낮춰 큰 칸과 작은 칸의 차이를 절반으로
+// 줄인다. 거래대금은 종목 간 수십 배씩 벌어져서 원값 그대로 면적에 쓰면
+// 한 종목이 화면을 먹고 나머지는 이름도 못 넣는 실오라기가 된다.
+// 순위는 여전히 보이되 읽을 수 있는 크기를 확보하는 쪽을 택했다.
+const TM_GAMMA = 0.25;
+const TM_MAX_SPREAD = 2.5;   // 한 그룹 안 최대/최소 면적 배율 상한 (5 → 2.5)
 
 function tmNormalize(items) {
   const scaled = items.map(it => ({ ...it, raw: it.value, value: Math.pow(Math.max(it.value, 1), TM_GAMMA) }));
@@ -433,13 +437,13 @@ function tmFitLabel(name, w, fontPx) {
 // 글자크기를 칸 높이로만 정하면 좁고 높은 칸에서 '와…' 처럼 잘려 이름 구실을
 // 못 한다. 이름이 통째로 들어가는 크기를 먼저 찾고, 그래도 안 되면 최소
 // 크기에서 자른다 — 잘린 이름이라도 있는 편이 빈 칸보다 낫다.
-const TM_FONT_MAX = 10.5;
-const TM_FONT_MIN = 7;
+const TM_FONT_MAX = 12.5;
+const TM_FONT_MIN = 8;
 
 function tmLabelFor(name, w, h) {
   const s = String(name || '');
   if (!s || h < 9 || w < 16) return { text: '', font: TM_FONT_MIN };
-  const cap = Math.min(TM_FONT_MAX, h * 0.4);
+  const cap = Math.min(TM_FONT_MAX, h * 0.44);
   for (let f = cap; f >= TM_FONT_MIN; f -= 0.5) {
     if (s.length * f <= w - 5) return { text: s, font: f };
   }
