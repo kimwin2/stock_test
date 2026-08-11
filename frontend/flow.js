@@ -995,31 +995,51 @@ function renderPickPath(c) {
     </div>`;
 }
 
+// [UX] 처음 보는 사람은 이 화면에서 뭘 봐야 할지 모른다.
+// 예전에는 카드 하나에 미니차트·범례·종가베팅줄·포착경로·빈집타임라인·태그가
+// 한꺼번에 펼쳐져 있었다. 20개가 쌓이면 벽이 된다.
+// 테마 탭이 직관적인 이유는 '하나의 그림이 스스로를 설명' 하기 때문이다.
+// 여기서는 그 역할을 '한 줄 요약' 이 한다 — 순위·종목·왜·상태·등락이 한 줄.
+// 자세한 근거는 펼쳐야 나온다(progressive disclosure).
 function renderCandCardV2(c, idx) {
   const sectorLabel = c.sector || '-';
-  const rankBadge = `<span class="rank-badge${idx === 0 ? ' rank-badge-top' : ''}">#${idx + 1}</span>`;
+  const ss = (typeof supplyStateOf === 'function') ? supplyStateOf(c) : null;
+  const depthPct = (c.oscPercentile != null) ? Math.round(c.oscPercentile) : null;
+
+  // 한 줄 요약 — 이 종목이 왜 여기 있는지를 문장 하나로.
+  const why = [];
+  if (sectorLabel !== '-') why.push(`주도 ${sectorLabel}`);
+  if (depthPct != null) why.push(`빈집 하위 ${depthPct}%`);
+  if (c.aboveMA10) why.push('추세 생존');
+
   return `
-    <div class="cand-row cand-v2 clickable" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}" title="${fEscape(c.name)} 차트 보기">
-      <div class="cand-v2-head">
-        ${rankBadge}
-        <div class="cand-v2-name">
-          <div class="cand-name">${fEscape(c.name)}</div>
-          <div class="cand-v2-sub">${fEscape(c.code)} · ${fEscape(sectorLabel)}</div>
-        </div>
-        <div class="cand-v2-px">
-          <span class="cand-close">${fmtNumber(c.close)}</span>
-          ${c.ret5d != null ? `<span class="cand-ret ${changeClass(c.ret5d)}">5d ${fmtPctSigned(c.ret5d)}</span>` : ''}
-        </div>
+    <details class="cand-row cand-v2 cand-fold" data-stock-code="${fEscape(c.code)}" data-stock-name="${fEscape(c.name)}">
+      <summary class="cand-sum">
+        <span class="cand-sum-rank">${idx + 1}</span>
+        <span class="cand-sum-main">
+          <b class="cand-sum-name">${fEscape(c.name)}</b>
+          <em class="cand-sum-why">${fEscape(why.join(' · '))}</em>
+        </span>
+        ${ss ? `<span class="cand-sum-state ${ss.cls}">${fEscape(ss.label)}</span>` : ''}
+        <span class="cand-sum-px">
+          <b>${fmtNumber(c.close)}</b>
+          ${c.ret5d != null ? `<em class="${changeClass(c.ret5d)}">5일 ${fmtPctSigned(c.ret5d)}</em>` : ''}
+        </span>
+        <span class="cand-sum-caret" aria-hidden="true"></span>
+      </summary>
+      <div class="cand-fold-body">
+        <span class="cand-open-chart">차트 크게 보기 →</span>
+        <div class="cand-v2-chartbox">${renderMiniPriceChart(c)}</div>
+        ${renderChartLegend()}
+        ${renderCloseBetLine(c)}
+        ${renderPickPath(c)}
+        ${renderFlowHeatmap(c)}
+        ${renderVacancyTags(c)}
       </div>
-      <div class="cand-v2-chartbox">${renderMiniPriceChart(c)}</div>
-      ${renderChartLegend()}
-      ${renderCloseBetLine(c)}
-      ${renderPickPath(c)}
-      ${renderFlowHeatmap(c)}
-      ${renderVacancyTags(c)}
-    </div>
+    </details>
   `;
 }
+
 
 // ─────────────────────────────────────────┐
 // CARD: Buy candidates (STEP 3 — main hero) │
@@ -1211,6 +1231,11 @@ async function loadFlow() {
     if (loading) loading.remove();
 
     container.innerHTML = `
+      <div class="tab-intro">
+        <b>수급·종목</b> — 오늘 <u>무엇을 볼지</u> 고르는 탭입니다.
+        외국인·기관이 <b>빠져나간 자리(빈집)</b> 중, 추세가 살아있고 주도 업종에 속한 종목만 남깁니다.
+        <span>종목을 눌러 펼치면 왜 뽑혔는지 근거가 나옵니다.</span>
+      </div>
       <div class="flow-meta">
         <span>업데이트: ${new Date(data.updatedAt).toLocaleString('ko-KR')}</span>
         <span>분석 ${data.vacancyAnalyzed || 0}/${data.universeSize || 0} · ${data.elapsedSeconds}s</span>

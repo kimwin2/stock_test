@@ -592,6 +592,9 @@ function setupChartHandlers() {
     if (!trigger) return;
     // 트리거 안의 a/button 은 자체 동작 우선 (뉴스 링크 등)
     if (e.target.closest('a, button')) return;
+    // <summary> 클릭은 접기/펼치기 전용. 여기서 모달까지 열면 펼치자마자 모달이
+    // 덮어 정작 펼친 내용을 못 본다.
+    if (e.target.closest('summary')) return;
     const code = trigger.dataset.stockCode;
     const name = trigger.dataset.stockName || '';
     e.preventDefault();

@@ -710,6 +710,11 @@ function renderBriefing(briefing, flow) {
   // 화면 위에서부터 "한 줄 요약 → 온도 → 돈의 흐름 → 숫자 → 서술 → 공시".
   // 공시는 근거 자료라 아래로 내린다 — 시황 파악의 출발점이 아니다.
   container.innerHTML = `
+    <div class="tab-intro">
+      <b>오늘</b> — 오늘 <u>사도 되는 장인지</u> 판단하는 탭입니다.
+      시장 온도와 업종 쏠림으로 장의 난이도를 보고, 어제와 무엇이 달라졌는지 확인합니다.
+      <span>종목을 고르는 건 옆의 '수급·종목' 탭입니다.</span>
+    </div>
     <div class="flow-meta">
       <span>기준 시각: ${generated}</span>
       ${sourceBadge(briefing.source)}

@@ -2655,3 +2655,65 @@ body {
 .flow-meta .brief-badge-rule, .flow-meta .brief-badge-sample, .flow-meta .brief-badge-ai {
   border-radius: 999px !important;
 }
+
+/* ============================================================
+   매수 후보 — 접힌 한 줄 요약 + 펼침 상세 (progressive disclosure)
+   카드 하나에 6개 요소를 펼쳐두면 20개가 쌓여 벽이 된다.
+   먼저 한 줄로 훑고, 궁금한 종목만 펼쳐 근거를 본다.
+   ============================================================ */
+.cand-fold { border-bottom: 1px solid var(--rule); }
+.cand-fold:last-child { border-bottom: 0; }
+.cand-sum {
+  display: grid;
+  grid-template-columns: 22px 1fr auto auto 14px;
+  align-items: center; gap: 9px;
+  padding: 13px 12px; cursor: pointer; list-style: none;
+}
+.cand-sum::-webkit-details-marker { display: none; }
+.cand-sum:hover { background: #FAFBFC; }
+.cand-fold[open] .cand-sum { background: #F7F8FA; }
+.cand-sum-rank {
+  font-size: 0.78rem; font-weight: 900; color: #9AA0AC;
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.cand-fold:nth-of-type(-n+3) .cand-sum-rank { color: var(--text-primary); }
+.cand-sum-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cand-sum-name { font-size: 1rem; font-weight: 800; letter-spacing: -0.02em; }
+.cand-sum-why {
+  font-style: normal; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cand-sum-state { font-size: 0.66rem; font-weight: 900; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.cand-sum-px { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.cand-sum-px b { font-size: 0.92rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cand-sum-px em { font-style: normal; font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cand-sum-caret {
+  width: 8px; height: 8px; border-right: 2px solid #B9BFC9; border-bottom: 2px solid #B9BFC9;
+  transform: rotate(45deg); transition: transform .15s ease; justify-self: end;
+}
+.cand-fold[open] .cand-sum-caret { transform: rotate(-135deg); }
+.cand-fold-body { padding: 2px 12px 14px; }
+.cand-open-chart {
+  display: inline-block; margin-bottom: 8px;
+  font-size: 0.74rem; font-weight: 800; color: var(--text-primary);
+  background: #F1F3F6; border-radius: 999px; padding: 5px 12px; cursor: pointer;
+}
+.cand-open-chart:hover { background: #E7EAEF; }
+@media (max-width: 480px) {
+  .cand-sum { grid-template-columns: 20px 1fr auto 12px; gap: 7px; padding: 12px 10px; }
+  .cand-sum-state { display: none; }   /* 좁은 화면에선 등락·이름이 먼저다 */
+}
+
+/* 탭 안내 한 줄 — 처음 보는 사람이 '이 화면이 무엇을 답하는가' 를 먼저 알게.
+   테마 탭이 직관적인 건 그림이 스스로를 설명해서다. 숫자 화면은 그게 안 되므로
+   한 줄로 대신한다. 지시가 아니라 화면의 목적 설명이다. */
+.tab-intro {
+  margin: 12px 12px 0; padding: 12px 14px;
+  background: #FFFFFF; border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(23,23,28,0.05);
+  font-size: 0.8rem; line-height: 1.65; color: var(--text-secondary);
+  word-break: keep-all;
+}
+.tab-intro b { color: var(--text-primary); font-weight: 800; }
+.tab-intro u { text-decoration: none; border-bottom: 2px solid #FFE082; font-weight: 700; color: var(--text-primary); }
+.tab-intro span { display: block; margin-top: 3px; font-size: 0.74rem; color: var(--text-muted); }
