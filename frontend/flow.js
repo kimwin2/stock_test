@@ -653,11 +653,12 @@ function renderSparkline(values, opts = {}) {
 }
 
 // ─────────────────────────────────────────┐
-// 매수 안전성 — 동그라미 + "매수가능 4/5단계" 만 한 줄에 표시
+// 지수 국면 — 동그라미 + "회복 흐름 4/5단계" 만 한 줄에 표시.
+// 툴팁에 현금·신용 권고를 달지 않는다 (행동 지시가 아니라 상태 서술).
 // ─────────────────────────────────────────┘
 function renderBuySafetyPill(safety) {
   if (!safety || safety.error) return '';
-  const tip = `${safety.score}점 · 현금 ${fEscape(safety.cashRecommend)} · 신용 ${fEscape(safety.creditRecommend)}`;
+  const tip = `지수 국면 점수 ${safety.score}/100 — 오실레이터 방향과 이동평균 위치로 산출`;
   return `<span class="safety-pill safety-pill-${safety.stage}" title="${tip}">${safety.stageEmoji} ${fEscape(safety.stageLabel)} ${safety.stageIndex + 1}/${safety.totalStages}단계</span>`;
 }
 
@@ -960,6 +961,24 @@ function renderPickPath(c) {
     steps.push(`<em class="pp-src">외인·기관 자금 유입</em><small>강도 ${src.strength}</small>`);
   }
   steps.push(`<em>${fEscape(sector)}</em><small>주도 ${rank + 1}위</small>`);
+
+  // 실제 편입비중 — 여기가 예전엔 비어 있었다. "그 ETF 가 강하고 같은 섹터니까
+  // 이 종목에도 자금이 온다" 는 추정이었는데, ETF 가 이 종목을 담고 있어야
+  // 성립하는 주장이다. 담은 비중을 그대로 보여 추정을 근거로 바꾼다.
+  //
+  // 집계 대상은 '테마 ETF' 다. 시장 전체 지수(KODEX 200 등)는 백엔드에서
+  // 제외했다 — 거기 담겼다는 건 테마 근거가 아니라 시가총액을 다시 말하는 것이다.
+  // 미편입은 숨기지 않는다. 어떤 테마 ETF 도 안 담았다는 사실이 정보다.
+  const eh = c.etfHoldings;
+  if (eh && eh.top && eh.top.length) {
+    const lead = eh.top[0];
+    const more = eh.count > 1 ? ` 외 ${eh.count - 1}` : '';
+    const star = eh.leadingCount ? '<b class="pp-lead-mark" title="주도 ETF(RS 70+)가 담고 있음">★</b>' : '';
+    steps.push(`<em class="pp-hold">${fEscape(lead.etf)}${more}${star}</em>` +
+               `<small>편입 ${eh.totalWeight}%</small>`);
+  } else if (eh === null) {
+    steps.push(`<em class="pp-hold-none">테마 ETF 미편입</em><small>수급 근거만</small>`);
+  }
 
   const state = (typeof supplyStateOf === 'function') ? supplyStateOf(c) : null;
   const last = [];

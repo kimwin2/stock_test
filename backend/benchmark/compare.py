@@ -24,10 +24,12 @@ import urllib.request
 from pathlib import Path
 
 try:
-    from benchmark.reference import load_reference, available_dates, family_of, staleness_days
+    from benchmark.reference import (load_reference, available_dates, family_of,
+                                     staleness_days, collector_failure)
     from flow_signals.universe import SECTOR_RULES
 except ImportError:  # 패키지 상대 실행
-    from .reference import load_reference, available_dates, family_of, staleness_days
+    from .reference import (load_reference, available_dates, family_of,
+                            staleness_days, collector_failure)
     from ..flow_signals.universe import SECTOR_RULES
 
 FLOW_S3_URL = "https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com/flow_dashboard.json"
@@ -283,6 +285,13 @@ def main() -> int:
     elif stale >= 3:
         print(f"[!] 레퍼런스 최신 데이터가 {stale}일 묵었습니다 — 수집이 멈췄을 수 있습니다.\n"
               f"    cd ~/repo/stock_chat && python -m pipeline.run --weeks 1", file=sys.stderr)
+
+    # 데이터 나이만 보면 오늘 죽은 수집기를 3일간 못 잡는다. 실행 결과를 직접 본다.
+    failure = collector_failure()
+    if failure:
+        print(f"[!] 레퍼런스 수집기가 죽어 있습니다. {failure}\n"
+              f"    최신 날짜({(available_dates() or ['?'])[-1]}) 이후는 비어 있는 게 아니라 "
+              f"수집이 안 된 것입니다 — 결론 내기 전에 복구하세요.", file=sys.stderr)
 
     dates = available_dates() if args.all else ([args.date] if args.date else [])
     if not dates:

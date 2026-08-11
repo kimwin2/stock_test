@@ -22,6 +22,7 @@ import pandas as pd
 
 from .market_sentiment import build_market_sentiment
 from .relative_strength import build_leading_sectors
+from .etf_holdings import build_holdings_index, holdings_for
 from .sector_skew import compute_crowding_index
 from .universe import build_universe
 from .supply_vacancy import (
@@ -116,7 +117,10 @@ def _resolve_leading_sectors_from_etfs(
         ("패키징", "반도체장비"),
         ("디스플레이", "반도체"),
         ("200 IT", "반도체"),       # KOSPI 200 IT — 삼성전자/하이닉스 비중 큼
-        ("코스닥150 IT", "반도체"),  # 코스닥 IT — 반도체 비중 큼
+        # 코스닥 IT — 반도체 비중 큼. 상장 목록 표기는 'TIGER 코스닥150IT'(공백 없음)
+        # 이라 공백 있는 키만 두면 매칭에 실패해 게임/IT 로 흘러간다.
+        ("코스닥150 IT", "반도체"),
+        ("코스닥150IT", "반도체"),
         ("반도체", "반도체"),
         # 2차전지/ESS
         ("2차전지", "2차전지"),
@@ -135,6 +139,10 @@ def _resolve_leading_sectors_from_etfs(
         ("IT", "게임/IT"),
         # 로봇/AI
         ("로봇", "로봇"),
+        # "AI전력..." 계열은 전력기기 ETF 다. 아래 ("AI", ...) 보다 반드시 위 —
+        # 밑에 두면 'KODEX AI전력핵심설비' 가 AI/반도체팹리스로 둔갑한다.
+        ("AI전력", "전력기기"),
+        ("전력기기", "전력기기"),
         ("AI", "AI/반도체팹리스"),
         # 방산/조선/중공업
         ("방산", "방산"),
@@ -144,6 +152,8 @@ def _resolve_leading_sectors_from_etfs(
         ("전력", "전력기기"),
         ("산업재", "전력기기"),
         ("원전", "원전"),
+        ("원자력", "원전"),   # 'HANARO 원자력iSelect' 는 "원전" 키워드에 안 걸린다
+        ("SMR", "원전"),
         # 바이오/우주
         ("바이오", "바이오"),
         ("헬스케어", "바이오"),
@@ -374,6 +384,64 @@ def build_flow_dashboard(
                 "via": "flow",
                 "strength": round(flow_ranked.get(sector, 0.0), 1),
             }
+
+    # ── 거래대금 쏠림 기반 주도섹터 (세 번째 축) ────────────────────────────
+    #
+    # 숙련 트레이더가 주도업종을 고를 때 가장 먼저 보는 축이 '거래대금 쏠림'
+    # 인데 우리에겐 그 축이 아예 없었다. 우리가 쓰던 둘은 이렇게 기운다:
+    #   - ETF RS: 6개월 상대강도라 느리다. 오늘 돈이 몰린 곳을 못 잡는다.
+    #   - 수급 강도: 5일 순매수 ÷ 시총이라 시총 작은 섹터로 기운다.
+    # 그래서 거래대금이 압도적인 섹터가 주도에서 통째로 빠진다.
+    # 실측(2026-08-10): 주도섹터 4개에 반도체가 없었다. 삼성전자·SK하이닉스가
+    # 시장 거래대금을 지배하는 날에도 '유통/음식료'(시총 41조)가 1위였다.
+    #
+    # 지표 = 섹터 거래대금 점유율 × 증가율(5일평균 ÷ 20일평균).
+    # 점유율만 보면 반도체가 상시 1위로 고정돼 신호가 죽고, 증가율만 보면
+    # 거래대금이 원래 적던 소형 섹터가 튄다. 곱해야 "원래 큰데 지금 더
+    # 몰리는" 섹터가 남는다.
+    TURNOVER_TOP_N = 2
+    TURNOVER_SHARE_MIN = 0.03   # 시장 거래대금의 3% 미만은 '쏠림' 이라 할 수 없다
+    turnover_ranked: dict[str, float] = {}
+    try:
+        if not vacancy_df.empty and "tradingValue5dAvg" in vacancy_df.columns:
+            tv = vacancy_df[vacancy_df["tradingValue5dAvg"].notna()].copy()
+            total_tv = float(tv["tradingValue5dAvg"].sum()) or 1.0
+            grouped = tv.groupby("sector").agg(
+                value=("tradingValue5dAvg", "sum"),
+                ratio=("tradingValueRatio", "median"),
+                members=("tradingValue5dAvg", "size"),
+            )
+            for sector, row in grouped.iterrows():
+                if sector in NON_THEME_SECTORS or sector == "기타":
+                    continue
+                if int(row["members"]) < FLOW_SECTOR_MIN_MEMBERS:
+                    continue
+                share = float(row["value"]) / total_tv
+                if share < TURNOVER_SHARE_MIN:
+                    continue
+                # 증가율이 없으면 중립(1.0). 없는 값을 벌점으로 쓰면 안 된다.
+                ratio = 1.0 if pd.isna(row["ratio"]) else float(row["ratio"])
+                turnover_ranked[str(sector)] = share * 100 * ratio
+        leading_sectors_turnover = [
+            s for s, _ in sorted(turnover_ranked.items(), key=lambda kv: kv[1], reverse=True)
+        ][:TURNOVER_TOP_N]
+        # 채택분만 찍으면 "왜 저 섹터가 안 들어왔나" 를 다음 사람이 못 따진다.
+        # 바로 아래 순위까지 남겨야 임계값 조정 근거가 생긴다.
+        _tv_all = sorted(turnover_ranked.items(), key=lambda kv: kv[1], reverse=True)[:6]
+        print(
+            f"   거래대금 쏠림 기반 섹터(채택 상위 {TURNOVER_TOP_N}, 점유율%×증가율): "
+            f"{[(s, round(turnover_ranked[s], 1)) for s in leading_sectors_turnover] or '(없음)'}"
+        )
+        print(f"       (참고 상위 6: {[(s, round(v, 1)) for s, v in _tv_all]})")
+        for sector in leading_sectors_turnover:
+            if sector not in leading_sectors:
+                leading_sectors.append(sector)
+                sector_sources[sector] = {
+                    "via": "turnover",
+                    "sharePct": round(turnover_ranked[sector], 1),
+                }
+    except Exception as e:
+        print(f"  [!] 거래대금 쏠림 계산 실패(건너뜀): {e}")
 
     # ETF RS 섹터를 앞에 두고 전체 개수 제한 — 주도 섹터가 많아질수록 필터 의미가 사라진다.
     dropped_sectors = leading_sectors[MAX_LEADING_SECTORS:]
@@ -681,6 +749,40 @@ def build_flow_dashboard(
         "scoreCutoffRelaxed": score_relaxed,
     }
     enriched_candidates = scored_ok
+
+    # ─────────────────────────────────────────
+    # Step 7b: 주도 ETF 실제 편입비중 — 포착 경로의 마지막 화살표를 근거로 바꾼다
+    #
+    # 지금까지 `주도 ETF › 섹터 › 종목` 의 마지막 연결은 우리 섹터 사전이
+    # 대신 주장하고 있었다("같은 섹터니까 담겨 있을 것이다"). 이 전략의 원리가
+    # "ETF 로 들어온 자금이 구성종목을 사 올린다" 인 이상, 그 ETF 가 이 종목을
+    # 실제로 담고 있는지가 근거의 핵심이다. 담고 있지 않다면 같은 섹터라는
+    # 사실만으로는 자금이 올 이유가 없다.
+    #
+    # 실패해도 파이프라인은 계속 간다 — 근거 '보강' 이지 후보 선정 조건이 아니다.
+    # (선정 조건으로 삼으면 WISEfn 이 하루 죽을 때 후보가 통째로 비어버린다.)
+    # ─────────────────────────────────────────
+    print("\n[Step 7b] 테마 ETF 편입비중")
+    etf_holdings_index: dict = {"byName": {}, "etfCount": 0, "asOf": None}
+    try:
+        _leading_codes = {e.get("code") for e in (leading.get("leading") or []) if e.get("code")}
+        etf_holdings_index = build_holdings_index(
+            leading.get("all") or [], leading_codes=_leading_codes)
+        print(f"   PDF 확보 ETF {etf_holdings_index['etfCount']}개 · "
+              f"기준일 {etf_holdings_index.get('asOf') or '-'}")
+    except Exception as e:
+        print(f"  [!] 실패: {e}")
+
+    if etf_holdings_index.get("etfCount"):
+        # 미편입(None)도 그대로 둔다. '어떤 테마 ETF 도 안 담은 종목' 이라는
+        # 사실이 정보라서, 화면이 편입/미편입을 구분해 보여줄 수 있어야 한다.
+        for c in enriched_candidates:
+            c["etfHoldings"] = holdings_for(etf_holdings_index, c.get("name"))
+        held = sum(1 for c in enriched_candidates if c.get("etfHoldings"))
+        lead_held = sum(1 for c in enriched_candidates
+                        if (c.get("etfHoldings") or {}).get("leadingCount"))
+        print(f"   후보 {len(enriched_candidates)}개 중 테마 ETF 편입 {held}개 "
+              f"(그중 주도 ETF 편입 {lead_held}개)")
 
     # ─────────────────────────────────────────
     # Step 7c: 주도섹터 거래대금 톱10 — 빈집 필터와 별개로 외인+기관 동행 매수 주도주

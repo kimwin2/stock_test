@@ -31,7 +31,6 @@ function bFmtDate(yyyymmdd) {
 function buildBriefingStats(facts) {
   if (!facts) return '';
   const fg = facts.fearGreed || {};
-  const cash = facts.cashRecommendation || {};
   const sectors = (facts.leadingSectors || {}).now || [];
 
   const chips = [];
@@ -41,9 +40,6 @@ function buildBriefingStats(facts) {
       ? `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`
       : '';
     chips.push(`<div class="brief-chip"><span class="brief-chip-label">코스피 공포·탐욕</span><span class="brief-chip-value">${fg.kospi}${deltaHtml}</span></div>`);
-  }
-  if (cash.nowPct != null) {
-    chips.push(`<div class="brief-chip"><span class="brief-chip-label">권고 현금</span><span class="brief-chip-value">${cash.nowPct}%</span></div>`);
   }
   if (sectors.length) {
     chips.push(`<div class="brief-chip"><span class="brief-chip-label">주도 1위</span><span class="brief-chip-value">${bEscape(sectors[0])}</span></div>`);
@@ -113,7 +109,6 @@ function buildMarketVerdict(fg, sentiment, flow) {
   const d = fg.kospiDelta;
   const move = (d == null || Math.abs(d) < 0.05) ? '전일과 비슷'
     : (d > 0 ? `전일 대비 ${d.toFixed(1)} 상승` : `전일 대비 ${Math.abs(d).toFixed(1)} 하락`);
-  const cash = (flow || {}).cashRecommendation || {};
   const crowding = (flow || {}).crowding || {};
   const safety = ((sentiment.buySafety || {}).kospi) || {};
   const nCand = ((flow || {}).buyCandidates || []).length;
@@ -126,11 +121,15 @@ function buildMarketVerdict(fg, sentiment, flow) {
   // 정작 "오늘 뭘 봐야 하나" 로 이어지지 않는다.
   const chips = [];
   if (safety.stageLabel) {
-    chips.push(['매수 환경', bEscape(safety.stageLabel),
+    chips.push(['지수 국면', bEscape(safety.stageLabel),
       `${safety.stageIndex ?? '-'}/${safety.totalStages ?? 5}단계`]);
   }
-  if (cash.cashPct != null) chips.push(['권고 현금비중', `${cash.cashPct}%`, cash.level || '']);
-  if (crowding.signal) {
+  // 쏠림은 '확산/쏠림' 같은 내부 라벨 대신 사용자가 쓰는 말로 — 이 탭의 결론이다.
+  const crowdHist = (crowding.history || []).filter(h => h && h.crowding != null).map(h => h.crowding);
+  if (crowdHist.length >= 20) {
+    const p = pctRank(crowdHist, crowdHist[crowdHist.length - 1]);
+    chips.push(['장 난이도', crowdBandOf(p).label, `쏠림 하위 ${p}%`]);
+  } else if (crowding.signal) {
     chips.push(['업종 쏠림', crowding.signal,
       crowding.latest != null ? `지수 ${crowding.latest.toFixed(1)}` : '']);
   }
@@ -156,6 +155,192 @@ function buildMarketVerdict(fg, sentiment, flow) {
           <div class="vc-val">${bEscape(val)}</div>
           ${sub ? `<div class="vc-sub">${bEscape(sub)}</div>` : ''}
         </div>`).join('')}</div>` : ''}
+    </div>`;
+}
+
+// ─────────────────────────────────────────┐
+// 업종 쏠림 — 오늘 장의 '난이도'             │
+// ─────────────────────────────────────────┘
+// 이 탭이 수급·종목 탭과 갈라지는 지점. 저쪽은 "무엇을 살까", 여기는
+// "지금이 사도 되는 장인가" 다. 종목을 아무리 잘 골라도 장 난이도를 모르면
+// 같은 종목이 어떤 날엔 되고 어떤 날엔 안 된다.
+//
+// 방향 정의 (참고 자료 40일치에서 반복 확인된 것):
+//   쏠림 높음/상승  = 일부 업종만 살아남음   → 매매하기 **어려운** 장
+//   쏠림 낮음/하락  = 업종 간 수익률 편차 축소 → 매매하기 **편한** 장 (순환매)
+// 직관과 반대로 느껴질 수 있어 화면에 방향을 명시한다.
+//
+// 절대 임계값을 박지 않는 이유: 우리 지수와 참고 자료의 지수는 스케일이
+// 다르다(우리 13~80, 저쪽 -0.3~0.3). 같은 숫자를 옮겨 적으면 틀린다.
+// 대신 **자기 이력 대비 백분위**로 판정한다 — 참고 자료도 "0.3 넘으면
+// 90% 구간" 이라며 백분위로 말한다. 스케일이 달라도 백분위는 옮겨진다.
+const CROWD_BANDS = [
+  { from: 90, label: '극단 쏠림', tone: 'x', desc: '소수 업종 독주 — 되돌림(순환매)이 나오는 자리' },
+  { from: 70, label: '어려운 장', tone: 'hard', desc: '일부 업종만 살아남는 구간' },
+  { from: 30, label: '보통', tone: 'mid', desc: '주도업종 위주로 흐르는 구간' },
+  { from: 0, label: '편한 장', tone: 'easy', desc: '업종 간 편차가 좁아 종목 고르기가 수월한 구간' },
+];
+
+function crowdBandOf(pct) {
+  for (const b of CROWD_BANDS) if (pct >= b.from) return b;
+  return CROWD_BANDS[CROWD_BANDS.length - 1];
+}
+
+function pctRank(values, v) {
+  if (!values.length) return null;
+  const below = values.filter(x => x <= v).length;
+  return Math.round(below / values.length * 100);
+}
+
+function buildCrowdingChart(flow) {
+  const cr = (flow || {}).crowding || {};
+  const hist = (cr.history || []).filter(h => h && h.crowding != null);
+  if (hist.length < 20) return '';
+
+  const vals = hist.map(h => h.crowding);
+  const last = vals[vals.length - 1];
+  const pct = pctRank(vals, last);
+  const band = crowdBandOf(pct);
+
+  // 방향이 수준보다 중요하다. 참고 자료는 "꺾이면 편해짐 / 하단에서 올라오면
+  // 어려워짐" 처럼 언제나 방향으로 말한다. 5거래일 변화로 잡는다.
+  // 3거래일 창. 참고 자료는 전환을 하루이틀 만에 읽는다. 5일로 잡으면
+  // 되돌아선 것을 놓친다 (실측 2026-08-10: 이틀 만에 13.5→16.2 로 튀었는데
+  // 5일 창은 '내려가는 중' 이라고 답했다). 백엔드 _crowding_state 와 같은 값.
+  const back = vals[Math.max(0, vals.length - 4)];
+  const diff = last - back;
+  const span = Math.max(...vals) - Math.min(...vals) || 1;
+  const rising = diff > span * 0.02;
+  const falling = diff < -span * 0.02;
+  const dirLabel = rising ? '올라가는 중' : (falling ? '내려가는 중' : '옆걸음');
+  const dirMark = rising ? '▲' : (falling ? '▼' : '▬');
+  // 수준 × 방향 조합이 실제 판단이다. 수준만 말하면 전환점을 놓친다.
+  let verdict;
+  if (rising && pct < 30) verdict = '바닥에서 올라오는 중 — 지금부터 어려워질 수 있는 자리';
+  else if (rising) verdict = '쏠림이 강해지는 중 — 살아남는 업종이 줄어드는 흐름';
+  else if (falling && pct >= 70) verdict = '고점에서 꺾이는 중 — 순환매로 풀리는 자리';
+  else if (falling) verdict = '쏠림이 풀리는 중 — 업종 간 편차가 좁아지는 흐름';
+  else verdict = `${band.label} 구간에서 옆걸음`;
+
+  // ── SVG ──
+  const W = 640, H = 170, PL = 6, PR = 44, PT = 10, PB = 20;
+  const iw = W - PL - PR, ih = H - PT - PB;
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const rng = (hi - lo) || 1;
+  const X = i => PL + (i / (vals.length - 1)) * iw;
+  const Y = v => PT + (1 - (v - lo) / rng) * ih;
+  // 백분위 경계를 y 좌표로 — 밴드를 그리려면 값이 필요하다
+  const sorted = [...vals].sort((a, b) => a - b);
+  const qv = p => sorted[Math.min(sorted.length - 1, Math.floor(p / 100 * sorted.length))];
+  const bandRects = [
+    { y0: qv(90), y1: hi, cls: 'cb-x' },
+    { y0: qv(70), y1: qv(90), cls: 'cb-hard' },
+    { y0: qv(30), y1: qv(70), cls: 'cb-mid' },
+    { y0: lo, y1: qv(30), cls: 'cb-easy' },
+  ].map(b => {
+    const yTop = Y(b.y1), yBot = Y(b.y0);
+    return `<rect x="${PL}" y="${yTop.toFixed(1)}" width="${iw}" height="${Math.max(0, yBot - yTop).toFixed(1)}" class="${b.cls}"/>`;
+  }).join('');
+
+  const line = vals.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+  const cx = X(vals.length - 1), cy = Y(last);
+
+  // x 축 — 월이 바뀌는 지점만 찍는다. 눈금이 촘촘하면 선이 안 보인다.
+  let ticks = '';
+  let prevMonth = '';
+  hist.forEach((h, i) => {
+    const m = String(h.date || '').slice(5, 7);
+    if (m && m !== prevMonth) {
+      prevMonth = m;
+      if (i > 2) ticks += `<text x="${X(i).toFixed(1)}" y="${H - 6}" class="cc-tick">${parseInt(m, 10)}월</text>`;
+    }
+  });
+
+  return `
+    <div class="flow-card cc-card">
+      <div class="card-header">
+        <span class="card-theme-name">오늘 장 난이도 — 업종 쏠림</span>
+        <span class="card-volume cc-band cc-${band.tone}">${band.label}</span>
+      </div>
+      <div class="cc-verdict">
+        <span class="cc-dir cc-dir-${rising ? 'up' : (falling ? 'down' : 'flat')}">${dirMark} ${dirLabel}</span>
+        <span class="cc-verdict-text">${bEscape(verdict)}</span>
+      </div>
+      <svg viewBox="0 0 ${W} ${H}" class="cc-svg" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        ${bandRects}
+        <path d="${line}" class="cc-line"/>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3.4" class="cc-dot"/>
+        <text x="${(cx + 6).toFixed(1)}" y="${(cy + 3.5).toFixed(1)}" class="cc-now">${last.toFixed(1)}</text>
+        ${ticks}
+      </svg>
+      <div class="cc-scale">
+        <span class="cc-lg cc-easy"><i></i>편한 장</span>
+        <span class="cc-lg cc-mid"><i></i>보통</span>
+        <span class="cc-lg cc-hard"><i></i>어려운 장</span>
+        <span class="cc-lg cc-x"><i></i>극단 쏠림</span>
+        <span class="cc-pct">6개월 분포에서 하위 ${pct}%</span>
+      </div>
+      ${whatIs('업종 쏠림은 업종별 6개월 수익률이 얼마나 벌어져 있는지를 하나의 수로 만든 값입니다. ' +
+        '높을수록 소수 업종만 오르고 나머지는 눌려 종목 고르기가 어려워지고, 낮을수록 업종 간 편차가 좁아 순환매가 돕니다. ' +
+        '지수의 절대값은 산출 방식마다 달라, 여기서는 최근 6개월 자기 이력 안에서의 위치(백분위)로 구간을 나눕니다.')}
+    </div>`;
+}
+
+// ─────────────────────────────────────────┐
+// 오늘의 재료 — 테마 탭과 이어지는 다리        │
+// ─────────────────────────────────────────┘
+// '오늘' 탭이 장 상태만 말하면 반쪽이다. 장이 왜 그렇게 움직였는지는 재료에
+// 있다. 다만 테마 탭을 여기 복제하지는 않는다 — 상위 3개만, 수급 빈집과
+// 겹치는지만 붙여 "재료와 수급이 만나는 자리"가 있는지 한 줄로 답한다.
+let themeDataCache = null;
+
+async function loadThemeSummary() {
+  if (themeDataCache !== null) return themeDataCache;
+  try {
+    const url = (typeof DATA_URL !== 'undefined') ? DATA_URL : './dashboard_data.json';
+    const resp = await fetch(url + '?t=' + Date.now());
+    themeDataCache = resp.ok ? await resp.json() : false;
+  } catch (e) {
+    themeDataCache = false;
+  }
+  return themeDataCache;
+}
+
+function buildThemeBridge(themeData, flow) {
+  const themes = (themeData || {}).themes || [];
+  if (!themes.length) return '';
+  const candNames = new Set(((flow || {}).buyCandidates || [])
+    .map(c => String(c.name || '').replace(/\s+/g, '')));
+
+  const rows = themes.slice(0, 4).map(t => {
+    const stocks = (t.stocks || []).slice(0, 4);
+    const hits = stocks.filter(s => candNames.has(String(s.name || '').replace(/\s+/g, '')));
+    const lead = stocks.map(s => {
+      const on = candNames.has(String(s.name || '').replace(/\s+/g, ''));
+      return `<span class="tb-stock${on ? ' tb-hit' : ''}">${bEscape(s.name)}` +
+             `${s.changeRate != null ? `<em>${s.changeRate >= 0 ? '+' : ''}${Number(s.changeRate).toFixed(1)}%</em>` : ''}</span>`;
+    }).join('');
+    return `
+      <div class="tb-row">
+        <div class="tb-name">${bEscape(t.themeName)}${hits.length ? `<b class="tb-badge">수급 겹침 ${hits.length}</b>` : ''}</div>
+        <div class="tb-stocks">${lead}</div>
+      </div>`;
+  }).join('');
+
+  const total = themes.slice(0, 4).reduce((n, t) => n + (t.stocks || []).slice(0, 4)
+    .filter(s => candNames.has(String(s.name || '').replace(/\s+/g, ''))).length, 0);
+
+  return `
+    <div class="flow-card tb-card">
+      <div class="card-header">
+        <span class="card-theme-name">오늘 움직인 재료</span>
+        <span class="card-volume">${total ? `수급 겹침 ${total}종목` : '수급 겹침 없음'}</span>
+      </div>
+      <div class="tb-body">${rows}</div>
+      <p class="tb-note">${total
+        ? '굵게 표시된 종목은 재료가 돌면서 수급도 아직 비어 있는 자리입니다.'
+        : '오늘은 급등 재료와 수급 빈집이 겹치는 종목이 없습니다. 급등 중인 종목은 이미 수급이 들어와 있어 잘 겹치지 않습니다.'}</p>
+      <button class="tb-more" type="button">재료·테마 탭에서 전체 보기</button>
     </div>`;
 }
 
@@ -423,8 +608,6 @@ function buildTodayNumbers(flow, facts) {
   if (Array.isArray(flow.newHighs)) items.push(['신고가', `${flow.newHighs.length}종목`, 'up']);
   if (Array.isArray(flow.exitSignals)) items.push(['이탈 신호', `${flow.exitSignals.length}종목`, 'down']);
   if (Array.isArray(flow.buyCandidates)) items.push(['빈집 시그널', `${flow.buyCandidates.length}종목`, '']);
-  const cash = (flow.cashRecommendation || {});
-  if (cash.cashPct != null) items.push(['권고 현금비중', `${cash.cashPct}% · ${bEscape(cash.level || '')}`, '']);
   const crowd = (flow.crowding || {});
   if (crowd.signal) items.push(['업종 쏠림', bEscape(crowd.signal), '']);
   if (!items.length) return '';
@@ -543,17 +726,19 @@ function renderBriefing(briefing, flow) {
         ${whatIs('공포·탐욕 지수는 주가 흐름·거래량·변동성·안전자산 선호를 하나로 합친 0~100 레벨입니다. 큰 글씨의 구간 이름은 레벨이 아니라 그 지수의 방향(오실레이터)으로 판정합니다 — 레벨이 낮아도 방향이 위를 향하면 과열로 올라가는 중입니다.')}
       </div>
 
+      ${buildCrowdingChart(flow)}
       ${buildChanges(flow)}
+      <div id="brief-theme-bridge"></div>
       ${buildScreenResult(flow)}
-      ${buildExitList(flow)}
-      ${buildMoneyFlow((flow || {}).sectorFlows)}
 
       <details class="brief-more">
-        <summary>서술 요약 · 오늘의 숫자 · 공시 자세히 보기</summary>
+        <summary>서술 요약 · 섹터 수급 · 이탈 신호 · 공시 자세히 보기</summary>
         <div class="brief-more-body">
           <div class="flow-card brief-card-main">
             ${buildBriefingSections(briefing.sections)}
           </div>
+          ${buildExitList(flow)}
+          ${buildMoneyFlow((flow || {}).sectorFlows)}
           ${buildTodayNumbers(flow, facts)}
           ${buildDisclosureCard(briefing.disclosures)}
         </div>
@@ -572,6 +757,25 @@ function renderBriefing(briefing, flow) {
   });
   container.querySelector('.sr-more')?.addEventListener('click', () => {
     document.querySelector('.tab-btn[data-tab="flow"]')?.click();
+  });
+
+  // 재료 요약은 테마 데이터(dashboard_data.json)가 따로 필요하다. 이것 때문에
+  // 탭 전체가 늦어지면 안 되므로, 먼저 그리고 도착하면 끼워 넣는다.
+  loadThemeSummary().then(td => {
+    if (!td) return;
+    const slot = container.querySelector('#brief-theme-bridge');
+    if (!slot) return;
+    slot.innerHTML = buildThemeBridge(td, flow);
+    slot.querySelector('.tb-more')?.addEventListener('click', () => {
+      document.querySelector('.tab-btn[data-tab="themes"]')?.click();
+    });
+    slot.querySelectorAll('.tb-stock').forEach(el => {
+      el.addEventListener('click', () => {
+        const nm = el.textContent.replace(/[+-][\d.]+%$/, '').trim();
+        const c = ((flow || {}).buyCandidates || []).find(x => x.name === nm);
+        if (c && typeof openStockModal === 'function') openStockModal(c);
+      });
+    });
   });
 }
 

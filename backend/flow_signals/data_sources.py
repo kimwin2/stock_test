@@ -320,3 +320,45 @@ def fetch_investor_flow_for_codes(
         if sleep_sec:
             time.sleep(sleep_sec)
     return out
+
+
+# ── ETF 구성종목(PDF) ────────────────────────────────────────────────
+# "주도 ETF 가 강하다 → 그래서 이 종목이다" 라는 주장은, 그 ETF 가 실제로 그
+# 종목을 담고 있어야 성립한다. 지금까지 그 연결은 우리 섹터 사전이 대신하고
+# 있었다(같은 섹터니까 담겨 있을 것이다). 실제 편입비중으로 대체한다.
+#
+# 출처: WISEfn ETF 페이지가 CU당 구성종목 전체를 페이지 안에 JSON 으로 심어
+# 내려준다. 로그인·API 키가 필요 없고 새 의존성도 없다 (KRX MDC 의 PDF 화면은
+# 회원 로그인을 요구하고, 로그인해도 이 화면은 빈 결과를 준다).
+ETF_PDF_URL = "https://navercomp.wisereport.co.kr/v2/ETF/index.aspx?cmp_cd={code}"
+_CU_DATA_PAT = re.compile(r"var\s+CU_data\s*=\s*(\{.*?\});", re.S)
+
+
+def fetch_etf_pdf(code: str, timeout: int = 10) -> dict:
+    """ETF 1종의 구성종목. {"asOf": "YYYY-MM-DD", "holdings": [{name, weight}]}.
+
+    실패하면 빈 결과를 준다 — 근거 보강용이라 없다고 파이프라인이 멈추면 안 된다.
+    '원화현금' 같은 비종목 항목은 걷어낸다.
+    """
+    import json as _json
+    try:
+        r = requests.get(ETF_PDF_URL.format(code=code), headers=NAVER_HEADERS, timeout=timeout)
+        m = _CU_DATA_PAT.search(r.text)
+        if not m:
+            return {"asOf": None, "holdings": []}
+        rows = (_json.loads(m.group(1)) or {}).get("grid_data") or []
+    except Exception as e:
+        print(f"  [!] ETF {code} PDF 실패: {e}")
+        return {"asOf": None, "holdings": []}
+
+    holdings, as_of = [], None
+    for row in rows:
+        name = (row.get("STK_NM_KOR") or "").strip()
+        weight = row.get("ETF_WEIGHT")
+        if not name or weight is None:
+            continue
+        if name in ("원화현금", "원화예금", "설정현금액", "현금"):
+            continue
+        as_of = as_of or row.get("TRD_DT")
+        holdings.append({"name": name, "weight": float(weight)})
+    return {"asOf": as_of, "holdings": holdings}

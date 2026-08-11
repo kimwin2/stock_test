@@ -8,12 +8,19 @@
 - "시장이 삐걱거린다고 생각하면 강제로 현금 비중을 30% 만든다"
 - "바닥에서 턴할 때 그때 주도 종목군이 또 바뀌기도 한다"
 
-5단계 + 점수 (0~100):
-  매수위험   ( 0~19) — peak/turn-down 직후, 현금 30%+, 신용 금지
-  매수조심   (20~39) — osc 떨어지는 중 + 가격 균열, 현금 20-30%
-  중간       (40~59) — osc 0 근처 + 가격 버팀, 현금 10-20%
-  매수가능   (60~79) — osc 양수 추세 + 가격 5/10일선 위, 현금 5-10%
-  매수권장   (80~100) — osc 바닥 turn up + 가격 회복, 현금 0-5%
+5단계 + 점수 (0~100) — **지수의 상태**를 서술한다. 행동을 지시하지 않는다.
+  고점 되돌림 ( 0~19) — peak/turn-down 직후
+  하락 압력   (20~39) — osc 떨어지는 중 + 가격 균열
+  중립        (40~59) — osc 0 근처 + 가격 버팀
+  회복 흐름   (60~79) — osc 양수 추세 + 가격 5/10일선 위
+  바닥 반등   (80~100) — osc 바닥 turn up + 가격 회복
+
+[2026-08-11] 라벨을 '매수권장/매수가능/매수위험' 에서 위와 같이 바꿨다.
+이 제품은 유사투자자문업 미신고 상태로 운영한다. '매수권장' 은 지표 이름이
+아니라 투자 판단을 대신하는 문장이고, 같이 내려주던 `cashRecommend`(현금 0-5%)
+`creditRecommend`(신용 사용 가능)는 더 직접적이다 — 화면 툴팁에 "신용 사용 가능"
+이 그대로 떠 있었다. 지수 상태만 서술하고 행동은 사용자가 정한다.
+같은 이유로 두 필드는 페이로드에서 제거했다.
 """
 
 from __future__ import annotations
@@ -24,11 +31,11 @@ from .data_sources import fetch_index_ohlcv
 
 
 STAGES = [
-    {"key": "danger",  "label": "매수위험", "emoji": "🔴", "min": 0,  "max": 19,  "cash": "30%+",   "credit": "절대 금지"},
-    {"key": "caution", "label": "매수조심", "emoji": "🟠", "min": 20, "max": 39,  "cash": "20-30%", "credit": "금지"},
-    {"key": "neutral", "label": "중간",     "emoji": "🟡", "min": 40, "max": 59,  "cash": "10-20%", "credit": "자제"},
-    {"key": "ok",      "label": "매수가능", "emoji": "🟢", "min": 60, "max": 79,  "cash": "5-10%",  "credit": "선별 사용"},
-    {"key": "buy",     "label": "매수권장", "emoji": "🟦", "min": 80, "max": 100, "cash": "0-5%",   "credit": "사용 가능"},
+    {"key": "danger",  "label": "고점 되돌림", "emoji": "🔴", "min": 0,  "max": 19},
+    {"key": "caution", "label": "하락 압력",   "emoji": "🟠", "min": 20, "max": 39},
+    {"key": "neutral", "label": "중립",        "emoji": "🟡", "min": 40, "max": 59},
+    {"key": "ok",      "label": "회복 흐름",   "emoji": "🟢", "min": 60, "max": 79},
+    {"key": "buy",     "label": "바닥 반등",   "emoji": "🟦", "min": 80, "max": 100},
 ]
 
 
@@ -138,8 +145,6 @@ def evaluate_market_safety(symbol: str, label: str, sentiment: dict) -> dict:
         "stageEmoji": stage["emoji"],
         "stageIndex": STAGES.index(stage),  # 0~4
         "totalStages": len(STAGES),
-        "cashRecommend": stage["cash"],
-        "creditRecommend": stage["credit"],
         "rationale": rationale,
         "metrics": {
             "price": round(price, 2),

@@ -2494,8 +2494,96 @@ body {
 }
 .pp-step em { font-style: normal; font-size: 0.76rem; font-weight: 900; color: #2b332c; }
 .pp-step small { font-size: 0.64rem; font-weight: 700; color: #a89f8d; }
-.pp-step .pp-src { color: #00695C; }
+/* 브랜드 브론즈. 하드코딩 #00695C(teal) 가 남아 있어 티마 색으로 회귀해 있었다. */
+.pp-step .pp-src { color: var(--teal-dark); }
+/* 실제 편입비중 — 추정이 아니라 확인된 사실이라 조금 더 진하게 준다. */
+.pp-step .pp-hold { color: var(--teal); }
+.pp-step .pp-lead-mark { color: var(--orange); margin-left: 2px; }
+/* 미편입도 숨기지 않는다. 다만 근거가 약한 쪽이므로 톤을 낮춘다. */
+.pp-step .pp-hold-none { color: var(--text-muted); font-weight: 700; }
 .pp-arrow { align-self: center; font-size: 0.9rem; font-weight: 900; color: #c9bfa8; }
+
+/* ─── 오늘 장 난이도 (업종 쏠림) ───────────────────────────────
+   이 탭이 수급·종목 탭과 갈라지는 화면. 색은 등락(빨강/파랑)과 반드시
+   달라야 한다 — 여기서 빨강을 쓰면 '하락'으로 읽힌다. 난이도 축은
+   브론즈→테라코타 한 방향으로만 간다. */
+.cc-card { padding-bottom: 8px; }
+.cc-band { font-weight: 900; letter-spacing: -0.02em; }
+.cc-band.cc-easy { color: var(--teal-dark); }
+.cc-band.cc-mid  { color: var(--text-secondary); }
+.cc-band.cc-hard { color: var(--orange); }
+.cc-band.cc-x    { color: #A33B12; }
+
+.cc-verdict {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding: 7px 10px 8px; border-bottom: 1px solid var(--bar-bg);
+}
+.cc-dir { font-size: 0.72rem; font-weight: 900; letter-spacing: -0.02em; white-space: nowrap; }
+.cc-dir-up   { color: var(--orange); }
+.cc-dir-down { color: var(--teal-dark); }
+.cc-dir-flat { color: var(--text-muted); }
+.cc-verdict-text { font-size: 0.78rem; font-weight: 700; color: var(--text-primary); }
+
+/* preserveAspectRatio 를 none 으로 두면 SVG 안의 글자까지 가로로 늘어난다
+   (데스크톱 1.28배 늘어남 / 모바일 0.58배 눌림). 비율을 지키고 높이는
+   폭에 따라 자동으로 정해지게 둔다. */
+.cc-svg { display: block; width: 100%; height: auto; }
+.cc-svg .cb-easy { fill: #E9E0CB; }
+.cc-svg .cb-mid  { fill: #F1EADB; }
+.cc-svg .cb-hard { fill: #F3DCC9; }
+.cc-svg .cb-x    { fill: #E8C3AB; }
+.cc-svg .cc-line { fill: none; stroke: #3B372F; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.cc-svg .cc-dot  { fill: var(--orange); stroke: #fff; stroke-width: 1.5; }
+.cc-svg .cc-now  { font-size: 11px; font-weight: 900; fill: var(--text-primary); }
+.cc-svg .cc-tick { font-size: 9px; font-weight: 700; fill: var(--text-muted); text-anchor: middle; }
+
+.cc-scale {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 7px 10px 2px; font-size: 0.66rem; font-weight: 700; color: var(--text-secondary);
+}
+.cc-lg { display: inline-flex; align-items: center; gap: 4px; }
+.cc-lg i { width: 10px; height: 10px; display: inline-block; border: 1px solid #d9cfba; }
+.cc-lg.cc-easy i { background: #E9E0CB; }
+.cc-lg.cc-mid i  { background: #F1EADB; }
+.cc-lg.cc-hard i { background: #F3DCC9; }
+.cc-lg.cc-x i    { background: #E8C3AB; }
+.cc-pct { margin-left: auto; color: var(--text-muted); }
+
+/* ─── 오늘 움직인 재료 (테마 탭 다리) ─────────────────────── */
+.tb-body { padding: 2px 0; }
+.tb-row {
+  display: grid; grid-template-columns: 132px 1fr; gap: 8px; align-items: center;
+  padding: 6px 10px; border-bottom: 1px solid var(--bar-bg);
+}
+.tb-row:last-child { border-bottom: 0; }
+.tb-name { font-size: 0.76rem; font-weight: 900; color: var(--text-primary); }
+.tb-badge {
+  display: inline-block; margin-left: 5px; padding: 1px 4px;
+  font-size: 0.6rem; font-weight: 900; color: #fff; background: var(--teal-dark);
+}
+.tb-stocks { display: flex; flex-wrap: wrap; gap: 5px; }
+.tb-stock {
+  font-size: 0.71rem; font-weight: 700; color: var(--text-secondary);
+  padding: 2px 5px; background: var(--bg-top-highlight); border: 1px solid transparent;
+}
+.tb-stock em { font-style: normal; margin-left: 3px; color: var(--text-muted); }
+.tb-stock.tb-hit {
+  color: var(--text-primary); font-weight: 900;
+  border-color: var(--teal-dark); background: #fff;
+  cursor: pointer;
+}
+.tb-note { padding: 6px 10px 0; font-size: 0.68rem; line-height: 1.5; color: var(--text-muted); }
+.tb-more {
+  margin: 8px 10px 2px; padding: 6px 10px; width: calc(100% - 20px);
+  font-size: 0.72rem; font-weight: 800; color: var(--teal-dark);
+  background: var(--bg-top-highlight); border: 1px solid var(--bar-bg); cursor: pointer;
+}
+.tb-more:hover { background: #fff; }
+
+@media (max-width: 760px) {
+  .tb-row { grid-template-columns: 1fr; gap: 4px; }
+  .cc-scale { font-size: 0.62rem; gap: 7px; }
+  .cc-pct { margin-left: 0; width: 100%; }
 
 /* ============================================================
    알파스퀘어 계열 정리 — 화이트 카드 · 그림자 구분 · 뉴트럴 액센트
