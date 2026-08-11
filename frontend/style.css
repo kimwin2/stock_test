@@ -23,21 +23,21 @@
   --blue-dark: #1565C0;
 
   /* UI Colors — warm ivory paper */
-  --bg-app: #F2EDE4;
-  --bg-card: #FFFDF8;
-  --bg-top-highlight: #FBF3DD;
-  --bg-header: #FFFDF9;
+  --bg-app: #F4F5F7;
+  --bg-card: #FFFFFF;
+  --bg-top-highlight: #FFF6E5;
+  --bg-header: #FFFFFF;
 
   /* Text — warm ink */
-  --text-primary: #211F1A;
-  --text-secondary: #6b6459;
-  --text-muted: #9a9384;
+  --text-primary: #17171C;
+  --text-secondary: #5B606B;
+  --text-muted: #8A8F9A;
 
   /* Bar */
-  --bar-bg: #E7DFD1;
+  --bar-bg: #EDEFF3;
   --bar-red: #E53935;
   --bar-blue: #1E88E5;
-  --bar-tick: #3B372F;
+  --bar-tick: #2B2F38;
   
   /* Layout */
   --header-height: 110px;
@@ -46,9 +46,9 @@
   /* 클래식 금융 단말 미감 — 둥근 모서리·그림자·이모지를 걷어낸다.
      블룸버그/FT 계열은 직각에 가까운 면과 얇은 괘선으로 정보 밀도를 만든다.
      라운딩을 키우고 그림자를 깔면 정보지가 아니라 앱스토어 위젯처럼 보인다. */
-  --card-radius: 2px;
-  --rule: #E2DACB;         /* 괘선 — 표를 표답게 만드는 선 */
-  --rule-strong: #C9BFA9;
+  --card-radius: 14px;
+  --rule: #EDEFF3;         /* 괘선 — 표를 표답게 만드는 선 */
+  --rule-strong: #DCE0E7;
 }
 
 html {
@@ -56,7 +56,9 @@ html {
 }
 
 body {
-  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', system-ui, sans-serif;
+  letter-spacing: -0.01em;   /* 한글 UI 서체는 살짝 좁혀야 조밀하게 읽힌다 */
   background: var(--bg-app);
   color: var(--text-primary);
   min-height: 100vh;
@@ -603,7 +605,6 @@ body {
   gap: 10px; margin-top: 5px;
 }
 .brief-title {
-  font-family: 'Noto Serif KR', serif;
   font-size: 1.45rem; font-weight: 900; letter-spacing: -0.6px; line-height: 1.14;
   color: var(--text-primary);
 }
@@ -612,7 +613,6 @@ body {
   background: #f3e7cc; padding: 4px 10px; border-radius: 2px; white-space: nowrap;
 }
 .brief-why {
-  font-family: 'Noto Serif KR', serif;
   font-size: 0.92rem; color: #4c4639; line-height: 1.5; margin-top: 9px;
 }
 .brief-why a { color: #4c4639; text-decoration: none; -webkit-tap-highlight-color: rgba(176,122,28,0.15); }
@@ -1739,14 +1739,13 @@ body {
 }
 .verdict { margin: 14px 0 4px; }
 .verdict-zone {
-  font-family: 'Noto Serif KR', Georgia, serif;
   font-size: 2.0rem; font-weight: 700; letter-spacing: -0.5px; line-height: 1.15;
 }
 .verdict-num {
   display: flex; align-items: baseline; gap: 7px; margin-top: 2px;
   font-size: 0.86rem; color: var(--text-secondary);
 }
-.verdict-num strong { font-family: 'Noto Serif KR', Georgia, serif; font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.verdict-num strong { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .verdict-chips {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap: 8px; margin-top: 14px;
@@ -2441,7 +2440,6 @@ body {
 /* 히어로 — 결론과 온도계 사이 간격을 좁혀 한 덩어리로 읽히게 */
 .brief-card-hero .tm-wrap { margin-top: 16px; }
 .brief-headline {
-  font-family: 'Noto Serif KR', Georgia, serif;
   font-weight: 700; letter-spacing: -0.4px; line-height: 1.4;
 }
 
@@ -2498,3 +2496,74 @@ body {
 .pp-step small { font-size: 0.64rem; font-weight: 700; color: #a89f8d; }
 .pp-step .pp-src { color: #00695C; }
 .pp-arrow { align-self: center; font-size: 0.9rem; font-weight: 900; color: #c9bfa8; }
+
+/* ============================================================
+   알파스퀘어 계열 정리 — 화이트 카드 · 그림자 구분 · 뉴트럴 액센트
+   ------------------------------------------------------------
+   기존 아이보리+브론즈+직각 조합은 신문 조판 인상이라 트레이딩 앱으로
+   안 읽혔다. 참고 대상(m.alphasquare.co.kr)은 흰 배경 위에 여백과 미세한
+   그림자로 카드를 나누고, 액센트는 뉴트럴(차콜)로 두며 색은 등락(빨강/파랑)
+   에만 쓴다. 색이 의미를 독점해야 숫자가 먼저 읽힌다.
+   ============================================================ */
+:root {
+  /* 브랜드 액센트를 브론즈 → 차콜로. 등락 빨강/파랑과 경쟁하지 않는다. */
+  --teal: #2B2F38;
+  --teal-dark: #17171C;
+  --teal-light: #5B606B;
+  --brand-gold: #B07A1C;      /* 로고에만 남긴다 */
+}
+
+/* 카드 — 테두리 대신 여백 + 미세 그림자 */
+.flow-card, .theme-card, .tm-card, .brief-card-hero, .brief-card-main,
+.brief-card-screen, .brief-card-dart {
+  border: 0 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(23,23,28,0.05), 0 4px 14px rgba(23,23,28,0.045) !important;
+}
+
+/* 카드 헤더 — 굵고 크게. 참고 화면의 섹션 제목 위계 */
+.flow-card .card-header, .flow-card .step-header {
+  padding: 15px 16px 12px !important;
+  border-bottom: 1px solid var(--rule);
+}
+.flow-card .card-theme-name { font-size: 1.16rem; font-weight: 800; letter-spacing: -0.03em; }
+
+/* 카운트 배지 — 골드 배경 → 차분한 뉴트럴 pill */
+.card-volume {
+  color: #5B606B !important;
+  background: #F1F3F6 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: 3px 10px !important;
+  font-size: 0.76rem !important;
+  font-weight: 800 !important;
+}
+
+/* 탭 — 활성 표시를 차콜로 (참고 화면과 동일한 언더라인 형태) */
+.tab-btn { font-size: 0.98rem; font-weight: 700; letter-spacing: -0.02em; }
+.tab-btn.active { color: var(--text-primary) !important; }
+
+/* 로고만 브랜드 골드 유지 */
+.logo-stock { color: var(--brand-gold) !important; }
+
+/* 숫자는 항상 자리수 정렬 — 표가 표처럼 읽힌다 */
+.sr-ret, .cand-close, .cand-ret, .verdict-num strong, .brief-chip-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 활성 탭 — 배경 없이 언더라인만 (참고 화면과 동일).
+   민트 배경은 구 팔레트 잔재라 차콜 언더라인과 같이 두면 색이 둘로 갈린다. */
+.tab-btn.active { background: transparent !important; }
+.tab-btn.active::after, .tabs .tab-btn.active { border-bottom-color: var(--text-primary) !important; }
+
+/* 기준 시각 바 — 골드 테두리 제거하고 카드와 같은 언어로 */
+.flow-meta {
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 1px 2px rgba(23,23,28,0.05) !important;
+  color: var(--text-secondary);
+}
+.flow-meta .brief-badge-rule, .flow-meta .brief-badge-sample, .flow-meta .brief-badge-ai {
+  border-radius: 999px !important;
+}
