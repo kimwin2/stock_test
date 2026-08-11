@@ -481,9 +481,34 @@ function renderMiniPriceChart(c, opts = {}) {
 
     oscSvg = bands + dashed
       + `<polyline points="${oscPts}" fill="none" stroke="${CHART_OSC}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    // ── 끝점 라벨 — 접힌 행과 **같은 숫자·같은 문구** ─────────
+    // [2026-08-12] 여기는 osc 원값 ×100 을 '%' 로 찍고 있었다.
+    //   osc = MACD Histogram of (외+기 5일누적 순매수 / 시가총액) 이라 원값이
+    //   5.8e-4 수준이고, ×100 하면 '-0.08%' — 0 과 구별되지 않는 숫자가 된다.
+    //   같은 카드의 접힌 줄은 '빈집 하위 10%'(자기분포 백분위)라고 쓰는데,
+    //   둘 다 '%' 를 달고 있어 **같은 것의 다른 값**처럼 읽혔다. 실제로는
+    //   단위도 기준도 다른 두 양이다.
+    // → 큰 글씨는 백분위, 그것도 프론트에서 다시 계산하지 않고 접힌 줄이 쓰는
+    //   c.oscPercentile 을 그대로 쓴다. 백엔드는 76포인트 전체로, 이 차트는
+    //   60포인트만 그리므로 여기서 재계산하면 몇 %p 어긋난다.
+    //   작은 글씨는 원값을 bp(만분율)로 — 히트맵 툴팁('시총 대비 N bp')과 같은 단위.
+    const bp = lastOscVal * 1e4;
+    // 두 자리 넘어가면 소수점은 정보가 아니라 길이다 — 모바일 viewBox(360)에서
+    // 이 라벨은 폭의 20% 를 먹는다.
+    const bpTxt = `${bp >= 0 ? '+' : ''}${Math.abs(bp) >= 10 ? bp.toFixed(0) : bp.toFixed(1)}bp`;
+    // c.oscPercentile 이 없는 경량 번들용 폴백 — 그릴 수 있는 구간으로만 계산한다.
+    const oscPct = (c.oscPercentile != null)
+      ? c.oscPercentile
+      : (oscVals.length ? oscVals.filter(v => v < lastOscVal).length / oscVals.length * 100 : null);
+    const oscLabel = (oscPct != null)
+      ? `빈집 하위 ${Math.round(oscPct)}%<tspan font-size="7.2" font-weight="600" fill="#9A8F7C"> ${bpTxt}</tspan>`
+      : bpTxt;
+
     oscFg =
       `<circle cx="${X(n - 1).toFixed(1)}" cy="${yO(lastOscVal).toFixed(1)}" r="2.2" fill="${CHART_OSC}"/>` +
-      `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(lastOscVal) + (lastOscVal >= p50 ? 10 : 3)).toFixed(1)}" font-size="9" font-weight="800" fill="#B4560F" text-anchor="end">${(lastOscVal * 100).toFixed(2)}%</text>`;
+      // 끝점 점(r=2.2)과 같은 높이에 놓이므로 x1-2 면 글자가 점에 닿는다. 6 을 띄운다.
+      `<text x="${(x1 - 6).toFixed(1)}" y="${(yO(lastOscVal) + (lastOscVal >= p50 ? 10 : 3)).toFixed(1)}" font-size="9" font-weight="800" fill="#B4560F" text-anchor="end">${oscLabel}</text>`;
   }
 
   // 현재가 태그 — HTS 처럼 우측 가격축에 색 pill + 점선 가이드
@@ -617,7 +642,18 @@ function renderSupplyGauge(percentile, zone, amount) {
 //   빈집 연속일 · 추세(MA10 위) ON. 추천/매수 언어 없음.
 // ─────────────────────────────────────────┘
 function renderVacancyTags(c) {
-  const pct = c.vacancyPercentile;
+  // [2026-08-12] 여기만 vacancyPercentile 을 쓰면서 옆의 zone 뱃지와 같은
+  //   '하위 N%' 라벨을 달고 있었다. 둘은 다른 물건이다:
+  //     oscPercentile    = 이 종목 자기 60일 osc 분포에서의 위치 (빈집 깊이)
+  //     vacancyPercentile = vacancyScore 의 **유니버스 순위** (다른 종목 대비)
+  //   zone 뱃지·하드필터·차트·타임라인·게이지는 전부 osc 쪽을 쓰는데 이 줄만
+  //   유니버스 순위를 썼다. 실측 후보 23종목 중 14개가 10%p 넘게 어긋났고
+  //   최대는 티에스이(osc 0% vs vacancy 48%) — 같은 카드가 '빈집 하위 0%' 와
+  //   '하위 48%' 를 나란히 보여주고 있었다.
+  // → 바로 옆 뱃지가 osc 부호로 정해지므로 근거를 osc 로 맞춘다.
+  //   문구는 '하위' 그대로 둔다 — 앞의 vac-badge 가 이미 '빈집' 을 말하므로
+  //   여기까지 '빈집 하위' 로 쓰면 "빈집 빈집 하위 11%" 가 된다.
+  const pct = c.oscPercentile != null ? c.oscPercentile : c.vacancyPercentile;
   const amt = c.institutionNet5d;          // 외인+기관 5일 합산 순매수액
   const zone = c.vacancyZone || '빈집';
   const days = c.currentVacancyDays;
@@ -910,14 +946,16 @@ function renderFlowHeatmap(c) {
     const t = Math.min(1, Math.abs(pct - 50) / 50);
     const bg = t < 0.12 ? '#F1EADC'
       : `${pct >= 50 ? 'rgba(229,57,53,' : 'rgba(21,101,192,'}${(0.14 + t * 0.74).toFixed(2)})`;
-    return `<i style="background:${bg}" title="빈집도 하위 ${pct.toFixed(0)}%"></i>`;
+    return `<i style="background:${bg}" title="빈집 하위 ${pct.toFixed(0)}%"></i>`;
   };
 
   const md = (s) => { const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(s || ''); return m ? `${+m[1]}/${+m[2]}` : ''; };
   const ss = supplyStateOf(c);
   const { turnIdx, label: state, cls: stateCls } = ss;
   const pctLast = c.oscPercentile;
-  const depth = (pctLast != null) ? `빈집도 하위 ${Math.round(pctLast)}%` : '';
+  // 접힌 줄·차트 끝점과 같은 값(c.oscPercentile), 같은 문구. 한 종목 안에서
+  // 같은 숫자가 세 군데 다른 이름으로 나오면 어느 쪽을 믿을지 알 수 없다.
+  const depth = (pctLast != null) ? `빈집 하위 ${Math.round(pctLast)}%` : '';
 
   return `
     <div class="fh">
