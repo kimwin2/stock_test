@@ -510,10 +510,19 @@ function isVacancyCandidate(name) {
 function buildThemeTreemap(themes) {
   const list = (themes || [])
     .map(t => {
+      // 같은 종목이 두 번 들어오면 면적이 두 배로 잡혀 테마 크기까지 틀어진다.
+      // 백엔드에서도 막지만, 이미 S3 에 올라간 데이터에는 남아 있으므로 여기서도 막는다.
+      const seenCode = new Set();
       const stocks = (t.stocks || []).map(s => ({
         code: s.code, name: s.name, rate: s.changeRate,
         value: parseKrAmount(s.volume),
-      })).filter(s => s.value > 0);
+      })).filter(s => {
+        if (!(s.value > 0)) return false;
+        const key = String(s.code || s.name || '').trim();
+        if (!key || seenCode.has(key)) return false;
+        seenCode.add(key);
+        return true;
+      });
       const value = stocks.reduce((a, b) => a + b.value, 0) || parseKrAmount(t.totalVolume);
       return { name: t.themeName, value, stocks };
     })

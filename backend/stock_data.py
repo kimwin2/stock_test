@@ -509,6 +509,20 @@ def calculate_bar_data(open_price: int, high: int, low: int, current: int, prev_
     }
 
 
+def _dedupe_by_code(stocks: list[dict]) -> list[dict]:
+    """같은 종목코드가 두 번 들어가는 것을 막는다 (먼저 온 쪽을 남긴다)."""
+    seen: set[str] = set()
+    out: list[dict] = []
+    for s in stocks or []:
+        code = str(s.get("code") or "").strip()
+        key = code or str(s.get("name") or "").strip()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(s)
+    return out
+
+
 def get_stock_details_for_themes(themes: list[dict], analysis: dict | None = None) -> list[dict]:
     """
     테마별 종목을 증거 기반으로 선정하고 상세 데이터를 붙여 반환합니다.
@@ -697,7 +711,11 @@ def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool) -> l
             "headlineLinkConfidence": theme.get("headlineLinkConfidence", ""),
             "representativeArticleIndex": int(theme.get("representativeArticleIndex", 0) or 0),
             "reasoning": theme.get("reasoning", ""),
-            "stocks": stock_details,
+            # 같은 종목이 한 테마에 두 번 들어가는 사고가 있었다 (실측 2026-08-11:
+            # '건설 및 토목 자재' 테마에 금호건설(002990) 2회). 후보 풀을 여러
+            # 시그널에서 합치는 구조라 같은 코드가 다른 경로로 두 번 올라올 수
+            # 있다. 화면에서는 트리맵 면적이 두 배로 잡혀 테마 크기까지 틀어진다.
+            "stocks": _dedupe_by_code(stock_details),
         })
 
         print(f"  [OK] {theme_name}: {len(stock_details)}개 선정 "
