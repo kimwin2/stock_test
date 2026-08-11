@@ -448,19 +448,51 @@ function tmLabelFor(name, w, h) {
 
 // 등락률 → 색. 국내 관례대로 상승 빨강 / 하락 파랑.
 // 상한가(+30%)와 -10% 를 양 끝으로 두고 제곱근 곡선이라 중간도 구별된다.
+// [이전 결함] 도메인을 상한가(+30%)까지 잡았더니 오늘처럼 테마주가 전부
+// +5~20% 인 날에는 모든 타일이 비슷한 중간 분홍으로 뭉개져 색이 정보를 주지
+// 못했다. Finviz 는 일간 heatmap 을 ±3% 로 자른다 — 대부분의 날 색이 끝까지
+// 벌어지게 하려는 것이다. 급등 테마를 다루므로 ±9% 로 잡고 넘으면 포화시킨다.
+// 정확한 수치는 라벨이 주므로 색은 순위만 보여주면 된다.
+// [두 번 고친 곳] 처음엔 도메인을 상한가(+30%)까지 잡아 모든 타일이 비슷한
+// 중간 분홍으로 뭉갰다. 그래서 ±9% 로 좁혔더니 이번엔 24칸 중 색이 4종류만
+// 나왔다 — 테마 지도에 오르는 종목은 애초에 급등주만 모여 있어(오늘 +5~30%)
+// 고정 도메인이면 대부분 포화된다. Finviz 가 ±3% 를 쓸 수 있는 건 시장 전체를
+// 담아 오르내림이 섞이기 때문이다.
+// → 그날 화면에 실제로 오른 값의 분포에 맞춰 스케일을 잡는다. 어떤 날이든
+//   색이 끝까지 벌어지고, 이웃 타일이 구별된다. 정확한 수치는 라벨이 준다.
+let TM_SCALE = { pos: 9, neg: 9, posMin: 0, negMin: 0 };
+function tmSetScale(rates) {
+  const pos = rates.filter(r => r > 0.15).sort((a, b) => a - b);
+  const neg = rates.filter(r => r < -0.15).map(Math.abs).sort((a, b) => a - b);
+  const lo = (arr) => arr.length ? arr[Math.floor(arr.length * 0.05)] : 0;
+  const hi = (arr) => arr.length ? arr[Math.floor(arr.length * 0.95)] : 1;
+  TM_SCALE = {
+    posMin: lo(pos), pos: Math.max(hi(pos), lo(pos) + 0.5),
+    negMin: lo(neg), neg: Math.max(hi(neg), lo(neg) + 0.5),
+  };
+}
+function tmLerp(a, b, t) { return Math.round(a + (b - a) * t); }
+function tmNorm(rate) {
+  const r = Math.abs(rate);
+  const [mn, mx] = rate > 0 ? [TM_SCALE.posMin, TM_SCALE.pos] : [TM_SCALE.negMin, TM_SCALE.neg];
+  if (!(mx > mn)) return 0.6;
+  // 0.16~1 로 눌러 가장 옅은 칸도 색으로 읽히게 한다
+  return 0.16 + 0.84 * Math.max(0, Math.min(1, (r - mn) / (mx - mn)));
+}
 function tmColor(rate) {
   const r = (rate == null || !isFinite(rate)) ? 0 : rate;
-  if (Math.abs(r) < 0.35) return '#EDE7DA';
-  const t = Math.min(1, Math.sqrt(Math.abs(r) / (r > 0 ? 30 : 10)));
-  return r > 0
-    ? `rgb(${Math.round(250 - 26 * t)},${Math.round(232 - 174 * t)},${Math.round(230 - 175 * t)})`
-    : `rgb(${Math.round(230 - 209 * t)},${Math.round(238 - 137 * t)},${Math.round(250 - 58 * t)})`;
+  if (Math.abs(r) < 0.15) return '#EEEFF2';          // 보합은 무채색
+  const t = tmNorm(r);
+  const [c0, c1] = r > 0
+    ? [[252, 231, 231], [168, 28, 34]]
+    : [[231, 238, 248], [16, 72, 150]];
+  return `rgb(${tmLerp(c0[0], c1[0], t)},${tmLerp(c0[1], c1[1], t)},${tmLerp(c0[2], c1[2], t)})`;
 }
 
 function tmTextColor(rate) {
   const r = (rate == null || !isFinite(rate)) ? 0 : rate;
-  const t = Math.min(1, Math.sqrt(Math.abs(r) / (r > 0 ? 30 : 10)));
-  return t > 0.55 ? '#fff' : '#2a2a2a';
+  if (Math.abs(r) < 0.15) return '#5B606B';
+  return tmNorm(r) > 0.52 ? 'rgba(255,255,255,0.97)' : '#2A2E36';
 }
 
 // 종목명이 수급 빈집 후보인지 — supplyTagFor 와 같은 대조 규칙을 쓴다.
@@ -484,6 +516,9 @@ function buildThemeTreemap(themes) {
     .filter(t => t.value > 0 && t.stocks.length);
   if (list.length < 2) return '';
 
+  // 색 스케일은 오늘 화면에 실제로 오르는 값들로 정한다.
+  tmSetScale(list.flatMap(t => t.stocks.map(x => (x.rate == null || !isFinite(x.rate)) ? 0 : x.rate)));
+
   const wide = (typeof window !== 'undefined' && window.innerWidth >= 760);
   const W = wide ? 900 : 380;
   const H = wide ? 400 : 470;   // 모바일은 세로를 더 줘야 타일에 이름이 들어간다
@@ -494,10 +529,10 @@ function buildThemeTreemap(themes) {
   let candCount = 0;
   groups.forEach(g => {
     const inner = squarify(tmNormalize(g.stocks), g.x + 1, g.y + HEAD, Math.max(0, g.w - 2), Math.max(0, g.h - HEAD - 1));
-    tiles += `<rect x="${g.x.toFixed(1)}" y="${g.y.toFixed(1)}" width="${g.w.toFixed(1)}" height="${g.h.toFixed(1)}" fill="#F7F2E7" stroke="#fff" stroke-width="2"/>`;
-    const gLabel = tmFitLabel(g.name, g.w - 4, 11);
+    tiles += `<rect x="${g.x.toFixed(1)}" y="${g.y.toFixed(1)}" width="${g.w.toFixed(1)}" height="${g.h.toFixed(1)}" rx="3" fill="#F6F7F9"/>`;
+    const gLabel = tmFitLabel(g.name, g.w - 4, 9.5);
     tiles += `<title>${escapeHTML(g.name)} · 거래대금 ${fmtEok(g.raw)}</title>`;
-    tiles += `<text x="${(g.x + 5).toFixed(1)}" y="${(g.y + 12).toFixed(1)}" font-size="11" font-weight="900" fill="#4a4336">${escapeHTML(gLabel)}</text>`;
+    tiles += `<text x="${(g.x + 5).toFixed(1)}" y="${(g.y + 12).toFixed(1)}" font-size="9.5" font-weight="700" letter-spacing="0.02em" fill="#6B7280">${escapeHTML(gLabel)}</text>`;
     inner.forEach(s => {
       const isCand = isVacancyCandidate(s.name);
       if (isCand) candCount++;
@@ -508,11 +543,12 @@ function buildThemeTreemap(themes) {
       const showRate = label && s.h > font * 2.6 && s.w > 34;
       tiles += `<g class="tm-tile" data-code="${escapeHTML(s.code || '')}" data-name="${escapeHTML(s.name || '')}">
         <title>${escapeHTML(s.name)} · ${rate >= 0 ? '+' : ''}${rate.toFixed(2)}% · 거래대금 ${fmtEok(s.raw)}${isCand ? ' · 수급 빈집 조건통과' : ''}</title>
-        <rect x="${s.x.toFixed(1)}" y="${s.y.toFixed(1)}" width="${s.w.toFixed(1)}" height="${s.h.toFixed(1)}"
-          fill="${tmColor(rate)}" stroke="${isCand ? 'var(--teal-dark, #8A5A12)' : '#fff'}" stroke-width="${isCand ? 2 : 1}"/>
-        ${label ? `<text x="${(s.x + s.w / 2).toFixed(1)}" y="${(s.y + s.h / 2 + (showRate ? -1.5 : font * 0.36)).toFixed(1)}" text-anchor="middle" font-size="${font.toFixed(1)}" font-weight="800" fill="${tmTextColor(rate)}">${escapeHTML(label)}</text>` : ''}
-        ${showRate ? `<text x="${(s.x + s.w / 2).toFixed(1)}" y="${(s.y + s.h / 2 + font + 1).toFixed(1)}" text-anchor="middle" font-size="${(font * 0.92).toFixed(1)}" font-weight="900" fill="${tmTextColor(rate)}">${rate >= 0 ? '+' : ''}${rate.toFixed(1)}%</text>` : ''}
-        ${isCand ? `<circle cx="${(s.x + s.w - 5).toFixed(1)}" cy="${(s.y + 5).toFixed(1)}" r="2.6" fill="var(--teal-dark, #8A5A12)"/>` : ''}
+        <rect x="${(s.x + 1).toFixed(1)}" y="${(s.y + 1).toFixed(1)}"
+          width="${Math.max(0, s.w - 2).toFixed(1)}" height="${Math.max(0, s.h - 2).toFixed(1)}" rx="2"
+          fill="${tmColor(rate)}"${isCand ? ' stroke="#0F766E" stroke-width="1.5"' : ''}/>
+        ${label ? `<text x="${(s.x + s.w / 2).toFixed(1)}" y="${(s.y + s.h / 2 + (showRate ? -1.5 : font * 0.36)).toFixed(1)}" text-anchor="middle" font-size="${font.toFixed(1)}" font-weight="600" letter-spacing="-0.02em" fill="${tmTextColor(rate)}">${escapeHTML(label)}</text>` : ''}
+        ${showRate ? `<text x="${(s.x + s.w / 2).toFixed(1)}" y="${(s.y + s.h / 2 + font + 1).toFixed(1)}" text-anchor="middle" font-size="${(font * 0.86).toFixed(1)}" font-weight="500" opacity="0.88" fill="${tmTextColor(rate)}">${rate >= 0 ? '+' : ''}${rate.toFixed(1)}%</text>` : ''}
+        ${isCand ? `<circle cx="${(s.x + s.w - 5).toFixed(1)}" cy="${(s.y + 5).toFixed(1)}" r="2.6" fill="#0F766E"/>` : ''}
       </g>`;
     });
   });
@@ -525,8 +561,8 @@ function buildThemeTreemap(themes) {
       </div>
       <svg viewBox="0 0 ${W} ${H}" class="tm-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">${tiles}</svg>
       <div class="tm-legend">
-        <span class="tm-lg"><i style="background:${tmColor(12)}"></i>상승</span>
-        <span class="tm-lg"><i style="background:${tmColor(-6)}"></i>하락</span>
+        <span class="tm-lg"><i style="background:${tmColor(6)}"></i>상승</span>
+        <span class="tm-lg"><i style="background:${tmColor(-4)}"></i>하락</span>
         <span class="tm-lg tm-lg-cand"><i></i>수급 빈집 조건통과${candCount ? ` <b>${candCount}종목</b>` : ''}</span>
       </div>
       ${candCount === 0 ? `<p class="tm-note">오늘은 급등 테마주와 수급 빈집이 겹치는 종목이 없습니다.
