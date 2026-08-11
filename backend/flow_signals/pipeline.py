@@ -224,7 +224,11 @@ def _resolve_leading_sectors_from_etfs(
 def build_flow_dashboard(
     top_n_kospi: int = 400,
     top_n_kosdaq: int = 200,
-    new_high_candidates_only: int = 80,
+    # 5일 순매도 선필터를 걷어내면서 풀을 넓혔다. 선필터가 하던 일을 정식
+    # 오실레이터(osc<0)가 대신하려면 그 오실레이터를 계산할 종목 수가 있어야 한다.
+    # 종목당 60일 수급 시계열 fetch 라 비용이 선형으로 는다 — Lambda Timeout 600s
+    # 대비 실측 247s(80종목) 였으므로 120 까지가 안전선이다. 더 늘리려면 실측 먼저.
+    new_high_candidates_only: int = 120,
 ) -> dict:
     print("=" * 60)
     print(">>> Flow Signals Pipeline Start")
@@ -325,21 +329,33 @@ def build_flow_dashboard(
     #   2) FLOW_STRENGTH_MIN 이상만 후보 (미미한 매수는 주도가 아님)
     #   3) 정규화 강도 상위 FLOW_SECTOR_TOP_N 개만 채택
     #   4) ETF RS 기반 섹터를 우선하고, 최종 개수를 MAX_LEADING_SECTORS 로 제한
-    FLOW_STRENGTH_MIN = 5.0      # 만분율. 섹터 시총의 0.05% 이상 순매수
+    FLOW_STRENGTH_MIN = 5.0      # 만분율. 섹터 시총의 0.05% 이상 순매수 (기관 기준)
     FLOW_AMOUNT_MIN = 300 * 1e8  # 300억. 정규화만 쓰면 초소형 섹터가 상위를 독식한다.
     # 주도 '섹터' 라면 폭이 있어야 한다. 종목 3개짜리 묶음이 움직인 건 섹터
     # 테마가 아니라 개별 종목 움직임이고, 시총이 작아 정규화 강도만 비정상적으로
     # 높게 나온다. 섹터 분류를 잘게 쪼갠 뒤 항공(3종목)이 강도 43.3 으로 1위에
     # 올라 진짜 주도섹터를 밀어내고 매수 후보를 39개→21개로 깎았다.
     # 종목 수가 이보다 적으면 섹터라 부를 수 없다 (개별 종목 움직임).
-    FLOW_SECTOR_MIN_MEMBERS = 3
+    #
+    # [수정 이력 2026-08-11] 3 → 5. 폭 가중(아래)이 절벽 없이 강등해 주긴 하지만,
+    # 정확히 3종목짜리 묶음이 계속 상위로 올라와 자리를 차지했다. 실측 그날
+    # 항공(3종목)·해운(3종목)이 주도섹터 7자리 중 2개를 먹고 그날의 진짜
+    # 주도였던 반도체장비를 상한 밖으로 밀어냈다. 5로 올리면 신재생(5)·
+    # 통신장비(6)·원전(6) 같은 실제 소형 테마는 살고 저 둘만 걸러진다.
+    FLOW_SECTOR_MIN_MEMBERS = 5
     # 폭 가중 — 정규화 강도는 시총이 작을수록 커지므로, 소수 종목 섹터가
     # 상위를 독식한다. 하드 컷오프로 자르면 경계값에서 절벽이 생겨
     # 정상 테마(신재생 5종목)까지 잘리거나, 반대로 통과시키면 대형 섹터
     # (반도체장비 39종목·2,492억)가 밀려난다. 둘 다 실측으로 겪었다.
     # 종목 수가 이 값에 이를 때까지 선형으로 가중해 절벽 없이 처리한다.
     FLOW_SECTOR_BREADTH_FULL = 10
-    FLOW_SECTOR_TOP_N = 4
+    # [수정 이력 2026-08-11] 축별 상한 4 / 2 → 6 / 3.
+    # 세 축을 번갈아 뽑도록 바꾼 뒤로는 총 개수를 MAX_LEADING_SECTORS 가 통제한다.
+    # 축별 상한까지 빡빡하게 두면 전체 상한을 못 채우고 자리가 빈 채로 끝난다 —
+    # 실측 그날 7자리 중 5개만 채워졌고, 그 바람에 두 축 모두에서 간발로 밀린
+    # 바이오(기관 13.8·거래대금 5.0)가 탈락했다. 참고 채널이 그날 하루 종일
+    # 주도업종으로 부른 제약바이오이고, 그들이 편입한 파마리서치가 여기 있다.
+    FLOW_SECTOR_TOP_N = 6
     MAX_LEADING_SECTORS = 7
 
     # [주의] 절대금액만 보면 시총 큰 섹터가, 정규화 강도만 보면 시총 작은 섹터가
@@ -350,23 +366,55 @@ def build_flow_dashboard(
     #   연료전지/수소 353억(시총 1.9조, 강도 181), 원전 400억(4.4조, 90),
     #   신재생 484억(6.7조, 72), 반도체장비 5,185억(75.7조, 68).
     # 즉 소형 테마 섹터가 상위에 오는 것 자체는 과대평가가 아니라 실제 수급 집중이다.
+    #
+    # [수정 이력 2026-08-11] 기존에는 외인/기관 중 **더 강한 쪽**을 대표값으로 썼다
+    # (max). 그러면 한 주체만 사고 다른 주체는 파는 섹터가 1위로 올라온다.
+    # 실측: 그날 수급축 1위가 `유통/음식료` 강도 36.0 이었는데 외국인 단독
+    # 신호였고, 기관 쪽에는 상위에 흔적조차 없었다. 그 결과 후보 4자리를
+    # 신세계·이마트·하림지주(내수 유통)가 채웠다 — 정작 그날 시장이 본 '소비재'는
+    # 화장품·음식료 수출이었고, 저 셋은 참고 채널 어느 리스트에도 없었다.
+    #
+    # 해법은 '외인과 기관 둘 다' 를 요구하는 게 아니라 **기관을 기준으로 삼는**
+    # 것이다. 교집합(양쪽 모두 순매수)을 하드 조건으로 걸어봤더니 실측에서
+    # 통과 섹터가 3개로 줄고 그날의 진짜 1위(반도체장비)까지 탈락했다 —
+    # 외국인이 삼성전자 하나를 사려고 나머지 전 섹터를 파는 날이 흔하기 때문에
+    # 외국인 부호를 거부권으로 쓰면 축이 통째로 죽는다.
+    #
+    # 국내 섹터 로테이션을 실제로 만드는 주체는 기관이다. 참고 채널도 업종
+    # 순위를 사모/투신/연금(= 전부 기관 내부 주체)의 시총대비·금액대비로 뽑고,
+    # 외국인은 마지막에 평균에 섞는 보조 입력으로만 쓴다.
+    # 그래서 순위는 기관 강도로 매기고, 외국인은 sources 에 병기만 한다.
+    #
+    # 실측(2026-08-11) — 기관 기준으로 바꾸자 순위가 이렇게 정리됐다:
+    #   반도체장비 20.4 / 화장품·소비재 18.0 / 2차전지 17.6 / 건설·인프라 17.4
+    #   / 화학 14.6 / 바이오 13.8 / 전력기기 9.9
+    # 참고 채널의 그날 결론(반도체 소부장·소비재·바이오·데이터센터)과 거의 겹친다.
+    # 반대로 외인 단독 신호였던 유통/음식료(외인 36.0·기관 -45.7)·항공·해운은
+    # 전부 사라졌다 — 이들이 그날 우리 후보를 오염시킨 장본인이었다.
+    #
+    # 반드시 잘리지 않은 전체 표(bySector)를 쓴다 — 주체별 head(15) 리스트를
+    # 쓰면 기관 상위 15 밖으로 밀린 섹터가 통째로 사라진다.
+    by_sector = sector_flows.get("bySector") or {}
+
     flow_ranked: dict[str, float] = {}
-    for kind in ("organ", "foreigner"):
-        for entry in (sector_flows.get(kind) or []):
-            strength = entry.get("strength")
-            amount = entry.get("amount") or 0
-            members = entry.get("stockCount") or 0
-            if strength is None or strength < FLOW_STRENGTH_MIN:
-                continue
-            if amount < FLOW_AMOUNT_MIN:
-                continue
-            if members < FLOW_SECTOR_MIN_MEMBERS:
-                continue
-            sector = entry["sector"]
-            # 폭 가중 후 순위를 매긴다. 외인/기관 중 더 강한 쪽을 대표값으로.
-            weighted = strength * min(1.0, members / FLOW_SECTOR_BREADTH_FULL)
-            if weighted > flow_ranked.get(sector, 0.0):
-                flow_ranked[sector] = weighted
+    flow_debug: list[tuple[str, float, float, float]] = []
+    for sector, e in by_sector.items():
+        members = e.get("stockCount") or 0
+        if members < FLOW_SECTOR_MIN_MEMBERS:
+            continue
+        o_str = e.get("organStrength")
+        if o_str is None or o_str < FLOW_STRENGTH_MIN:
+            continue
+        # 금액 하한도 기관 기준으로 본다. 합계로 보면 외국인 매도가 기관 매수를
+        # 상쇄해, 기관이 2,538억을 담은 반도체장비가 -1,921억으로 뒤집힌다.
+        if (e.get("organAmount") or 0) < FLOW_AMOUNT_MIN:
+            continue
+        weighted = o_str * min(1.0, members / FLOW_SECTOR_BREADTH_FULL)
+        flow_ranked[sector] = weighted
+        flow_debug.append((sector, weighted, o_str, e.get("foreignerStrength") or 0.0))
+
+    for sector, w, o_str, f_str in sorted(flow_debug, key=lambda x: -x[1])[:8]:
+        print(f"       {sector:<14} 폭가중 {w:6.1f} (기관 {o_str:6.1f} / 외인 {f_str:6.1f})")
 
     leading_sectors_flow = [
         s for s, _ in sorted(flow_ranked.items(), key=lambda kv: kv[1], reverse=True)
@@ -376,14 +424,6 @@ def build_flow_dashboard(
         f"   수급 강도 기반 섹터(폭가중 상위 {FLOW_SECTOR_TOP_N}, 괄호는 폭가중 점수): "
         f"{[(s, round(flow_ranked[s], 1)) for s in leading_sectors_flow] or '(없음)'}"
     )
-
-    for sector in leading_sectors_flow:
-        if sector not in leading_sectors:
-            leading_sectors.append(sector)
-            sector_sources[sector] = {
-                "via": "flow",
-                "strength": round(flow_ranked.get(sector, 0.0), 1),
-            }
 
     # ── 거래대금 쏠림 기반 주도섹터 (세 번째 축) ────────────────────────────
     #
@@ -399,7 +439,7 @@ def build_flow_dashboard(
     # 점유율만 보면 반도체가 상시 1위로 고정돼 신호가 죽고, 증가율만 보면
     # 거래대금이 원래 적던 소형 섹터가 튄다. 곱해야 "원래 큰데 지금 더
     # 몰리는" 섹터가 남는다.
-    TURNOVER_TOP_N = 2
+    TURNOVER_TOP_N = 3   # 축별 상한 완화 근거는 FLOW_SECTOR_TOP_N 주석 참고
     TURNOVER_SHARE_MIN = 0.03   # 시장 거래대금의 3% 미만은 '쏠림' 이라 할 수 없다
     turnover_ranked: dict[str, float] = {}
     try:
@@ -433,17 +473,46 @@ def build_flow_dashboard(
             f"{[(s, round(turnover_ranked[s], 1)) for s in leading_sectors_turnover] or '(없음)'}"
         )
         print(f"       (참고 상위 6: {[(s, round(v, 1)) for s, v in _tv_all]})")
-        for sector in leading_sectors_turnover:
-            if sector not in leading_sectors:
-                leading_sectors.append(sector)
-                sector_sources[sector] = {
-                    "via": "turnover",
-                    "sharePct": round(turnover_ranked[sector], 1),
-                }
     except Exception as e:
         print(f"  [!] 거래대금 쏠림 계산 실패(건너뜀): {e}")
+        leading_sectors_turnover = []
 
-    # ETF RS 섹터를 앞에 두고 전체 개수 제한 — 주도 섹터가 많아질수록 필터 의미가 사라진다.
+    # ── 세 축 병합 — 축을 이어붙이지 않고 **번갈아** 뽑는다 ──────────────────
+    #
+    # [수정 이력 2026-08-11] 기존에는 ETF → 수급 → 거래대금 순으로 이어붙인 뒤
+    # 뒤에서 잘랐다. 그러면 상한에 걸릴 때 **항상 거래대금 축부터** 죽는다.
+    # 실측 그날 ETF 축이 4개를 만들자 거래대금 축의 반도체장비(그날 시장이
+    # 하루 종일 밀던 코스닥 소부장)가 상한 밖으로 밀려 통째로 사라졌다.
+    # 축 순서는 신호의 세기와 아무 상관이 없는데 그게 우선순위가 되어 있었다.
+    #
+    # 각 축의 1순위 → 각 축의 2순위 → … 순으로 번갈아 채운다. 어느 축도
+    # 굶지 않고, 상한에 걸려 잘리는 건 모든 축의 하위 순위가 된다.
+    axes = [
+        ("etf", list(leading_sectors_etf)),
+        ("flow", list(leading_sectors_flow)),
+        ("turnover", list(leading_sectors_turnover)),
+    ]
+    leading_sectors = []
+    for depth in range(max((len(v) for _, v in axes), default=0)):
+        for via, sectors in axes:
+            if depth >= len(sectors):
+                continue
+            sector = sectors[depth]
+            if sector in leading_sectors:
+                continue
+            leading_sectors.append(sector)
+            if via == "flow":
+                sector_sources[sector] = {
+                    "via": "flow",
+                    "strength": round(flow_ranked.get(sector, 0.0), 1),
+                }
+            elif via == "turnover":
+                sector_sources[sector] = {
+                    "via": "turnover",
+                    "sharePct": round(turnover_ranked.get(sector, 0.0), 1),
+                }
+            # etf 축 출처는 _resolve_leading_sectors_from_etfs 가 이미 채웠다.
+
     dropped_sectors = leading_sectors[MAX_LEADING_SECTORS:]
     leading_sectors = leading_sectors[:MAX_LEADING_SECTORS]
     if dropped_sectors:
@@ -458,12 +527,28 @@ def build_flow_dashboard(
     code_to_meta: dict[str, dict] = {}
 
     if not vacancy_df.empty:
-        # 1) 빈집 필터 (외인+기관 5d 순매도)
-        filtered = vacancy_df[vacancy_df["institutionNet5d"] < 0]
-        # 2) 주도 섹터 매칭
+        # [수정 이력 2026-08-11] 여기에 `institutionNet5d < 0` (5일 순매도) 선필터가
+        # 있었다. 이건 우리가 내세운 빈집 정의와 다른 조건이고, 정식 오실레이터를
+        # 계산하기도 전에 후보를 잘라내고 있었다.
+        #
+        # 오실레이터는 MACD 히스토그램이다 — 순매수의 '부호'가 아니라 '감속'을 잰다.
+        # 5일 순매수가 플러스여도 20일 평균 페이스보다 느려졌으면 osc 는 음수다.
+        # 그게 히스토그램을 쓰는 이유 전부인데, 선필터가 그 경우를 통째로 지웠다.
+        #
+        # 실측(2026-08-11): 참고 채널이 "수급 빈집" 이라 지목한 5종목 중 3개
+        # (파마리서치 +519억, 에이피알 +136억, 코스맥스 +141억)가 5일 순매수
+        # 플러스였다. 그중 파마리서치는 vacancyScore 가 -6.3e-4 (감속)로 우리
+        # 정렬 기준상 명백한 빈집인데도 이 한 줄에 걸려 사라졌고, 그날 그들이
+        # 실제로 편입한 종목이었다.
+        #
+        # 이제 주도섹터 교집합만 걸고, 빈집 판정은 Step 7a 의 `osc < 0` 에 맡긴다.
+        # 정렬 키인 vacancyScore(5일 강도 - 20일 환산 baseline) 자체가 이미 감속
+        # 지표라 순매도 종목이 자연히 앞으로 온다 — 하드컷이 필요 없다.
+        filtered = vacancy_df
+        # 1) 주도 섹터 매칭
         if leading_sectors:
             filtered = filtered[filtered["sector"].isin(leading_sectors)]
-        # 3) 가장 빈집 (vacancyScore 가장 작은 음수) 순 정렬 + head
+        # 2) 가장 빈집 (vacancyScore 가장 작은 음수) 순 정렬 + head
         cand_df = filtered.sort_values("vacancyScore", ascending=True).head(new_high_candidates_only)
         candidate_codes = cand_df["code"].tolist()
         for _, r in cand_df.iterrows():
@@ -710,13 +795,33 @@ def build_flow_dashboard(
     # 섹터 편중 방지 — 한 섹터가 후보 목록을 점유하면 사용자에겐 분산이 사라진다.
     # (실측: 증권 ETF 강세일 때 후보 15개 중 7개가 증권사)
     # 이미 점수순 정렬돼 있으므로 섹터별 상위 MAX_PER_SECTOR 개만 남긴다.
+    #
+    # [수정 이력 2026-08-11] 전 섹터 일괄 4개였다. 그런데 이 규칙이 그날 탈락의
+    # 절대다수를 만들었다 — 78개 중 32개가 여기서 잘렸고(추세 5 / 빈집 17 /
+    # 점수 1 전부 합친 것보다 많다), 잘린 32개 중 18개가 반도체장비였다.
+    # 하필 그날 시장이 하루 종일 밀던 테마가 코스닥 반도체 소부장이었고,
+    # 참고 채널 리스트와 겹친 종목 19개 중 12개가 이 규칙 하나로 사라졌다.
+    #
+    # "분산" 은 수단이지 목적이 아니다. 주도섹터를 뽑아놓고 그 1위 섹터를
+    # 가장 세게 자르면 전략 자체가 뒤집힌다. 상위 주도섹터일수록 자리를
+    # 더 준다 — 대신 하위 섹터는 그대로 4개로 묶어 편중은 계속 막는다.
     MAX_PER_SECTOR = 4
+    MAX_PER_LEADING_SECTOR = 7   # 주도섹터 상위 3개에 적용
+    LEADING_SLOT_RANK = 3
+
+    def _sector_cap(sec: str) -> int:
+        try:
+            rank = leading_sectors.index(sec)
+        except (ValueError, AttributeError):
+            return MAX_PER_SECTOR
+        return MAX_PER_LEADING_SECTOR if rank < LEADING_SLOT_RANK else MAX_PER_SECTOR
+
     per_sector: dict[str, int] = {}
     diversified: list[dict] = []
     overflow: list[dict] = []
     for c in scored_ok:
         sec = c.get("sector") or "기타"
-        if per_sector.get(sec, 0) >= MAX_PER_SECTOR:
+        if per_sector.get(sec, 0) >= _sector_cap(sec):
             # 조건은 다 통과했는데 섹터 상한에만 걸린 종목이다. 버리면
             # "우리가 그 종목을 못 봤다" 로 오해된다. 따로 담아 화면에 남긴다.
             overflow.append({
@@ -746,6 +851,7 @@ def build_flow_dashboard(
         "droppedByConcentration": dropped_concentration,
         "minScore": MIN_CANDIDATE_SCORE,
         "maxPerSector": MAX_PER_SECTOR,
+        "maxPerLeadingSector": MAX_PER_LEADING_SECTOR,
         "scoreCutoffRelaxed": score_relaxed,
     }
     enriched_candidates = scored_ok
@@ -921,7 +1027,11 @@ def build_flow_dashboard(
     print(f"   소요: {elapsed:.1f}s")
     print(f"   주도 섹터: {leading_sectors}")
     print(f"   빈집 분석 종목: {len(vacancy_df)}")
-    print(f"   빈집 + 주도섹터 매수후보: {len(vacancy_result.get('leadingTop', []))}")
+    # [주의] 여기서 buyCandidates 가 아니라 Step 6 의 leadingTop(= ETF 축 섹터만
+    # 본 빈집 랭킹)을 찍고 있었다. 이름은 '매수후보' 인데 숫자는 전혀 다른 목록이라
+    # 실행 로그만 보면 후보가 29개인 날에 4개로 보인다. 실제 후보 수를 찍는다.
+    print(f"   매수후보(하드필터 통과): {len(enriched_candidates)}"
+          f"  (섹터상한 초과 대기 {len(overflow)})")
     print(f"   50일 신고가: {len(new_highs.get('high50d', []))}, 250일 신고가: {len(new_highs.get('high250d', []))}")
 
     return payload

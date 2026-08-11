@@ -61,10 +61,35 @@ def aggregate_by_sector(vacancy_df: pd.DataFrame) -> dict:
             if r["sector"] != "기타"
         ]
 
+    # bySector — 잘리지 않은 전체 섹터 표.
+    #
+    # 위 세 리스트는 화면 표시용이라 주체별 head(15) 로 잘린다. 그런데 주도섹터
+    # 판정에서 "외인과 기관이 **둘 다** 사는 섹터" 를 구하려면 잘린 표로는 안 된다.
+    # 한쪽 상위 15 밖으로 밀린 섹터가 교집합에서 통째로 사라지기 때문이다.
+    # 실측(2026-08-11): 반도체장비는 기관 강도 20.2 로 그날 1위였는데 외국인
+    # 상위 15 에는 없어서, 잘린 표로 교집합을 잡으면 그날의 진짜 주도섹터가
+    # 후보에서 빠졌다. 판정 로직은 반드시 이 전체 표를 쓸 것.
+    by_sector = {
+        r["sector"]: {
+            "sector": r["sector"],
+            "stockCount": int(r["count"]),
+            "marketCap": int(r["market_cap"]) if pd.notna(r["market_cap"]) else 0,
+            "foreignerAmount": int(r["foreigner_5d"]),
+            "organAmount": int(r["organ_5d"]),
+            "totalAmount": int(r["total_5d"]),
+            "foreignerStrength": round(float(r["foreigner_str"]), 2),
+            "organStrength": round(float(r["organ_str"]), 2),
+            "totalStrength": round(float(r["total_str"]), 2),
+        }
+        for _, r in grouped.iterrows()
+        if r["sector"] != "기타"
+    }
+
     return {
         "foreigner": _to_records(foreigner, "foreigner_5d"),
         "organ": _to_records(organ, "organ_5d"),
         "total": _to_records(total, "total_5d"),
+        "bySector": by_sector,
     }
 
 

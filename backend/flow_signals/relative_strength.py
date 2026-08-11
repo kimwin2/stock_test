@@ -196,6 +196,22 @@ def compute_etf_rs(
 
         vam = _vol_adjusted_momentum(etf_aligned)
 
+        # 단기 축 — 6개월 RS 는 구조적으로 느려서 '오늘 도는 돈' 을 못 잡는다.
+        # 숙련 트레이더가 주도업종을 고를 때 실제로 보는 건 섹터지수의
+        # 10주(=50거래일)·10일 이평 상회 여부다. 그 두 축을 그대로 만든다.
+        # 실측(2026-08-11): 전력기기·원전 ETF 가 rsNorm 49.5 / 34.4 라 장기
+        # 기준으로는 한참 아래인데, 그날 시장의 주도업종은 데이터센터·전력이었다.
+        ma10d = float(etf_aligned.tail(10).mean()) if len(etf_aligned) >= 10 else None
+        ma10w = float(etf_aligned.tail(50).mean()) if len(etf_aligned) >= 50 else None
+        last_close = float(etf_aligned.iloc[-1])
+        # 단기 Mansfield RS (20일) — 이평 상회만 보면 시장 전체가 오르는 날
+        # 전부 참이 된다. 벤치마크 대비 상대강도를 같이 요구한다.
+        rs_short = None
+        if len(etf_aligned) >= 25:
+            rs20 = _mansfield_rs(etf_aligned, bench_aligned, ma_period=20).dropna()
+            if not rs20.empty:
+                rs_short = float(rs20.iloc[-1])
+
         rows.append(
             {
                 "code": code,
@@ -203,6 +219,9 @@ def compute_etf_rs(
                 "close": round(float(etf_aligned.iloc[-1]), 2),
                 "rsAvg": round(rs_avg_raw, 2),
                 "rsNorm": round(rs_avg_norm, 1),
+                "aboveMA10d": bool(ma10d is not None and last_close > ma10d),
+                "aboveMA10w": bool(ma10w is not None and last_close > ma10w),
+                "rsShort": round(rs_short, 2) if rs_short is not None else None,
                 "volAdjMomentum": round(vam, 4) if pd.notna(vam) else None,
                 "ret1m": round(float(etf_aligned.pct_change(20).iloc[-1] * 100), 2)
                     if len(etf_aligned) > 20 else None,
@@ -224,12 +243,23 @@ def build_leading_sectors(top_n: int = 10) -> dict:
     if df.empty:
         return {"items": [], "top": [], "leading": []}
 
-    # leading 정의 (둘 중 하나라도 만족):
+    # leading 정의 (셋 중 하나라도 만족):
     #   1) rsNorm >= 70  — 장기 인덱스 대비 강세 (Mansfield RS)
     #   2) ret1m >= 20 & volAdjMomentum >= 0.10  — 단기 모멘텀 강세
     # 단기 조건을 추가한 이유: KODEX 로봇액티브 처럼 IPO 후 급락 종목이 ETF
     # 비중 높아 장기 RS 는 낮지만 단기엔 폭등하는 케이스 (분석가들이 주목하는
     # "거래대금 상위 + 빈집" 패턴) 를 놓치지 않기 위함.
+    #
+    # [시도했다가 되돌린 것 — 2026-08-11]
+    # "10주·10일 이평 동시 상회" 를 세 번째 leading 조건으로 넣어봤다.
+    # 참고 채널이 주도업종을 그 기준으로 고르기 때문인데, 실측 결과 실패했다:
+    #   - 목표였던 전력·원전 ETF 는 3개월 -36% 낙폭이라 50일선 아래였고 여전히 탈락
+    #   - 대신 철강·게임·에너지화학이 무더기로 통과해 주도섹터 7자리를 채웠고,
+    #     그날의 진짜 주도(반도체장비)가 상한 밖으로 밀려났다
+    # 원인은 RS 창 길이가 아니라 **바스켓 구성**이었다. 그들의 '데이터센터' 는
+    # LS·대한전선·일진전기 같은 개별 강세주 묶음이고, 우리 전력 ETF 는 낙폭
+    # 과대주까지 담은 지수다. ETF 축으로는 재현할 수 없는 차이다.
+    # → 아래 aboveMA10w/aboveMA10d/rsShort 는 관측용으로 남기되 판정에는 안 쓴다.
     long_term = df["rsNorm"] >= 70
     short_term = (df["ret1m"] >= 20) & (df["volAdjMomentum"] >= 0.10)
     leading = df[long_term | short_term].copy()
