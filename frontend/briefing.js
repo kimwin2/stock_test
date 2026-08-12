@@ -404,21 +404,22 @@ function buildOverflow(flow) {
   ov.forEach(o => { (bySector[o.sector || '기타'] ||= []).push(o.name); });
   const parts = Object.entries(bySector)
     .map(([sec, names]) => `<span><b>${bEscape(sec)}</b> ${names.map(bEscape).join(', ')}</span>`);
+  // [밀도] 48종목 이름을 펼쳐 두면 '오늘' 화면 마지막이 글자벽으로 끝난다.
+  // 결론(최종 후보) 다음에 와야 할 것은 더 긴 목록이 아니라 닫힌 각주다.
+  // 잘린 사실은 요약 줄에 남기고, 이름은 열어야 나오게 한다.
   return `
-    <div class="sr-overflow">
-      <span class="sr-ov-key">섹터 상한(4개)으로 제외 ${ov.length}종목</span>
-      ${parts.join('')}
-    </div>`;
+    <details class="sr-overflow">
+      <summary class="sr-ov-key">섹터 상한에 걸려 제외된 ${ov.length}종목 보기</summary>
+      <div class="sr-ov-body">${parts.join('')}</div>
+    </details>`;
 }
 
 // 조건을 통과한 종목 — 이 제품의 본체. '오늘' 화면에서 결론까지 보여주고
-// 상세는 종목 탭으로 넘긴다. 몇 개에서 몇 개로 좁혔는지를 함께 적어
-// 걸러진 과정이 보이게 한다 (근거 없는 목록은 신뢰를 못 얻는다).
+// 상세는 종목 탭으로 넘긴다. 몇 개에서 몇 개로 좁혔는지는 바로 위 깔때기가
+// 그림으로 말한다 (근거 없는 목록은 신뢰를 못 얻는다).
 function buildScreenResult(flow) {
   const cands = (flow || {}).buyCandidates || [];
   if (!cands.length) return '';
-  const st = (flow || {}).candidateFilterStats || {};
-  const uni = ((flow || {}).universeMetadata || []).length;
 
   // 11개가 전부 '빈집' 이면 그 칸은 정보가 0 이다. 얼마나 깊은 빈집인지를
   // 자기 종목 osc 히스토리 백분위로 보여줘야 종목끼리 구별이 된다.
@@ -457,9 +458,9 @@ function buildScreenResult(flow) {
   // 한 화면에 들어오는 만큼만 펼친다. 10행을 통째로 깔면 순위가 안 읽힌다.
   const TOP_N = 5;
 
-  const funnel = (uni && st.beforeFilter)
-    ? `검토 ${uni}종목 → 추세·수급 조건 ${st.beforeFilter} → 최종 ${cands.length}`
-    : `최종 ${cands.length}종목`;
+  // [중복 제거] 예전엔 "검토 600 → 조건 120 → 최종 30" 을 글로 한 줄 더 적었다.
+  // 바로 위 buildFunnel 이 같은 숫자를 막대로 이미 보여준다. 그림 옆에 같은 말을
+  // 글로 또 쓰면 그림이 장식이 된다.
 
   return `
     <div class="flow-card brief-card-screen">
@@ -468,7 +469,6 @@ function buildScreenResult(flow) {
         <span class="card-volume">${cands.length}개</span>
       </div>
       ${whatIs('외국인·기관이 최근 5일 순매수를 줄인(수급이 빠진) 자리 중, 10일선 위에서 추세가 살아있는 종목만 남겼습니다. 빈집 깊이는 그 종목의 과거 수급 이력에서 지금이 얼마나 아래인지를 뜻합니다 — 낮을수록 매물이 비어 있습니다. 매수 권유가 아니라 관찰 대상입니다.')}
-      <div class="sr-funnel">${bEscape(funnel)}</div>
       <div class="sr-body">${cands.slice(0, TOP_N).map(row).join('')}</div>
       ${cands.length > TOP_N ? `<details class="sr-rest">
         <summary>나머지 ${cands.length - TOP_N}종목 보기</summary>

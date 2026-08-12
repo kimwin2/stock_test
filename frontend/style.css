@@ -946,8 +946,11 @@ body {
     font-size: 13px;
   }
 
+  /* `1fr` 은 minmax(auto, 1fr) 이라 트랙 최소값이 자식의 min-content 가 된다.
+     테마 카드 안에 긴 뉴스 제목이 하나만 있어도 트랙이 화면보다 넓어져
+     페이지 전체가 가로로 밀린다(390px 화면에서 실측 405px). 0 으로 고정한다. */
   #theme-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .header-top {
@@ -957,13 +960,13 @@ body {
 
 @media (min-width: 900px) {
   #theme-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1200px) {
   #theme-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     max-width: 1400px;
     margin: 0 auto;
   }
@@ -971,7 +974,7 @@ body {
 
 @media (min-width: 1600px) {
   #theme-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -1811,12 +1814,6 @@ body {
 }
 
 /* === 오늘: 조건 통과 종목 === */
-/* 선별 과정 — 숫자만 담백하게. 칩으로 감싸면 배지처럼 보인다. */
-.sr-funnel {
-  font-size: 0.74rem; color: #8a8272; font-weight: 600;
-  margin: 9px 2px 4px; letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-}
 /* 조건 통과 종목 행 — 2줄 구조.
    1줄: 순위 · 종목명 ...... 5일 등락 / 2줄: 업종 · 수급상태 · 빈집 깊이.
    5열 한 줄은 모바일 430px 에서 흐트러지고 상태 칩이 잘렸다. */
@@ -2443,8 +2440,15 @@ body {
   margin: 6px 8px 0; padding: 9px 0 0; border-top: 1px solid var(--rule);
   font-size: 0.74rem; color: #8a8272; line-height: 1.7;
 }
-.sr-ov-key { display: block; font-weight: 800; color: #a89f8d; letter-spacing: 0.03em; margin-bottom: 2px; }
-.sr-overflow span + span { display: block; }
+.sr-ov-key {
+  display: block; font-weight: 800; color: #a89f8d; letter-spacing: 0.03em;
+  cursor: pointer; list-style: none; padding: 2px 0;
+}
+.sr-ov-key::-webkit-details-marker { display: none; }
+.sr-ov-key::after { content: ' ▾'; }
+.sr-overflow[open] .sr-ov-key::after { content: ' ▴'; }
+.sr-ov-body { margin-top: 4px; }
+.sr-ov-body span { display: block; }
 .sr-overflow b { color: var(--text-primary); font-weight: 800; margin-right: 5px; }
 
 /* 히어로 — 결론과 온도계 사이 간격을 좁혀 한 덩어리로 읽히게 */
@@ -2846,4 +2850,3 @@ body {
 /* ③ 깔때기와 종목 리스트 사이 여백 정리 — 카드 안 카드가 겹쳐 보이던 것 */
 .st-last .brief-card-screen { box-shadow: none !important; border-radius: 0 !important; margin-top: 4px; }
 .st-last .brief-card-screen > .card-header { display: none; }
-.st-last .sr-funnel { margin-top: 0; }
