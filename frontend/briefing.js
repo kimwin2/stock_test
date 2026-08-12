@@ -700,6 +700,87 @@ function sourceBadge(source) {
   return '<span class="brief-badge brief-badge-rule">데이터 요약</span>';
 }
 
+
+// ─────────────────────────────────────────┐
+// 4단계 흐름 — 사용자 루틴을 화면 구조로     │
+// ─────────────────────────────────────────┘
+// 피드백: "중구난방이라 어떻게 쓰는지 감이 안 온다. 그래서 뭘 사야 되는데?"
+// 사용자가 실제로 밟는 순서는 정해져 있다.
+//   ① 오늘 시장이 어떤지 → ② 매매하기 좋은 장인지 → ③ 어디가 강한지 → ④ 뭘 볼지
+// 카드를 늘어놓지 말고 이 순서를 화면 구조로 만든다. 번호와 연결선이 있으면
+// 처음 보는 사람도 "위에서 아래로 읽으면 답이 나온다"를 배우지 않고 안다.
+function stepCard(n, title, answer, body, opts = {}) {
+  return `
+    <section class="st ${opts.cls || ''}">
+      <div class="st-rail"><span class="st-num">${n}</span></div>
+      <div class="st-body">
+        <div class="st-head">
+          <h3 class="st-title">${bEscape(title)}</h3>
+          ${answer ? `<div class="st-answer">${answer}</div>` : ''}
+        </div>
+        ${body || ''}
+      </div>
+    </section>`;
+}
+
+// ③ 주도 섹터 — 어디가 강한가. 근거(어느 ETF·수급)를 칩에 같이 단다.
+function buildSectorStep(flow) {
+  const labels = ((flow || {}).leadingSectorLabels) || [];
+  if (!labels.length) return '';
+  const src = (flow || {}).leadingSectorSources || {};
+  const chips = labels.slice(0, 6).map((s, i) => {
+    const v = src[s] || {};
+    const why = v.via === 'etf' && v.etf ? `${v.etf} RS ${v.rsNorm}`
+              : v.via === 'flow' && v.strength != null ? `외인·기관 자금 유입`
+              : '';
+    return `<div class="sec-chip${i === 0 ? ' sec-chip-top' : ''}">
+      <b>${bEscape(s)}</b>${why ? `<em>${bEscape(why)}</em>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="sec-chips">${chips}</div>
+    <p class="st-note">주도 업종 밖의 종목은 아래 단계에서 제외됩니다. 재료가 좋아도 돈이 안 들어온 업종은 잘 안 갑니다.</p>`;
+}
+
+// ④ 앞에 놓는 깔때기 — "이런 근거로 이 종목이 남았다" 를 한 장으로.
+// 결과 목록만 주면 근거가 안 보이고, 글로 설명하면 아무도 안 읽는다.
+function buildFunnel(flow) {
+  const st = (flow || {}).candidateFilterStats || {};
+  const uni = ((flow || {}).universeMetadata || []).length;
+  const fin = ((flow || {}).buyCandidates || []).length;
+  if (!fin) return '';
+  const before = st.beforeFilter || fin;
+  const steps = [
+    { label: '전체 분석 종목', n: uni || before, desc: '코스피·코스닥 시총 상위' },
+    { label: '주도 업종 소속', n: before, desc: '돈이 들어오는 업종만' },
+    { label: '수급이 빈 자리', n: Math.max(fin, before - (st.droppedByVacancy || 0)), desc: '외인·기관이 빠져나간 종목' },
+    { label: '추세 생존', n: fin, desc: '10일선 위 · 흐름이 살아있는 종목' },
+  ];
+  const max = Math.max(...steps.map(x => x.n), 1);
+  return `
+    <div class="fn">
+      <div class="fn-title">이렇게 좁혔습니다</div>
+      ${steps.map((x, i) => `
+        <div class="fn-row${i === steps.length - 1 ? ' fn-row-last' : ''}">
+          <div class="fn-track">
+            <div class="fn-bar" style="width:${Math.max(22, x.n / max * 100).toFixed(1)}%">
+              <span class="fn-n">${x.n.toLocaleString('ko-KR')}</span>
+            </div>
+          </div>
+          <div class="fn-lab"><b>${bEscape(x.label)}</b><em>${bEscape(x.desc)}</em></div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ② 장 난이도 — 한 줄 결론 + 뜻
+function crowdAnswer(flow) {
+  const crowding = (flow || {}).crowding || {};
+  const hist = (crowding.history || []).filter(h => h && h.crowding != null).map(h => h.crowding);
+  if (hist.length < 20) return { pill: crowding.signal || '-', desc: '' };
+  const p = pctRank(hist, hist[hist.length - 1]);
+  const band = crowdBandOf(p);
+  return { pill: band.label, tone: band.tone, desc: band.desc, pct: p };
+}
+
 function renderBriefing(briefing, flow) {
   const container = document.getElementById('briefing-content');
   const generated = briefing.generatedAt ? new Date(briefing.generatedAt).toLocaleString('ko-KR') : '-';
@@ -707,34 +788,45 @@ function renderBriefing(briefing, flow) {
   const fg = facts.fearGreed || {};
   const sentiment = (flow || {}).marketSentiment || {};
 
-  // 화면 위에서부터 "한 줄 요약 → 온도 → 돈의 흐름 → 숫자 → 서술 → 공시".
-  // 공시는 근거 자료라 아래로 내린다 — 시황 파악의 출발점이 아니다.
+  const zone = zoneOf(sentiment.kospi, fg.kospi);
+  const crowd = crowdAnswer(flow);
+  const nCand = ((flow || {}).buyCandidates || []).length;
+  const nExit = ((flow || {}).exitSignals || []).length;
+
+  // 위에서 아래로 ① 시장 → ② 난이도 → ③ 주도 업종 → ④ 종목.
+  // 사용자가 실제로 밟는 순서 그대로다. 마지막 칸이 '답' 이어야 한다.
   container.innerHTML = `
-    <div class="tab-intro">
-      <b>오늘</b> — 오늘 <u>사도 되는 장인지</u> 판단하는 탭입니다.
-      시장 온도와 업종 쏠림으로 장의 난이도를 보고, 어제와 무엇이 달라졌는지 확인합니다.
-      <span>종목을 고르는 건 옆의 '수급·종목' 탭입니다.</span>
-    </div>
-    <div class="flow-meta">
-      <span>기준 시각: ${generated}</span>
-      ${sourceBadge(briefing.source)}
-    </div>
     <div class="brief-wrap">
-      <div class="flow-card brief-card-hero">
-        <div class="brief-eyebrow">오늘 시장</div>
-        <div class="brief-headline">${bEscape(briefing.headline)}</div>
-        ${buildMarketVerdict(fg, sentiment, flow)}
-        <div class="tm-wrap">
+      <div class="flow-card hero2">
+        <div class="hero2-eyebrow">오늘의 결론</div>
+        <div class="hero2-line">${bEscape(briefing.headline)}</div>
+        <div class="hero2-kpis">
+          <div class="k"><span>시장</span><b style="color:${zone.color}">${bEscape(zone.label)}</b></div>
+          <div class="k"><span>장 난이도</span><b>${bEscape(crowd.pill)}</b></div>
+          <div class="k k-main"><span>오늘 볼 종목</span><b>${nCand}개</b></div>
+          ${nExit ? `<div class="k"><span>이탈 경고</span><b class="down">${nExit}개</b></div>` : ''}
+        </div>
+        <a class="hero2-jump" href="#step4">종목부터 보기 ↓</a>
+      </div>
+
+      ${stepCard(1, '오늘 시장', `<span class="st-pill" style="background:${zone.color}">${bEscape(zone.label)}</span>`,
+        `<div class="tm-wrap">
           ${buildThermometer(sentiment.kospi?.label || '코스피', fg.kospi, fg.kospiDelta, sentiment.kospi)}
           ${buildThermometer(sentiment.kosdaq?.label || '코스닥', fg.kosdaq, null, sentiment.kosdaq)}
         </div>
-        ${whatIs('공포·탐욕 지수는 주가 흐름·거래량·변동성·안전자산 선호를 하나로 합친 0~100 레벨입니다. 큰 글씨의 구간 이름은 레벨이 아니라 그 지수의 방향(오실레이터)으로 판정합니다 — 레벨이 낮아도 방향이 위를 향하면 과열로 올라가는 중입니다.')}
-      </div>
+        ${whatIs('공포·탐욕 지수는 주가 흐름·거래량·변동성·안전자산 선호를 하나로 합친 0~100 레벨입니다. 구간 이름은 레벨이 아니라 그 지수의 방향(오실레이터)으로 판정합니다.')}`)}
 
-      ${buildCrowdingChart(flow)}
+      ${stepCard(2, '장 난이도', `<span class="st-pill st-pill-${crowd.tone || 'mid'}">${bEscape(crowd.pill)}</span>`,
+        `${crowd.desc ? `<p class="st-note">${bEscape(crowd.desc)}${crowd.pct != null ? ` (쏠림 하위 ${crowd.pct}%)` : ''}</p>` : ''}
+         ${buildCrowdingChart(flow)}`)}
+
+      ${stepCard(3, '주도 업종', '', buildSectorStep(flow))}
+
+      ${stepCard(4, '오늘 볼 종목', `<span class="st-pill st-pill-main">${nCand}개</span>`,
+        `${buildFunnel(flow)}${buildScreenResult(flow)}`, { cls: 'st-last' })}
+
       ${buildChanges(flow)}
       <div id="brief-theme-bridge"></div>
-      ${buildScreenResult(flow)}
 
       <details class="brief-more">
         <summary>서술 요약 · 섹터 수급 · 이탈 신호 · 공시 자세히 보기</summary>
@@ -749,9 +841,18 @@ function renderBriefing(briefing, flow) {
         </div>
       </details>
 
+      <div class="brief-foot">
+        <span>기준 시각: ${generated}</span>
+        ${sourceBadge(briefing.source)}
+      </div>
       <p class="brief-disclaimer">${bEscape(briefing.disclaimer || '')}</p>
     </div>
   `;
+
+  container.querySelector('.hero2-jump')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    container.querySelector('.st-last')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 
   // 종목 행 클릭 → 차트 모달, 버튼 → 종목 탭
   container.querySelectorAll('.sr-row').forEach(el => {

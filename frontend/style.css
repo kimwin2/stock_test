@@ -2727,3 +2727,102 @@ body {
 .tab-intro b { color: var(--text-primary); font-weight: 800; }
 .tab-intro u { text-decoration: none; border-bottom: 2px solid #FFE082; font-weight: 700; color: var(--text-primary); }
 .tab-intro span { display: block; margin-top: 3px; font-size: 0.74rem; color: var(--text-muted); }
+
+/* ============================================================
+   오늘 탭 — 4단계 흐름 (① 시장 → ② 난이도 → ③ 주도업종 → ④ 종목)
+   카드를 늘어놓으면 어디부터 읽을지 모른다. 번호와 세로 연결선이 있으면
+   "위에서 아래로 읽으면 답이 나온다"를 설명 없이 알 수 있다.
+   ============================================================ */
+.hero2 { padding: 20px 18px 16px; }
+.hero2-eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; color: var(--text-muted); }
+.hero2-line {
+  margin-top: 6px; font-size: 1.28rem; font-weight: 800; line-height: 1.45;
+  letter-spacing: -0.03em; color: var(--text-primary); word-break: keep-all;
+}
+.hero2-kpis { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.hero2-kpis .k {
+  flex: 1 1 92px; display: flex; flex-direction: column; gap: 2px;
+  background: #F6F7F9; border-radius: 11px; padding: 9px 12px;
+}
+.hero2-kpis .k span { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); }
+.hero2-kpis .k b { font-size: 1.06rem; font-weight: 900; letter-spacing: -0.02em; }
+.hero2-kpis .k-main { background: #17171C; }
+.hero2-kpis .k-main span { color: rgba(255,255,255,0.62); }
+.hero2-kpis .k-main b { color: #fff; }
+.hero2-jump {
+  display: inline-block; margin-top: 12px; font-size: 0.8rem; font-weight: 800;
+  color: var(--text-primary); text-decoration: none;
+  border-bottom: 2px solid #FFE082; padding-bottom: 1px;
+}
+
+/* 단계 카드 */
+.st { display: grid; grid-template-columns: 30px 1fr; gap: 10px; position: relative; }
+.st-rail { display: flex; flex-direction: column; align-items: center; }
+.st-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #17171C; color: #fff; font-size: 0.76rem; font-weight: 900;
+  display: grid; place-items: center; flex: none; margin-top: 14px;
+}
+.st-rail::after {
+  content: ''; flex: 1; width: 2px; background: #E6E9EF; margin-top: 4px; border-radius: 1px;
+}
+.st-last .st-rail::after { display: none; }
+.st-body {
+  background: var(--bg-card); border-radius: 14px; padding: 14px 15px 15px;
+  box-shadow: 0 1px 2px rgba(23,23,28,0.05), 0 4px 14px rgba(23,23,28,0.045);
+  min-width: 0;
+}
+.st-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 10px; }
+.st-title { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.03em; margin: 0; }
+.st-answer { margin-left: auto; }
+.st-pill {
+  display: inline-block; font-size: 0.76rem; font-weight: 900; color: #fff;
+  padding: 4px 11px; border-radius: 999px; background: #6B7280;
+}
+.st-pill-easy { background: #17803D; } .st-pill-mid { background: #6B7280; }
+.st-pill-hard { background: #C2410C; } .st-pill-x { background: #B01F26; }
+.st-pill-main { background: #17171C; }
+.st-note { font-size: 0.78rem; line-height: 1.6; color: var(--text-secondary); word-break: keep-all; margin-top: 8px; }
+
+/* ③ 주도 업종 칩 */
+.sec-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.sec-chip {
+  display: flex; flex-direction: column; gap: 1px;
+  background: #F6F7F9; border-radius: 10px; padding: 7px 11px;
+}
+.sec-chip b { font-size: 0.88rem; font-weight: 800; letter-spacing: -0.02em; }
+.sec-chip em { font-style: normal; font-size: 0.66rem; font-weight: 600; color: var(--text-muted); }
+.sec-chip-top { background: #17171C; }
+.sec-chip-top b { color: #fff; } .sec-chip-top em { color: rgba(255,255,255,0.6); }
+
+/* ④ 깔때기 — 어떻게 좁혔는지 한 장으로 */
+.fn { margin: 2px 0 14px; }
+.fn-title { font-size: 0.72rem; font-weight: 800; color: var(--text-muted); letter-spacing: 0.03em; margin-bottom: 8px; }
+.fn-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.fn-bar {
+  height: 26px; border-radius: 6px; background: #DDE2EA;
+  display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; flex: none;
+}
+.fn-row-last .fn-bar { background: #17171C; }
+.fn-n { font-size: 0.76rem; font-weight: 900; color: #3A404B; font-variant-numeric: tabular-nums; }
+.fn-row-last .fn-n { color: #fff; }
+.fn-lab { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.fn-lab b { font-size: 0.78rem; font-weight: 800; }
+.fn-lab em { font-style: normal; font-size: 0.68rem; color: var(--text-muted); }
+
+.brief-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  font-size: 0.74rem; color: var(--text-muted); padding: 4px 4px 0;
+}
+@media (max-width: 480px) {
+  .st { grid-template-columns: 24px 1fr; gap: 8px; }
+  .st-num { width: 21px; height: 21px; font-size: 0.7rem; }
+  .hero2-line { font-size: 1.12rem; }
+  .fn-lab em { display: none; }
+}
+/* 깔때기 — 막대 영역을 고정폭으로 가둔다. 100% 로 늘리면 라벨이 화면 밖으로 밀린다. */
+.fn-row { display: grid; grid-template-columns: 46% 1fr; align-items: center; gap: 10px; margin-bottom: 5px; }
+.fn-track { min-width: 0; }
+.fn-bar { width: auto; }
+.fn-lab { min-width: 0; overflow: hidden; }
+.fn-lab b, .fn-lab em { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
