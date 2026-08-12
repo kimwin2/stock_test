@@ -518,9 +518,14 @@ function buildThemeTreemap(themes) {
   // 색 스케일은 오늘 화면에 실제로 오르는 값들로 정한다.
   tmSetScale(list.flatMap(t => t.stocks.map(x => (x.rate == null || !isFinite(x.rate)) ? 0 : x.rate)));
 
-  const wide = (typeof window !== 'undefined' && window.innerWidth >= 760);
-  const W = wide ? 900 : 380;
-  const H = wide ? 400 : 470;   // 모바일은 세로를 더 줘야 타일에 이름이 들어간다
+  // viewBox 폭을 실제 표시 폭에 맞춘다. 예전엔 760px 를 경계로 380/900 둘
+  // 중 하나를 골랐는데, 그 사이 폭(폴드 펼침 673~884px)에서는 배율이 1.7배
+  // 혹은 0.42배로 튀어 타일 이름만 커지거나 뭉개졌다. 접었다 펴면 다시
+  // 그리지 않아 옛 폭에 맞춘 그림이 그대로 늘어나 있었다.
+  const vw = (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 390;
+  const W = Math.round(Math.max(330, Math.min(900, vw - 52)));
+  // 좁을수록 세로를 더 줘야 타일에 이름이 들어간다.
+  const H = Math.round(W >= 700 ? W * 0.45 : W * 1.24);
   const HEAD = 17;                       // 테마명 띠 높이
   const groups = squarify(tmNormalize(list), 0, 0, W, H);
 
@@ -562,6 +567,45 @@ function buildThemeTreemap(themes) {
     </div>`;
 }
 
+// 지도를 붙인다. before 가 있으면 그 자리를 대체한다(리사이즈 재렌더).
+function mountThemeTreemap(grid, themes, oldEl) {
+  const html = buildThemeTreemap(themes);
+  if (!html) return null;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  const el = wrap.firstElementChild;
+  if (!el) return null;
+  if (oldEl && oldEl.parentNode) oldEl.replaceWith(el);
+  else grid.appendChild(el);
+  el.querySelectorAll('.tm-tile').forEach(t => {
+    t.addEventListener('click', () => {
+      const code = t.dataset.code, name = t.dataset.name;
+      if (code && typeof openStockChart === 'function') openStockChart(code, name);
+    });
+  });
+  return el;
+}
+
+// 폴드를 접었다 펴면 폭이 두 배 넘게 바뀐다. 지도는 렌더 시점의 폭으로
+// viewBox 를 잡으므로, 다시 그리지 않으면 옛 폭에 맞춘 그림이 늘어난 채 남는다.
+let lastThemes = null;
+let themeResizeTimer = null;
+let themeLastWidth = 0;
+if (typeof window !== 'undefined') {
+  themeLastWidth = window.innerWidth;
+  window.addEventListener('resize', () => {
+    clearTimeout(themeResizeTimer);
+    themeResizeTimer = setTimeout(() => {
+      const w = window.innerWidth;
+      if (Math.abs(w - themeLastWidth) < 24) return;
+      themeLastWidth = w;
+      const grid = document.getElementById('theme-grid');
+      const old = grid && grid.querySelector('.tm-card');
+      if (grid && old && lastThemes) mountThemeTreemap(grid, lastThemes, old);
+    }, 180);
+  });
+}
+
 // ─────────────────────────────────────────┐
 // Main Render                               │
 // ─────────────────────────────────────────┘
@@ -595,21 +639,8 @@ async function loadAndRender() {
     const themes = data.themes || [];
 
     // 테마 지도 — 카드 목록보다 먼저. "오늘 돈이 어디로 갔나" 가 첫 화면에 와야 한다.
-    const tmHtml = buildThemeTreemap(themes);
-    if (tmHtml) {
-      const tmWrap = document.createElement('div');
-      tmWrap.innerHTML = tmHtml;
-      const tmEl = tmWrap.firstElementChild;
-      if (tmEl) {
-        grid.appendChild(tmEl);
-        tmEl.querySelectorAll('.tm-tile').forEach(el => {
-          el.addEventListener('click', () => {
-            const code = el.dataset.code, name = el.dataset.name;
-            if (code && typeof openStockChart === 'function') openStockChart(code, name);
-          });
-        });
-      }
-    }
+    lastThemes = themes;
+    mountThemeTreemap(grid, themes, null);
 
     themes.forEach((theme, i) => {
       grid.appendChild(createThemeCard(theme, i));

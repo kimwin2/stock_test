@@ -2573,8 +2573,15 @@ body {
 
 @media (max-width: 760px) {
   .tb-row { grid-template-columns: 1fr; gap: 4px; }
-  .cc-scale { font-size: 0.62rem; gap: 7px; }
-  .cc-pct { margin-left: 0; width: 100%; }
+  .cc-scale { gap: 6px; }
+  .cc-axis, .cc-pct { font-size: 0.63rem; }
+}
+/* ↑ 이 닫는 괄호가 없었다. 아래 알파스퀘어 개편 전체(토큰·카드·단계 레일·
+   다이얼·깔때기·테마 지도·쏠림 차트)가 통째로 `max-width: 760px` 안에
+   갇혀 있었다. 그래서 폴드를 펼치면(673~884px) 761px 를 넘는 순간 새 디자인이
+   한꺼번에 꺼지고 옛 아이보리 조판으로 돌아가면서, 폭을 %로 잡던 SVG 들이
+   카드 전폭까지 늘어났다 — 다이얼 글자 실측 14.6px(접힘) → 97.3px(펼침).
+   CSS 는 깨져도 조용해서(파서가 그냥 삼킨다) 실측 전엔 안 보인다. */
 
 /* ============================================================
    알파스퀘어 계열 정리 — 화이트 카드 · 그림자 구분 · 뉴트럴 액센트
@@ -2811,7 +2818,10 @@ body {
 /* 오늘 탭 히어로 — 문장이 아니라 그림으로 시작한다 */
 .hero2 { padding: 8px 16px 16px; }
 .dial { display: flex; align-items: center; gap: 4px; }
-.dial-svg { width: 60%; max-width: 230px; height: auto; display: block; }
+/* min/max 를 함께 건다. % 만 두면 폭 280px 화면에서 125px 까지 줄어 안의
+   글자가 14.6px 로 눌리고, 상한이 없으면 884px 화면에서 834px 까지 늘어
+   같은 글자가 97px 이 된다(실측). 그림 크기는 화면과 함께 흔들리면 안 된다. */
+.dial-svg { width: 60%; min-width: 148px; max-width: 230px; height: auto; display: block; }
 .dial-answer { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
 .dial-answer span { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
 .dial-answer b { font-size: 3.1rem; font-weight: 900; line-height: 1; letter-spacing: -0.05em; color: var(--text-primary); }

@@ -192,7 +192,14 @@ function pctRank(values, v) {
   return Math.round(below / values.length * 100);
 }
 
-function buildCrowdingChart(flow) {
+// viewW: 이 차트가 실제로 차지할 CSS 픽셀 폭.
+//
+// 고정 viewBox 를 width:100% 로 늘리면 SVG 안 글자가 폭에 정비례해 커지거나
+// 줄어든다. 폰에서는 폭 범위가 좁아 눈에 안 띄지만 폴드는 280~884px 를
+// 오간다 — 실측으로 축 글자가 접힘 3.4px / 펼침 13.2px 이었다(4배).
+// viewBox 폭을 실제 폭에 맞추면 배율이 1 근처로 고정돼 어디서나 같은
+// 크기로 읽힌다.
+function buildCrowdingChart(flow, viewW) {
   const cr = (flow || {}).crowding || {};
   const hist = (cr.history || []).filter(h => h && h.crowding != null);
   if (hist.length < 20) return '';
@@ -225,7 +232,11 @@ function buildCrowdingChart(flow) {
   else verdict = '큰 변화 없이 이어지는 중';
 
   // ── SVG ──
-  const W = 640, H = 170, PL = 6, PR = 44, PT = 10, PB = 20;
+  // 높이는 폭에 완만하게 따라간다. 640×170 비율(3.8:1)을 좁은 화면에 그대로
+  // 쓰면 200px 폭에서 53px 짜리 띠가 되어 선 모양이 안 보인다.
+  const W = Math.round(Math.max(200, Math.min(760, viewW || 640)));
+  const H = Math.round(Math.max(130, Math.min(190, W * 0.45)));
+  const PL = 6, PR = W >= 400 ? 44 : 32, PT = 10, PB = 20;
   const iw = W - PL - PR, ih = H - PT - PB;
   const lo = Math.min(...vals), hi = Math.max(...vals);
   const rng = (hi - lo) || 1;
@@ -821,6 +832,38 @@ function crowdAnswer(flow) {
   return { pill: band.label, tone: band.tone, desc: band.desc, pct: p };
 }
 
+// 그려 넣은 뒤 실제 폭을 재서 쏠림 차트의 viewBox 를 다시 잡는다.
+// 문자열을 만드는 시점에는 폭을 알 수 없으므로 삽입 후 한 번 더 맞춘다.
+function fitCrowdingChart(container, flow) {
+  const card = container && container.querySelector('.cc-card');
+  if (!card) return;
+  const w = Math.round(card.getBoundingClientRect().width);
+  if (!(w > 0)) return;
+  const target = Math.max(200, Math.min(760, w));
+  const svg = card.querySelector('.cc-svg');
+  const cur = (svg && svg.viewBox && svg.viewBox.baseVal) ? svg.viewBox.baseVal.width : 0;
+  if (Math.abs(cur - target) < 12) return;   // 미세한 차이로 다시 그리지 않는다
+  const html = buildCrowdingChart(flow, target);
+  if (html) card.outerHTML = html;
+}
+
+// 폴드는 화면을 접었다 펴면 폭이 두 배 이상 바뀌는데, 렌더는 그때 한 번뿐이라
+// 그림이 옛 폭에 맞춰진 채 늘어난다. 폭이 의미 있게 바뀔 때만 다시 맞춘다.
+let briefLastFlow = null;
+let briefResizeTimer = null;
+let briefLastWidth = 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => {
+    clearTimeout(briefResizeTimer);
+    briefResizeTimer = setTimeout(() => {
+      const w = window.innerWidth;
+      if (Math.abs(w - briefLastWidth) < 24) return;
+      briefLastWidth = w;
+      if (briefLastFlow) fitCrowdingChart(document.getElementById('briefing-content'), briefLastFlow);
+    }, 180);
+  });
+}
+
 function renderBriefing(briefing, flow) {
   const container = document.getElementById('briefing-content');
   const generated = briefing.generatedAt ? new Date(briefing.generatedAt).toLocaleString('ko-KR') : '-';
@@ -877,6 +920,12 @@ function renderBriefing(briefing, flow) {
       <p class="brief-disclaimer">${bEscape(briefing.disclaimer || '')}</p>
     </div>
   `;
+
+  // 실제 폭을 재서 쏠림 차트 배율을 1 근처로 맞춘다 (폴드 대응).
+  briefLastFlow = flow;
+  briefLastWidth = (typeof window !== 'undefined') ? window.innerWidth : 0;
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => fitCrowdingChart(container, flow));
+  else fitCrowdingChart(container, flow);
 
   container.querySelector('.dial-jump')?.addEventListener('click', (e) => {
     e.preventDefault();
