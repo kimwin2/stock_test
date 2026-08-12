@@ -216,21 +216,13 @@ function dayRangeBar(stock) {
  * Theme Card 렌더링 — 매거진 브리핑 (C안)
  * 큰 세리프 타이틀 + 뉴스 한 줄 + 대표종목(레인지 바) + 종목 칩
  */
-// 테마 종목을 우리 수급 데이터와 대조한다.
+// [탭 경계] 예전엔 여기서 종목마다 수급 데이터를 대조해 '빈집 · 조건통과' /
+// '유니버스' 배지를 붙였다. 뺐다.
 //
-// 재료·테마 자체는 무료 서비스와 겹치고, 수동 실시간 중계를 하는 업체와도
-// 경쟁이 안 된다. 우리가 더할 수 있는 건 "이 테마에서 수급이 빈 종목은
-// 어느 것인가" — 뉴스로 뜬 테마 중 아직 외인·기관이 안 들어온 자리다.
-function supplyTagFor(name) {
-  const flow = (typeof flowData !== 'undefined' && flowData) ? flowData : null;
-  if (!flow || !name) return '';
-  const n = String(name).replace(/\s+/g, '');
-  const hit = (flow.buyCandidates || []).find(c => String(c.name || '').replace(/\s+/g, '') === n);
-  if (hit) return `<span class="ts-tag ts-cand" title="수급 빈집 조건 통과 종목">빈집 · 조건통과</span>`;
-  const uni = (flow.universeMetadata || []).find(m => String(m.name || '').replace(/\s+/g, '') === n);
-  if (uni) return `<span class="ts-tag ts-uni" title="분석 유니버스에 포함">유니버스</span>`;
-  return '';
-}
+// 오늘·수급 탭은 한 흐름이고 테마 탭은 그 옆에 붙는 서비스다. 수급 개념을
+// 테마 탭에도 흘리면 두 탭의 경계가 무너지고, 처음 보는 사람은 "빈집이
+// 대체 뭔데 여기 또 나오지" 로 읽는다. 빈집 판정은 오늘·수급 탭 한 곳에서만
+// 한다. 테마 탭은 "오늘 뭐가 왜 올랐나" 만 말한다.
 
 function createThemeCard(theme, index = 0) {
   const card = document.createElement('div');
@@ -285,7 +277,7 @@ function createThemeCard(theme, index = 0) {
       ].filter(Boolean).join(' · ');
       return `<div class="brief-stock">
         <div class="bs-info">
-          <div class="bs-name">${escapeHTML(s.name)}${s.isTop ? '<span class="bs-top">대표</span>' : ''}${supplyTagFor(s.name)}</div>
+          <div class="bs-name">${escapeHTML(s.name)}${s.isTop ? '<span class="bs-top">대표</span>' : ''}</div>
           <div class="bs-sub">${sub}</div>
         </div>
         ${dayRangeBar(s)}
@@ -330,8 +322,10 @@ function renderTicker(themes) {
 // 테마명과 종목명을 글로 나열하면 "왜 이것들이 한 덩어리인지" 가 안 보인다.
 // 군집은 원래 그림으로 증명하는 것이다. 면적=거래대금, 색=등락률로 깔면
 // 오늘 돈이 어느 테마에 몰렸는지, 그 안에서 누가 주도주인지가 한눈에 잡힌다.
-// 그리고 우리만 할 수 있는 한 겹: 이 지도 위에 '수급 빈집' 종목을 표시한다.
-// 테마(재료) × 빈집(수급) 교집합은 다른 서비스가 한 화면에서 못 보여준다.
+//
+// 지도 위에 '수급 빈집' 표시(테두리·점·범례)를 얹었던 적이 있는데 뺐다.
+// 빈집은 오늘·수급 탭의 언어다. 지도는 면적과 색 두 축만 읽으면 되는
+// 그림이어야 하고, 세 번째 축이 끼면 처음 보는 사람이 먼저 멈춘다.
 
 // "1,890억" / "1.2조" / "58억" → 원 단위 숫자
 function parseKrAmount(v) {
@@ -499,14 +493,6 @@ function tmTextColor(rate) {
   return tmNorm(r) > 0.52 ? 'rgba(255,255,255,0.97)' : '#2A2E36';
 }
 
-// 종목명이 수급 빈집 후보인지 — supplyTagFor 와 같은 대조 규칙을 쓴다.
-function isVacancyCandidate(name) {
-  const flow = (typeof flowData !== 'undefined' && flowData) ? flowData : null;
-  if (!flow || !name) return false;
-  const n = String(name).replace(/\s+/g, '');
-  return (flow.buyCandidates || []).some(c => String(c.name || '').replace(/\s+/g, '') === n);
-}
-
 function buildThemeTreemap(themes) {
   const list = (themes || [])
     .map(t => {
@@ -539,7 +525,6 @@ function buildThemeTreemap(themes) {
   const groups = squarify(tmNormalize(list), 0, 0, W, H);
 
   let tiles = '';
-  let candCount = 0;
   groups.forEach(g => {
     const inner = squarify(tmNormalize(g.stocks), g.x + 1, g.y + HEAD, Math.max(0, g.w - 2), Math.max(0, g.h - HEAD - 1));
     tiles += `<rect x="${g.x.toFixed(1)}" y="${g.y.toFixed(1)}" width="${g.w.toFixed(1)}" height="${g.h.toFixed(1)}" rx="3" fill="#F6F7F9"/>`;
@@ -547,21 +532,18 @@ function buildThemeTreemap(themes) {
     tiles += `<title>${escapeHTML(g.name)} · 거래대금 ${fmtEok(g.raw)}</title>`;
     tiles += `<text x="${(g.x + 5).toFixed(1)}" y="${(g.y + 12).toFixed(1)}" font-size="9.5" font-weight="700" letter-spacing="0.02em" fill="#6B7280">${escapeHTML(gLabel)}</text>`;
     inner.forEach(s => {
-      const isCand = isVacancyCandidate(s.name);
-      if (isCand) candCount++;
       const rate = (s.rate == null || !isFinite(s.rate)) ? 0 : s.rate;
       // 칸에 맞춰 글자를 줄인다. 예전엔 고정 10px 라 조금만 좁아도 이름이
       // 통째로 사라졌다 — 이름 없는 칸은 지도에서 아무 의미가 없다.
       const { text: label, font } = tmLabelFor(s.name, s.w, s.h);
       const showRate = label && s.h > font * 2.6 && s.w > 34;
       tiles += `<g class="tm-tile" data-code="${escapeHTML(s.code || '')}" data-name="${escapeHTML(s.name || '')}">
-        <title>${escapeHTML(s.name)} · ${rate >= 0 ? '+' : ''}${rate.toFixed(2)}% · 거래대금 ${fmtEok(s.raw)}${isCand ? ' · 수급 빈집 조건통과' : ''}</title>
+        <title>${escapeHTML(s.name)} · ${rate >= 0 ? '+' : ''}${rate.toFixed(2)}% · 거래대금 ${fmtEok(s.raw)}</title>
         <rect x="${(s.x + 1).toFixed(1)}" y="${(s.y + 1).toFixed(1)}"
           width="${Math.max(0, s.w - 2).toFixed(1)}" height="${Math.max(0, s.h - 2).toFixed(1)}" rx="2"
-          fill="${tmColor(rate)}"${isCand ? ' stroke="#0F766E" stroke-width="1.5"' : ''}/>
+          fill="${tmColor(rate)}"/>
         ${label ? `<text x="${(s.x + s.w / 2).toFixed(1)}" y="${(s.y + s.h / 2 + (showRate ? -1.5 : font * 0.36)).toFixed(1)}" text-anchor="middle" font-size="${font.toFixed(1)}" font-weight="600" letter-spacing="-0.02em" fill="${tmTextColor(rate)}">${escapeHTML(label)}</text>` : ''}
         ${showRate ? `<text x="${(s.x + s.w / 2).toFixed(1)}" y="${(s.y + s.h / 2 + font + 1).toFixed(1)}" text-anchor="middle" font-size="${(font * 0.86).toFixed(1)}" font-weight="500" opacity="0.88" fill="${tmTextColor(rate)}">${rate >= 0 ? '+' : ''}${rate.toFixed(1)}%</text>` : ''}
-        ${isCand ? `<circle cx="${(s.x + s.w - 5).toFixed(1)}" cy="${(s.y + 5).toFixed(1)}" r="2.6" fill="#0F766E"/>` : ''}
       </g>`;
     });
   });
@@ -576,11 +558,7 @@ function buildThemeTreemap(themes) {
       <div class="tm-legend">
         <span class="tm-lg"><i style="background:${tmColor(6)}"></i>상승</span>
         <span class="tm-lg"><i style="background:${tmColor(-4)}"></i>하락</span>
-        <span class="tm-lg tm-lg-cand"><i></i>수급 빈집 조건통과${candCount ? ` <b>${candCount}종목</b>` : ''}</span>
       </div>
-      ${candCount === 0 ? `<p class="tm-note">오늘은 급등 테마주와 수급 빈집이 겹치는 종목이 없습니다.
-        급등 중인 종목은 이미 수급이 들어온 상태라 빈집과 잘 겹치지 않습니다 —
-        겹치는 날이 재료와 수급이 동시에 비어 있다가 채워지는 자리입니다.</p>` : ''}
     </div>`;
 }
 
@@ -609,11 +587,9 @@ async function loadAndRender() {
     // 이걸 표시하지 않으면 "갱신: 방금"으로 보여 몇 달 지난 데이터를 최신으로 오인한다.
     renderThemeStaleNotice(grid, data);
 
-    // 수급 대조 태그를 붙이려면 flow 데이터가 먼저 있어야 한다.
-    // 실패해도 테마 자체는 그려야 하므로 조용히 넘어간다.
-    if (typeof loadFlow === 'function') {
-      try { await loadFlow(); } catch (e) { /* 태그만 생략 */ }
-    }
+    // 예전엔 수급 대조 태그를 붙이려고 여기서 flow 로딩을 기다렸다. 태그를
+    // 뺐으니 기다릴 이유가 없다 — 테마 탭이 남의 데이터를 기다리며 비어 있었다.
+    // flow 는 기본 탭('오늘')의 loadBriefing 이 어차피 먼저 받는다.
 
     // Render theme cards
     const themes = data.themes || [];

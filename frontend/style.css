@@ -2426,14 +2426,6 @@ body {
 .cb-line em { font-style: normal; color: #b8b0a0; font-size: 0.68rem; margin-left: 3px; }
 
 
-/* 테마 종목의 수급 대조 태그 — 뉴스로 뜬 테마 중 아직 수급이 안 들어온 자리 */
-.ts-tag {
-  font-size: 0.62rem; font-weight: 800; padding: 1px 5px;
-  border-radius: 2px; margin-left: 6px; vertical-align: 2px; white-space: nowrap;
-}
-.ts-cand { color: #7A5310; background: #FBF3DD; border: 1px solid #E0CFA8; }
-.ts-uni { color: #8a8272; background: #F4EEE2; border: 1px solid #E7DFCF; }
-
 
 /* 섹터 상한으로 제외된 종목 — 규율은 지키되 잘린 사실은 드러낸다 */
 .sr-overflow {
@@ -2487,17 +2479,10 @@ body {
 .tm-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 9px; font-size: 0.7rem; color: #8a8272; font-weight: 700; }
 .tm-lg { display: inline-flex; align-items: center; gap: 5px; }
 .tm-lg i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; }
-.tm-lg-cand i { background: #fff; border: 2px solid #00695C; }
-.tm-lg-cand b { color: #00695C; font-weight: 900; }
 @media (max-width: 640px) {
   .tm-card { margin: 0 0 12px; padding: 12px 12px 10px; }
   .tm-title { font-size: 1.02rem; }
 }
-.tm-note {
-  margin-top: 8px; font-size: 0.72rem; line-height: 1.6; color: #8a8272;
-  word-break: keep-all; border-top: 1px solid var(--rule, #EFE7D8); padding-top: 8px;
-}
-
 /* 포착 경로 — 주도 ETF(RS) → 섹터 → 종목. 주장이 아니라 근거로 읽히게. */
 .pp { margin: 10px 2px 0; padding-top: 9px; border-top: 1px solid var(--rule, #EFE7D8); }
 .pp-title { font-size: 0.68rem; font-weight: 900; color: #8a8272; letter-spacing: 0.05em; }
