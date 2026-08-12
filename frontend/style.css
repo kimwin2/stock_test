@@ -2518,11 +2518,6 @@ body {
    달라야 한다 — 여기서 빨강을 쓰면 '하락'으로 읽힌다. 난이도 축은
    브론즈→테라코타 한 방향으로만 간다. */
 .cc-card { padding-bottom: 8px; }
-.cc-band { font-weight: 900; letter-spacing: -0.02em; }
-.cc-band.cc-easy { color: var(--teal-dark); }
-.cc-band.cc-mid  { color: var(--text-secondary); }
-.cc-band.cc-hard { color: var(--orange); }
-.cc-band.cc-x    { color: #A33B12; }
 
 .cc-verdict {
   display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
@@ -2547,17 +2542,14 @@ body {
 .cc-svg .cc-now  { font-size: 11px; font-weight: 900; fill: var(--text-primary); }
 .cc-svg .cc-tick { font-size: 9px; font-weight: 700; fill: var(--text-muted); text-anchor: middle; }
 
+/* 색 범례 4개는 축 라벨 2개로 흡수했다. 밴드 색은 차트 배경이 이미
+   보여주므로, 아래 줄은 "위/아래가 무슨 뜻인지"만 말하면 된다. */
 .cc-scale {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 7px 10px 2px; font-size: 0.66rem; font-weight: 700; color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 10px 2px;
 }
-.cc-lg { display: inline-flex; align-items: center; gap: 4px; }
-.cc-lg i { width: 10px; height: 10px; display: inline-block; border: 1px solid #d9cfba; }
-.cc-lg.cc-easy i { background: #E9E0CB; }
-.cc-lg.cc-mid i  { background: #F1EADB; }
-.cc-lg.cc-hard i { background: #F3DCC9; }
-.cc-lg.cc-x i    { background: #E8C3AB; }
-.cc-pct { margin-left: auto; color: var(--text-muted); }
+.cc-axis { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+.cc-pct { font-size: 0.7rem; font-weight: 800; color: var(--text-secondary); }
 
 /* ─── 오늘 움직인 재료 (테마 탭 다리) ─────────────────────── */
 .tb-body { padding: 2px 0; }
@@ -2846,3 +2838,12 @@ body {
   .dial-svg { width: 55%; }
   .dial-answer b { font-size: 2.6rem; }
 }
+
+/* 쏠림 차트 — 단계 카드 안에 들어가므로 자체 카드 껍데기를 벗는다 */
+.st .cc-card { background: transparent; box-shadow: none; border: 0; padding: 0; border-radius: 0; }
+.st .cc-verdict { padding-left: 0; padding-right: 0; }
+.st .cc-scale { padding-left: 0; padding-right: 0; }
+/* ③ 깔때기와 종목 리스트 사이 여백 정리 — 카드 안 카드가 겹쳐 보이던 것 */
+.st-last .brief-card-screen { box-shadow: none !important; border-radius: 0 !important; margin-top: 4px; }
+.st-last .brief-card-screen > .card-header { display: none; }
+.st-last .sr-funnel { margin-top: 0; }

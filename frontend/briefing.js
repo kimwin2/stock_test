@@ -220,7 +220,9 @@ function buildCrowdingChart(flow) {
   else if (rising) verdict = '쏠림이 강해지는 중 — 살아남는 업종이 줄어드는 흐름';
   else if (falling && pct >= 70) verdict = '고점에서 꺾이는 중 — 순환매로 풀리는 자리';
   else if (falling) verdict = '쏠림이 풀리는 중 — 업종 간 편차가 좁아지는 흐름';
-  else verdict = `${band.label} 구간에서 옆걸음`;
+  // 밴드 이름은 단계 헤더 pill 이 이미 말한다. 여기서 또 쓰면 한 화면에
+  // 같은 단어가 세 번 나온다. 방향이 없을 때는 그 사실만 말한다.
+  else verdict = '큰 변화 없이 이어지는 중';
 
   // ── SVG ──
   const W = 640, H = 170, PL = 6, PR = 44, PT = 10, PB = 20;
@@ -256,12 +258,11 @@ function buildCrowdingChart(flow) {
     }
   });
 
+  // [중첩 제거] 예전에는 이 함수가 독립 카드(제목 + 밴드 pill)를 반환했다.
+  // 단계 카드 안에 들어가면서 "장 난이도"와 "편한 장"이 한 화면에 세 번씩
+  // 나오게 됐다. 헤더는 단계 카드가 이미 갖고 있으므로 여기서는 걷어낸다.
   return `
-    <div class="flow-card cc-card">
-      <div class="card-header">
-        <span class="card-theme-name">오늘 장 난이도 — 업종 쏠림</span>
-        <span class="card-volume cc-band cc-${band.tone}">${band.label}</span>
-      </div>
+    <div class="cc-card">
       <div class="cc-verdict">
         <span class="cc-dir cc-dir-${rising ? 'up' : (falling ? 'down' : 'flat')}">${dirMark} ${dirLabel}</span>
         <span class="cc-verdict-text">${bEscape(verdict)}</span>
@@ -274,11 +275,9 @@ function buildCrowdingChart(flow) {
         ${ticks}
       </svg>
       <div class="cc-scale">
-        <span class="cc-lg cc-easy"><i></i>편한 장</span>
-        <span class="cc-lg cc-mid"><i></i>보통</span>
-        <span class="cc-lg cc-hard"><i></i>어려운 장</span>
-        <span class="cc-lg cc-x"><i></i>극단 쏠림</span>
-        <span class="cc-pct">6개월 분포에서 하위 ${pct}%</span>
+        <span class="cc-axis">↑ 어려운 장</span>
+        <span class="cc-pct">6개월 분포 하위 ${pct}%</span>
+        <span class="cc-axis">↓ 편한 장</span>
       </div>
       ${whatIs('업종 쏠림은 업종별 6개월 수익률이 얼마나 벌어져 있는지를 하나의 수로 만든 값입니다. ' +
         '높을수록 소수 업종만 오르고 나머지는 눌려 종목 고르기가 어려워지고, 낮을수록 업종 간 편차가 좁아 순환매가 돕니다. ' +
