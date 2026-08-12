@@ -709,9 +709,51 @@ function sourceBadge(source) {
 //   ① 오늘 시장이 어떤지 → ② 매매하기 좋은 장인지 → ③ 어디가 강한지 → ④ 뭘 볼지
 // 카드를 늘어놓지 말고 이 순서를 화면 구조로 만든다. 번호와 연결선이 있으면
 // 처음 보는 사람도 "위에서 아래로 읽으면 답이 나온다"를 배우지 않고 안다.
+
+// 오늘의 그림 — 탭이 문장으로 시작하면 아무도 안 읽는다.
+// 반원 게이지 하나로 "지금 시장이 어디쯤"을 0.5초에 보여주고,
+// 그 옆에 오늘의 답(종목 수)을 큰 숫자로 놓는다. 설명은 붙이지 않는다.
+function buildHeroDial(fg, sentiment, flow) {
+  const v = Math.max(0, Math.min(100, fg.kospi ?? 50));
+  const zone = zoneOf(sentiment.kospi, fg.kospi);
+  const nCand = ((flow || {}).buyCandidates || []).length;
+  const R = 74, CX = 90, CY = 92, SW = 14;
+  const pt = (deg, r) => [CX + r * Math.cos(deg * Math.PI / 180), CY + r * Math.sin(deg * Math.PI / 180)];
+  // 5구간 아크 (공포 → 탐욕)
+  const segs = [
+    [0, 25, '#1565C0'], [25, 45, '#4E8FCB'], [45, 55, '#C9B896'],
+    [55, 75, '#E58A3C'], [75, 100, '#D2402F'],
+  ];
+  const arc = segs.map(([a, b, col]) => {
+    const d0 = 180 + a * 1.8, d1 = 180 + b * 1.8;
+    const [x0, y0] = pt(d0, R), [x1, y1] = pt(d1, R);
+    return `<path d="M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}"
+      fill="none" stroke="${col}" stroke-width="${SW}" stroke-linecap="butt"/>`;
+  }).join('');
+  const nd = 180 + v * 1.8;
+  const [nx, ny] = pt(nd, R - 3);
+  const [bx, by] = pt(nd, R - SW - 7);
+  return `
+    <div class="dial">
+      <svg viewBox="0 0 180 108" class="dial-svg" xmlns="http://www.w3.org/2000/svg">
+        ${arc}
+        <line x1="${bx.toFixed(1)}" y1="${by.toFixed(1)}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}"
+          stroke="#17171C" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="${CX}" cy="${CY}" r="5" fill="#17171C"/>
+        <text x="${CX}" y="${CY - 16}" text-anchor="middle" font-size="21" font-weight="800"
+          fill="${zone.color}" letter-spacing="-0.03em">${bEscape(zone.label)}</text>
+      </svg>
+      <div class="dial-answer">
+        <span>오늘 볼 종목</span>
+        <b>${nCand}</b>
+        <a class="dial-jump" href="#s4">바로 보기 ↓</a>
+      </div>
+    </div>`;
+}
+
 function stepCard(n, title, answer, body, opts = {}) {
   return `
-    <section class="st ${opts.cls || ''}">
+    <section class="st ${opts.cls || ''}"${opts.id ? ` id="${opts.id}"` : ''}>
       <div class="st-rail"><span class="st-num">${n}</span></div>
       <div class="st-body">
         <div class="st-head">
@@ -737,8 +779,7 @@ function buildSectorStep(flow) {
       <b>${bEscape(s)}</b>${why ? `<em>${bEscape(why)}</em>` : ''}
     </div>`;
   }).join('');
-  return `<div class="sec-chips">${chips}</div>
-    <p class="st-note">주도 업종 밖의 종목은 아래 단계에서 제외됩니다. 재료가 좋아도 돈이 안 들어온 업종은 잘 안 갑니다.</p>`;
+  return `<div class="sec-chips">${chips}</div>`;
 }
 
 // ④ 앞에 놓는 깔때기 — "이런 근거로 이 종목이 남았다" 를 한 장으로.
@@ -766,7 +807,7 @@ function buildFunnel(flow) {
               <span class="fn-n">${x.n.toLocaleString('ko-KR')}</span>
             </div>
           </div>
-          <div class="fn-lab"><b>${bEscape(x.label)}</b><em>${bEscape(x.desc)}</em></div>
+          <div class="fn-lab"><b>${bEscape(x.label)}</b></div>
         </div>`).join('')}
     </div>`;
 }
@@ -798,32 +839,17 @@ function renderBriefing(briefing, flow) {
   container.innerHTML = `
     <div class="brief-wrap">
       <div class="flow-card hero2">
-        <div class="hero2-eyebrow">오늘의 결론</div>
+        ${buildHeroDial(fg, sentiment, flow)}
         <div class="hero2-line">${bEscape(briefing.headline)}</div>
-        <div class="hero2-kpis">
-          <div class="k"><span>시장</span><b style="color:${zone.color}">${bEscape(zone.label)}</b></div>
-          <div class="k"><span>장 난이도</span><b>${bEscape(crowd.pill)}</b></div>
-          <div class="k k-main"><span>오늘 볼 종목</span><b>${nCand}개</b></div>
-          ${nExit ? `<div class="k"><span>이탈 경고</span><b class="down">${nExit}개</b></div>` : ''}
-        </div>
-        <a class="hero2-jump" href="#step4">종목부터 보기 ↓</a>
       </div>
 
-      ${stepCard(1, '오늘 시장', `<span class="st-pill" style="background:${zone.color}">${bEscape(zone.label)}</span>`,
-        `<div class="tm-wrap">
-          ${buildThermometer(sentiment.kospi?.label || '코스피', fg.kospi, fg.kospiDelta, sentiment.kospi)}
-          ${buildThermometer(sentiment.kosdaq?.label || '코스닥', fg.kosdaq, null, sentiment.kosdaq)}
-        </div>
-        ${whatIs('공포·탐욕 지수는 주가 흐름·거래량·변동성·안전자산 선호를 하나로 합친 0~100 레벨입니다. 구간 이름은 레벨이 아니라 그 지수의 방향(오실레이터)으로 판정합니다.')}`)}
+      ${stepCard(1, '장 난이도', `<span class="st-pill st-pill-${crowd.tone || 'mid'}">${bEscape(crowd.pill)}</span>`,
+        buildCrowdingChart(flow))}
 
-      ${stepCard(2, '장 난이도', `<span class="st-pill st-pill-${crowd.tone || 'mid'}">${bEscape(crowd.pill)}</span>`,
-        `${crowd.desc ? `<p class="st-note">${bEscape(crowd.desc)}${crowd.pct != null ? ` (쏠림 하위 ${crowd.pct}%)` : ''}</p>` : ''}
-         ${buildCrowdingChart(flow)}`)}
+      ${stepCard(2, '주도 업종', '', buildSectorStep(flow))}
 
-      ${stepCard(3, '주도 업종', '', buildSectorStep(flow))}
-
-      ${stepCard(4, '오늘 볼 종목', `<span class="st-pill st-pill-main">${nCand}개</span>`,
-        `${buildFunnel(flow)}${buildScreenResult(flow)}`, { cls: 'st-last' })}
+      ${stepCard(3, '오늘 볼 종목', `<span class="st-pill st-pill-main">${nCand}개</span>`,
+        `${buildFunnel(flow)}${buildScreenResult(flow)}`, { cls: 'st-last', id: 's4' })}
 
       ${buildChanges(flow)}
       <div id="brief-theme-bridge"></div>
@@ -832,6 +858,10 @@ function renderBriefing(briefing, flow) {
         <summary>서술 요약 · 섹터 수급 · 이탈 신호 · 공시 자세히 보기</summary>
         <div class="brief-more-body">
           <div class="flow-card brief-card-main">
+            <div class="tm-wrap">
+              ${buildThermometer(sentiment.kospi?.label || '코스피', fg.kospi, fg.kospiDelta, sentiment.kospi)}
+              ${buildThermometer(sentiment.kosdaq?.label || '코스닥', fg.kosdaq, null, sentiment.kosdaq)}
+            </div>
             ${buildBriefingSections(briefing.sections)}
           </div>
           ${buildExitList(flow)}
@@ -849,7 +879,7 @@ function renderBriefing(briefing, flow) {
     </div>
   `;
 
-  container.querySelector('.hero2-jump')?.addEventListener('click', (e) => {
+  container.querySelector('.dial-jump')?.addEventListener('click', (e) => {
     e.preventDefault();
     container.querySelector('.st-last')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });

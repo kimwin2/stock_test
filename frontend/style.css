@@ -2826,3 +2826,23 @@ body {
 .fn-bar { width: auto; }
 .fn-lab { min-width: 0; overflow: hidden; }
 .fn-lab b, .fn-lab em { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 오늘 탭 히어로 — 문장이 아니라 그림으로 시작한다 */
+.hero2 { padding: 8px 16px 16px; }
+.dial { display: flex; align-items: center; gap: 4px; }
+.dial-svg { width: 60%; max-width: 230px; height: auto; display: block; }
+.dial-answer { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
+.dial-answer span { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+.dial-answer b { font-size: 3.1rem; font-weight: 900; line-height: 1; letter-spacing: -0.05em; color: var(--text-primary); }
+.dial-jump {
+  margin-top: 7px; font-size: 0.76rem; font-weight: 800; color: var(--text-primary);
+  text-decoration: none; border-bottom: 2px solid #FFE082; padding-bottom: 1px;
+}
+.hero2 .hero2-line {
+  margin-top: 4px; font-size: 0.92rem; font-weight: 700; line-height: 1.55;
+  color: var(--text-secondary); letter-spacing: -0.02em; word-break: keep-all;
+}
+@media (max-width: 420px) {
+  .dial-svg { width: 55%; }
+  .dial-answer b { font-size: 2.6rem; }
+}
