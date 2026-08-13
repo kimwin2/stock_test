@@ -761,10 +761,12 @@ function buildHeroDial(fg, sentiment, flow) {
     </div>`;
 }
 
-function stepCard(n, title, answer, body, opts = {}) {
+// 왼쪽에 ①②③ 번호 구슬과 세로 레일을 세웠던 적이 있는데 뺐다.
+// 카드가 위에서 아래로 놓여 있으면 순서는 이미 위치가 말한다. 번호를 또
+// 붙이면 설명이 하나 늘 뿐이고, 레일이 가져간 30px 만큼 본문이 좁아진다.
+function stepCard(title, answer, body, opts = {}) {
   return `
     <section class="st ${opts.cls || ''}"${opts.id ? ` id="${opts.id}"` : ''}>
-      <div class="st-rail"><span class="st-num">${n}</span></div>
       <div class="st-body">
         <div class="st-head">
           <h3 class="st-title">${bEscape(title)}</h3>
@@ -885,12 +887,12 @@ function renderBriefing(briefing, flow) {
         <div class="hero2-line">${bEscape(briefing.headline)}</div>
       </div>
 
-      ${stepCard(1, '장 난이도', `<span class="st-pill st-pill-${crowd.tone || 'mid'}">${bEscape(crowd.pill)}</span>`,
+      ${stepCard('장 난이도', `<span class="st-pill st-pill-${crowd.tone || 'mid'}">${bEscape(crowd.pill)}</span>`,
         buildCrowdingChart(flow))}
 
-      ${stepCard(2, '주도 업종', '', buildSectorStep(flow))}
+      ${stepCard('주도 업종', '', buildSectorStep(flow))}
 
-      ${stepCard(3, '오늘 볼 종목', `<span class="st-pill st-pill-main">${nCand}개</span>`,
+      ${stepCard('오늘 볼 종목', `<span class="st-pill st-pill-main">${nCand}개</span>`,
         `${buildFunnel(flow)}${buildScreenResult(flow)}`, { cls: 'st-last', id: 's4' })}
 
       ${buildChanges(flow)}
