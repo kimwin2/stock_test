@@ -121,7 +121,19 @@ aws lambda invoke --function-name stock-pipeline --invocation-type Event --paylo
 cd backend
 python -m benchmark.compare --date 2026-08-01
 python -m benchmark.compare --all --flow-dir <일별 스냅샷 디렉터리>
+
+# 매일 저녁 관심종목 대조 (평일 KST 20:35 자동 — daily-benchmark.yml)
+python -m benchmark.daily_check --days 5
 ```
+
+`daily_check` 는 `compare` 와 목적이 다르다. 적중률 한 줄이 아니라 **빗나간
+종목마다 어느 관문에서 떨어졌는지**(유니버스 밖 / 주도섹터 밖 / 섹터 상한 /
+조건 탈락)를 붙인다. 관문마다 처방이 달라서다. 조치는 **2일 이상 반복된
+격차**만 — 리포트 끝에 따로 뽑아준다.
+
+> CI 에는 stock_chat 이 없다(레퍼런스 `data/` 는 평문이라 커밋 안 함).
+> 워크플로는 `REFERENCE_DAILY_URL` 시크릿을 보고, 없으면 '레퍼런스 없음'
+> 리포트를 내고 통과한다. 다리 놓는 법은 `backend/benchmark/README.md` 참고.
 
 > **수집이 조용히 멈춘다.** 운영자가 초대 링크를 수시로 폐기해서 `stock_chat` 크롤이
 > 에러 없이 이틀간 멈춰 있었다(2026-08-09~11). 링크가 죽어도 **이미 가입된 계정은
