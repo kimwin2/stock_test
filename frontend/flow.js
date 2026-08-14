@@ -135,12 +135,16 @@ const CHART_OSC   = '#B4791E';   // 오실레이터 (지표창)
 const CHART_GRID  = '#E5DFD3';
 const CHART_AXIS_TEXT = '#8C8474';
 const CHART_PAD_L = 6;
-const CHART_PAD_R = 46;          // 우측 가격축 + 현재가 태그 pill 자리
+const CHART_PAD_R = 52;          // 우측 가격축 + 현재가 태그 pill 자리 (pill 글자를 키운 만큼 넓혔다)
 
 // 차트 논리 크기(viewBox)를 화면 폭에 맞춰 고른다.
 // 하나로 고정하면 폭 넓은 화면에서 SVG 가 3배 이상 늘어나고 축·라벨 글자도
 // 같이 커져 조잡해진다. 논리 폭을 키우면 확대율이 1.x 로 떨어져 글자가
 // 의도한 크기로 보인다. (모바일에서 큰 viewBox 를 쓰면 반대로 글자가 뭉갠다)
+//
+// 실측 결과 논리 폭이 너무 커서 반대 방향으로 넘어가 있었다 — 확대율이
+// 0.72~0.90 이라 축·제목 글자가 5.4~7.2px 로 렌더됐다. 한글은 그 크기에서
+// 못 읽는다. 폭을 줄여 확대율을 1 근처로 되돌린다.
 function chartBox(mobile, desktop) {
   return (typeof window !== 'undefined' && window.innerWidth >= 760) ? desktop : mobile;
 }
@@ -190,7 +194,7 @@ function renderDualAxisChart(history, opts = {}) {
     return '<div class="sparkline-empty">데이터 부족</div>';
   }
 
-  const box = chartBox({ w: 360, h: 138 }, { w: 900, h: 260 });
+  const box = chartBox({ w: 320, h: 124 }, { w: 760, h: 220 });
   const W = opts.width || box.w, H = opts.height || box.h;
   const padL = CHART_PAD_L, padR = CHART_PAD_R, padT = 8, padB = 15;
   const gap = 7;
@@ -290,19 +294,19 @@ function renderDualAxisChart(history, opts = {}) {
     + `<polyline points="${oscPts}" fill="none" stroke="${CHART_OSC}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`;
   const oscFg =
     `<circle cx="${X(n - 1).toFixed(1)}" cy="${yO(lastOsc).toFixed(1)}" r="2.2" fill="${CHART_OSC}"/>` +
-    `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(lastOsc) + (lastOsc >= p50 ? 10 : 3)).toFixed(1)}" font-size="9" font-weight="800" fill="#B4560F" text-anchor="end">${lastOsc.toFixed(3)}</text>`;
+    `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(lastOsc) + (lastOsc >= p50 ? 10 : 3)).toFixed(1)}" font-size="11" font-weight="800" fill="#B4560F" text-anchor="end">${lastOsc.toFixed(3)}</text>`;
 
   // 현재 지수 태그 — 종목 차트의 현재가 pill 과 동일
   const lastY = yP(lastVal);
   const label = Math.round(lastVal).toLocaleString('ko-KR');
-  const tagW = Math.max(26, label.length * 5.2 + 8), tagH = 11;
+  const tagW = Math.max(30, label.length * 6.0 + 9), tagH = 13;
   const closeDot = `<circle cx="${X(n - 1).toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.2" fill="${areaColor}"/>`;
   const closeTag = `
       <line x1="${x0}" y1="${lastY.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${lastY.toFixed(1)}" stroke="${areaColor}" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
       <rect x="${(x1 + 2).toFixed(1)}" y="${(lastY - tagH / 2).toFixed(1)}" width="${tagW}" height="${tagH}" rx="2.5" fill="${areaColor}"/>
-      <text x="${(x1 + 2 + tagW / 2).toFixed(1)}" y="${(lastY + 3.2).toFixed(1)}" font-size="7.8" font-weight="800" fill="#fff" text-anchor="middle">${fEscape(label)}</text>`;
-  const priceTitle = `<text x="${x0}" y="${(padT + 6).toFixed(1)}" font-size="7.5" font-weight="700" fill="${CHART_AXIS_TEXT}">${hasCandle ? '일봉 · 거래량' : '지수'}</text>`;
-  const oscTitle = `<text x="${x0}" y="${(oscTop - 1.5).toFixed(1)}" font-size="7.5" font-weight="700" fill="${CHART_OSC}">Fear &amp; Greed 오실레이터</text>`;
+      <text x="${(x1 + 2 + tagW / 2).toFixed(1)}" y="${(lastY + 3.2).toFixed(1)}" font-size="9.2" font-weight="800" fill="#fff" text-anchor="middle">${fEscape(label)}</text>`;
+  const priceTitle = `<text x="${x0}" y="${(padT + 6).toFixed(1)}" font-size="8.6" font-weight="700" fill="${CHART_AXIS_TEXT}">${hasCandle ? '일봉 · 거래량' : '지수'}</text>`;
+  const oscTitle = `<text x="${x0}" y="${(oscTop - 2.5).toFixed(1)}" font-size="8.6" font-weight="700" fill="${CHART_OSC}">Fear &amp; Greed 오실레이터</text>`;
 
   // X축 날짜 — 종목 차트와 동일하게 3틱. 지수는 기간이 길어 연도까지 표기.
   let axisLabels = '';
@@ -312,7 +316,7 @@ function renderDualAxisChart(history, opts = {}) {
     const last = dates.length - 1;
     const ticks = [[0, 'start'], [Math.round(last * 0.5), 'middle'], [last, 'end']];
     axisLabels = ticks.filter(([i]) => dates[i]).map(([i, a]) =>
-      `<text x="${X(i).toFixed(1)}" y="${H - 4}" font-size="8" fill="${CHART_AXIS_TEXT}" text-anchor="${a}">${fmt(dates[i])}</text>`).join('');
+      `<text x="${X(i).toFixed(1)}" y="${H - 4}" font-size="10" fill="${CHART_AXIS_TEXT}" text-anchor="${a}">${fmt(dates[i])}</text>`).join('');
   }
 
   return `
@@ -375,7 +379,7 @@ function renderMiniPriceChart(c, opts = {}) {
   // 기존에는 주가와 수급 오실레이터를 같은 영역에 겹쳐 그리고, 백분위 음영이
   // 차트 전체 높이를 덮었다. 음영은 오실레이터의 백분위인데 가격 뒤에 깔리니
   // "가격 구간"으로 오독됐다. 창을 나누고 음영을 지표창 안에 가둔다.
-  const box = chartBox({ w: 360, h: 138 }, { w: 900, h: 260 });
+  const box = chartBox({ w: 320, h: 124 }, { w: 760, h: 220 });
   const W = opts.width || box.w, H = opts.height || box.h;
   const padL = CHART_PAD_L, padR = CHART_PAD_R, padT = 8, padB = 15;
   const gap = 7;
@@ -502,13 +506,13 @@ function renderMiniPriceChart(c, opts = {}) {
       ? c.oscPercentile
       : (oscVals.length ? oscVals.filter(v => v < lastOscVal).length / oscVals.length * 100 : null);
     const oscLabel = (oscPct != null)
-      ? `빈집 하위 ${Math.round(oscPct)}%<tspan font-size="7.2" font-weight="600" fill="#9A8F7C"> ${bpTxt}</tspan>`
+      ? `빈집 하위 ${Math.round(oscPct)}%<tspan font-size="8.6" font-weight="600" fill="#9A8F7C"> ${bpTxt}</tspan>`
       : bpTxt;
 
     oscFg =
       `<circle cx="${X(n - 1).toFixed(1)}" cy="${yO(lastOscVal).toFixed(1)}" r="2.2" fill="${CHART_OSC}"/>` +
       // 끝점 점(r=2.2)과 같은 높이에 놓이므로 x1-2 면 글자가 점에 닿는다. 6 을 띄운다.
-      `<text x="${(x1 - 6).toFixed(1)}" y="${(yO(lastOscVal) + (lastOscVal >= p50 ? 10 : 3)).toFixed(1)}" font-size="9" font-weight="800" fill="#B4560F" text-anchor="end">${oscLabel}</text>`;
+      `<text x="${(x1 - 6).toFixed(1)}" y="${(yO(lastOscVal) + (lastOscVal >= p50 ? 10 : 3)).toFixed(1)}" font-size="11" font-weight="800" fill="#B4560F" text-anchor="end">${oscLabel}</text>`;
   }
 
   // 현재가 태그 — HTS 처럼 우측 가격축에 색 pill + 점선 가이드
@@ -518,14 +522,14 @@ function renderMiniPriceChart(c, opts = {}) {
     : (lastCapVal >= 1e12 ? `${(lastCapVal / 1e12).toFixed(1)}조`
       : lastCapVal >= 1e8 ? `${(lastCapVal / 1e8).toFixed(0)}억` : `${lastCapVal}`);
   const lastY = yP(lastCapVal);
-  const tagW = Math.max(26, capLabel.length * 5.2 + 8), tagH = 11;
+  const tagW = Math.max(30, capLabel.length * 6.0 + 9), tagH = 13;
   const capDot = `<circle cx="${X(n - 1).toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.2" fill="${areaColor}"/>`;
   const capLabelSvg = `
       <line x1="${x0}" y1="${lastY.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${lastY.toFixed(1)}" stroke="${areaColor}" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
       <rect x="${(x1 + 2).toFixed(1)}" y="${(lastY - tagH / 2).toFixed(1)}" width="${tagW}" height="${tagH}" rx="2.5" fill="${areaColor}"/>
-      <text x="${(x1 + 2 + tagW / 2).toFixed(1)}" y="${(lastY + 3.2).toFixed(1)}" font-size="7.8" font-weight="800" fill="#fff" text-anchor="middle">${fEscape(capLabel)}</text>`;
-  const priceTitle = `<text x="${x0}" y="${(padT + 6).toFixed(1)}" font-size="7.5" font-weight="700" fill="${CHART_AXIS_TEXT}">${candleSvg ? '일봉 · 거래량' : (isPriceSeries ? '주가' : '시가총액')}</text>`;
-  const oscTitle = `<text x="${x0}" y="${(oscTop - 1.5).toFixed(1)}" font-size="7.5" font-weight="700" fill="${CHART_OSC}">수급 오실레이터</text>`;
+      <text x="${(x1 + 2 + tagW / 2).toFixed(1)}" y="${(lastY + 3.2).toFixed(1)}" font-size="9.2" font-weight="800" fill="#fff" text-anchor="middle">${fEscape(capLabel)}</text>`;
+  const priceTitle = `<text x="${x0}" y="${(padT + 6).toFixed(1)}" font-size="8.6" font-weight="700" fill="${CHART_AXIS_TEXT}">${candleSvg ? '일봉 · 거래량' : (isPriceSeries ? '주가' : '시가총액')}</text>`;
+  const oscTitle = `<text x="${x0}" y="${(oscTop - 2.5).toFixed(1)}" font-size="8.6" font-weight="700" fill="${CHART_OSC}">수급 오실레이터</text>`;
 
   // X축 날짜 라벨 — 3개 (좌끝 / 중앙 / 우끝)
   let axisLabels = '';
@@ -534,7 +538,7 @@ function renderMiniPriceChart(c, opts = {}) {
     const last = dates.length - 1;
     const ticks = [[0, 'start'], [Math.round(last * 0.5), 'middle'], [last, 'end']];
     axisLabels = ticks.map(([i, a]) =>
-      `<text x="${X(i).toFixed(1)}" y="${H - 4}" font-size="8" fill="${CHART_AXIS_TEXT}" text-anchor="${a}">${fmt(dates[i])}</text>`).join('');
+      `<text x="${X(i).toFixed(1)}" y="${H - 4}" font-size="10" fill="${CHART_AXIS_TEXT}" text-anchor="${a}">${fmt(dates[i])}</text>`).join('');
   }
 
   return `

@@ -942,8 +942,11 @@ body {
     --card-gap: 4px;
   }
 
+  /* 모바일에서만 13px 로 줄여 뒀는데, 화면 안 글자가 전부 rem 이라 이 한 줄이
+     앱 전체를 7% 눌렀다. 종목 이름이 11.7px, 상태 칩이 8.6px 로 떨어졌다 —
+     한글은 그 크기에서 획이 뭉갠다. 데스크톱과 같은 14px 로 올린다. */
   html {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   /* `1fr` 은 minmax(auto, 1fr) 이라 트랙 최소값이 자식의 min-content 가 된다.
@@ -1613,7 +1616,9 @@ body {
 .cand-chart {
   width: 375px; display: flex; align-items: center; justify-content: flex-end;
 }
-.mini-chart { width: 100%; height: 113px; flex: 1; min-width: 0; }
+/* 폭 상한 — 1280px 화면에서 1122px 까지 늘어나 확대율이 1.5배가 됐다.
+   차트 안 글자만 커지고 종목 리스트는 그대로라 화면이 어긋나 보인다. */
+.mini-chart { width: 100%; max-width: 900px; height: 113px; flex: 1; min-width: 0; }
 .mini-chart-wrap {
   display: flex;
   align-items: center;
@@ -1819,7 +1824,7 @@ body {
    5열 한 줄은 모바일 430px 에서 흐트러지고 상태 칩이 잘렸다. */
 .sr-row {
   display: grid;
-  grid-template-columns: 20px 1fr auto;
+  grid-template-columns: 24px 1fr auto;
   grid-template-areas: "rank name ret" "rank meta meta";
   align-items: center; gap: 2px 8px; padding: 9px 6px;
   border-bottom: 1px solid #F4EEE2; cursor: pointer; border-radius: 2px;
@@ -1827,19 +1832,19 @@ body {
 .sr-row:hover { background: #FBF6EC; }
 .sr-rank {
   grid-area: rank; align-self: center;
-  font-size: 0.74rem; font-weight: 900; color: #b8ad96;
+  font-size: 0.86rem; font-weight: 900; color: #b8ad96;
   text-align: center; font-variant-numeric: tabular-nums;
 }
-.sr-name { grid-area: name; font-size: 0.95rem; font-weight: 900; color: var(--text-primary); }
-.sr-ret  { grid-area: ret; font-size: 0.88rem; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums; }
+.sr-name { grid-area: name; font-size: 1.12rem; font-weight: 900; color: var(--text-primary); }
+.sr-ret  { grid-area: ret; font-size: 1.05rem; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums; }
 .sr-meta {
   grid-area: meta; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
-  font-size: 0.7rem;
+  font-size: 0.84rem;
 }
 .sr-meta em { font-style: normal; }
 .sr-sector-in { color: #a89f8d; font-weight: 700; }
 /* 수급 상태 — 수급 탭 빈집 타임라인과 같은 규칙·같은 색 */
-.sr-state { font-size: 0.66rem; font-weight: 900; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+.sr-state { font-size: 0.78rem; font-weight: 900; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
 .sr-depth { display: inline-flex; align-items: center; gap: 5px; color: #8a8272; font-weight: 700; }
 .sr-depth-bar {
   display: inline-block; width: 34px; height: 5px; border-radius: 3px;
@@ -1848,37 +1853,37 @@ body {
 .sr-depth-bar b { display: block; height: 100%; background: linear-gradient(90deg, #D8C39A, #B4791E); }
 .sr-rest { margin-top: 2px; }
 .sr-rest > summary {
-  font-size: 0.72rem; font-weight: 800; color: #8a8272; cursor: pointer;
-  padding: 8px 6px; list-style: none;
+  font-size: 0.86rem; font-weight: 800; color: #8a8272; cursor: pointer;
+  padding: 9px 6px; list-style: none;
 }
 .sr-rest > summary::-webkit-details-marker { display: none; }
 .sr-rest > summary::after { content: ' ▾'; }
 .sr-rest[open] > summary::after { content: ' ▴'; }
 .sr-rest > summary:hover { color: var(--teal); }
-.sr-head { font-size: 0.7rem; color: #a89f8d; font-weight: 800; border-bottom: 1px solid #EFE7D8; }
+.sr-head { font-size: 0.82rem; color: #a89f8d; font-weight: 800; border-bottom: 1px solid #EFE7D8; }
 .sr-row { border-bottom: 1px solid #F4EEE2; cursor: pointer; border-radius: 2px; }
 .sr-row:hover { background: #FBF6EC; }
-.sr-name { font-size: 0.95rem; font-weight: 900; color: var(--text-primary); }
-.sr-sector { font-size: 0.78rem; color: #8a8272; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-name { font-size: 1.12rem; font-weight: 900; color: var(--text-primary); }
+.sr-sector { font-size: 0.88rem; color: #8a8272; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* 빈집 깊이 — 막대 + 백분위. 같은 '빈집' 이라도 깊이가 다르다. */
 .sr-depth { display: flex; flex-direction: column; gap: 3px; }
 .sr-depth-bar {
   display: block; height: 6px; border-radius: 3px; background: #EFE7D8; overflow: hidden;
 }
 .sr-depth-bar i { display: block; height: 100%; background: linear-gradient(90deg, #D8C39A, #B4791E); }
-.sr-depth em { font-style: normal; font-size: 0.68rem; color: #8a8272; font-weight: 700; }
+.sr-depth em { font-style: normal; font-size: 0.8rem; color: #8a8272; font-weight: 700; }
 /* 뽑힌 이유 — 근거 없는 목록은 신뢰를 못 얻는다 */
 .sr-why {
-  display: block; font-style: normal; font-size: 0.68rem; font-weight: 700;
+  display: block; font-style: normal; font-size: 0.8rem; font-weight: 700;
   color: #a89f8d; margin-top: 1px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.sr-ret { font-size: 0.86rem; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums; }
+.sr-ret { font-size: 1.05rem; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums; }
 .sr-ret.up { color: #E53935; }
 .sr-ret.down { color: #1565C0; }
 .sr-more {
   display: block; width: calc(100% - 16px); margin: 6px 8px 2px; padding: 11px 0;
-  font-size: 0.8rem; font-weight: 700; color: #7A5310; letter-spacing: 0.03em;
+  font-size: 0.92rem; font-weight: 700; color: #7A5310; letter-spacing: 0.03em;
   background: none; border: 0; border-top: 1px solid var(--rule);
   text-align: left; cursor: pointer;
 }
@@ -1918,10 +1923,10 @@ body {
   .verdict-zone { font-size: 1.72rem; }
   /* .sr-row 는 2줄 grid-template-areas 구조라 열 개수를 덮어쓰면 무너진다.
      좁은 화면에서는 여백만 줄인다. */
-  .sr-row { gap: 2px 6px; padding: 8px 4px; }
-  .sr-name { font-size: 0.9rem; }
-  .sr-meta { font-size: 0.67rem; gap: 5px; }
-  .ex-head, .ex-row { grid-template-columns: 1.1fr 0.9fr 58px 64px; gap: 5px; font-size: 0.76rem; }
+  .sr-row { gap: 2px 6px; padding: 9px 4px; }
+  .sr-name { font-size: 1.06rem; }
+  .sr-meta { font-size: 0.8rem; gap: 5px; }
+  .ex-head, .ex-row { grid-template-columns: 1.1fr 0.9fr 58px 64px; gap: 5px; font-size: 0.84rem; }
 }
 
 /* === 오늘의 시황: 시장 온도계 === */
@@ -2397,18 +2402,18 @@ body {
 .fh-title { font-size: 0.72rem; font-weight: 800; color: #8a8272; letter-spacing: 0.04em; }
 .fh-title em { font-style: normal; font-weight: 700; color: #b8b0a0; margin-left: 3px; }
 .fh-badges { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
-.fh-depth { font-size: 0.68rem; font-weight: 800; color: #6b7a8f; }
+.fh-depth { font-size: 0.8rem; font-weight: 800; color: #6b7a8f; }
 /* 상태 pill — 표를 안 읽어도 결론(비었나/채워지기 시작했나)이 잡히게 */
-.fh-state { font-size: 0.68rem; font-weight: 900; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+.fh-state { font-size: 0.8rem; font-weight: 900; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
 .fh-state-empty { color: #0d47a1; background: #e6eefb; }
 .fh-state-turn  { color: #fff;    background: #E53935; }
 .fh-state-flat  { color: #8a8272; background: #F1EADC; }
 .fh-lab-key { color: #6b7a8f !important; font-weight: 900 !important; }
 .fh-marks em { font-style: normal; font-size: 0.62rem; color: #E53935; text-align: center; line-height: 1; font-weight: 900; }
 .fh-marks { align-items: center; }
-.fh-legend { margin-top: 5px; font-size: 0.63rem; color: #b0a894; letter-spacing: 0.01em; }
+.fh-legend { margin-top: 5px; font-size: 0.74rem; color: #b0a894; letter-spacing: 0.01em; }
 .fh-grid { display: grid; grid-template-columns: 42px 1fr; gap: 3px 8px; align-items: center; }
-.fh-lab { font-size: 0.68rem; color: #a89f8d; font-weight: 700; }
+.fh-lab { font-size: 0.8rem; color: #a89f8d; font-weight: 700; }
 .fh-cells { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
 .fh-cells i { display: block; height: 13px; border-radius: 1px; }
 .fh-dates em { font-style: normal; font-size: 0.6rem; color: #b8b0a0; text-align: center; }
@@ -2485,14 +2490,14 @@ body {
 }
 /* 포착 경로 — 주도 ETF(RS) → 섹터 → 종목. 주장이 아니라 근거로 읽히게. */
 .pp { margin: 10px 2px 0; padding-top: 9px; border-top: 1px solid var(--rule, #EFE7D8); }
-.pp-title { font-size: 0.68rem; font-weight: 900; color: #8a8272; letter-spacing: 0.05em; }
+.pp-title { font-size: 0.78rem; font-weight: 900; color: #8a8272; letter-spacing: 0.05em; }
 .pp-chain { display: flex; align-items: stretch; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .pp-step {
   display: inline-flex; flex-direction: column; gap: 1px;
   background: #F7F2E7; border: 1px solid #EFE7D8; border-radius: 7px; padding: 5px 9px;
 }
-.pp-step em { font-style: normal; font-size: 0.76rem; font-weight: 900; color: #2b332c; }
-.pp-step small { font-size: 0.64rem; font-weight: 700; color: #a89f8d; }
+.pp-step em { font-style: normal; font-size: 0.88rem; font-weight: 900; color: #2b332c; }
+.pp-step small { font-size: 0.76rem; font-weight: 700; color: #a89f8d; }
 /* 브랜드 브론즈. 하드코딩 #00695C(teal) 가 남아 있어 티마 색으로 회귀해 있었다. */
 .pp-step .pp-src { color: var(--teal-dark); }
 /* 실제 편입비중 — 추정이 아니라 확인된 사실이라 조금 더 진하게 준다. */
@@ -2663,7 +2668,7 @@ body {
 .cand-fold:last-child { border-bottom: 0; }
 .cand-sum {
   display: grid;
-  grid-template-columns: 22px 1fr auto auto 14px;
+  grid-template-columns: 26px 1fr auto auto 14px;
   align-items: center; gap: 9px;
   padding: 13px 12px; cursor: pointer; list-style: none;
 }
@@ -2671,20 +2676,20 @@ body {
 .cand-sum:hover { background: #FAFBFC; }
 .cand-fold[open] .cand-sum { background: #F7F8FA; }
 .cand-sum-rank {
-  font-size: 0.78rem; font-weight: 900; color: #9AA0AC;
+  font-size: 0.88rem; font-weight: 900; color: #9AA0AC;
   text-align: center; font-variant-numeric: tabular-nums;
 }
 .cand-fold:nth-of-type(-n+3) .cand-sum-rank { color: var(--text-primary); }
 .cand-sum-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.cand-sum-name { font-size: 1rem; font-weight: 800; letter-spacing: -0.02em; }
+.cand-sum-name { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; }
 .cand-sum-why {
-  font-style: normal; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary);
+  font-style: normal; font-size: 0.84rem; font-weight: 600; color: var(--text-secondary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.cand-sum-state { font-size: 0.66rem; font-weight: 900; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.cand-sum-state { font-size: 0.78rem; font-weight: 900; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
 .cand-sum-px { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.cand-sum-px b { font-size: 0.92rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.cand-sum-px em { font-style: normal; font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cand-sum-px b { font-size: 1.08rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cand-sum-px em { font-style: normal; font-size: 0.86rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .cand-sum-caret {
   width: 8px; height: 8px; border-right: 2px solid #B9BFC9; border-bottom: 2px solid #B9BFC9;
   transform: rotate(45deg); transition: transform .15s ease; justify-self: end;
@@ -2693,12 +2698,12 @@ body {
 .cand-fold-body { padding: 2px 12px 14px; }
 .cand-open-chart {
   display: inline-block; margin-bottom: 8px;
-  font-size: 0.74rem; font-weight: 800; color: var(--text-primary);
-  background: #F1F3F6; border-radius: 999px; padding: 5px 12px; cursor: pointer;
+  font-size: 0.86rem; font-weight: 800; color: var(--text-primary);
+  background: #F1F3F6; border-radius: 999px; padding: 6px 13px; cursor: pointer;
 }
 .cand-open-chart:hover { background: #E7EAEF; }
 @media (max-width: 480px) {
-  .cand-sum { grid-template-columns: 20px 1fr auto 12px; gap: 7px; padding: 12px 10px; }
+  .cand-sum { grid-template-columns: 24px 1fr auto 12px; gap: 7px; padding: 12px 10px; }
   .cand-sum-state { display: none; }   /* 좁은 화면에선 등락·이름이 먼저다 */
 }
 
