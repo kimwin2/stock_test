@@ -102,12 +102,11 @@ stock_chat 데이터가 없다. 그래서 워크플로는 `REFERENCE_DAILY_URL` 
 (`<base>/YYYY-MM-DD.json`). 미설정이면 '레퍼런스 없음' 리포트를 내고 잡은
 통과한다 — 실패로 두면 매일 빨간 X 만 쌓이고 아무도 안 본다.
 
-다리를 놓는 방법은 둘이다.
-1. stock_chat 의 daily 워크플로가 그날 JSON 을 우리 S3(`stock-dashboard-data`)
-   같은 곳에 올리고, 그 베이스 URL 을 이 레포 시크릿에 넣는다. **권장** —
-   양쪽 다 사용자 소유이고 우리 flow 스냅샷도 이미 같은 버킷에 있다.
-2. CI 를 쓰지 않고 로컬에서 돌린다. `~/repo/stock_chat` 이 있는 기계에서는
-   `REFERENCE_DAILY_DIR` 기본값이 그대로 맞아 인자 없이 바로 동작한다.
+놓는 절차는 **`STOCK_CHAT_BRIDGE.md`** 에 그대로 적어뒀다 (stock_chat 에
+붙일 워크플로 + 이 레포에 넣을 시크릿 + 확인 방법).
+
+CI 없이 쓰려면 `~/repo/stock_chat` 이 있는 기계에서 그냥 돌리면 된다 —
+`REFERENCE_DAILY_DIR` 기본값이 그대로 맞아 인자 없이 동작한다.
 
 ## 자동 축적 (2026-08-09 설정)
 
