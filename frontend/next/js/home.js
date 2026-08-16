@@ -138,27 +138,48 @@
       '<span class="d">' + E(d) + '</span></button>';
   }
 
+  /* 주도 업종.
+     7개를 전부 큰 행으로 깔면 406px 을 먹어서 정작 결론인 '오늘 볼 종목'이
+     첫 화면 밖(898px)으로 밀린다. 실측하고 나서야 보였다.
+     상위 3개만 근거와 함께 행으로 세우고 나머지는 칩으로 접는다 —
+     점수 로직도 1·2·3위에만 가산점(+40/+32/+24)을 주므로 자의적인 컷이 아니다. */
+  var SECTOR_ROWS = 3;
+  function whyOf(src, s) {
+    var v = src[s] || {};
+    if (v.via === 'etf' && v.etf) return v.etf + ' 강도 ' + v.rsNorm;
+    if (v.via === 'flow' && v.strength != null) return '외인·기관 유입 ' + v.strength;
+    if (v.via === 'turnover' && v.sharePct != null) return '거래대금 ' + v.sharePct + '%';
+    return '';
+  }
+
   function sectorsCard(f) {
     var labels = f.leadingSectorLabels || [];
     if (!labels.length) return '';
     var src = f.leadingSectorSources || {};
+    var head = labels.slice(0, SECTOR_ROWS), rest = labels.slice(SECTOR_ROWS);
+
     return '<section class="card">' +
       '<div class="card-h"><h3>주도 업종</h3>' + UI.info('leading') +
         '<span class="spacer"></span><span class="cnt">' + labels.length + '개</span></div>' +
       '<div class="sector-list" style="margin-top:12px">' +
-      labels.map(function (s, i) {
-        var v = src[s] || {};
-        var why = v.via === 'etf' && v.etf ? v.etf + ' 강도 ' + v.rsNorm
-                : v.via === 'flow' && v.strength != null ? '외인·기관 유입 ' + v.strength
-                : v.via === 'turnover' && v.sharePct != null ? '거래대금 ' + v.sharePct + '%'
-                : '';
+      head.map(function (s, i) {
         return '<button class="sector-row' + (i === 0 ? ' top1' : '') + '" type="button" data-sector="' + E(s) + '">' +
           '<span class="rk">' + (i + 1) + '</span>' +
           '<span class="nm">' + E(s) + '</span>' +
-          '<span class="why">' + E(why) + '</span>' +
+          '<span class="why">' + E(whyOf(src, s)) + '</span>' +
           '<span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 5l7 7-7 7"/></svg></span>' +
           '</button>';
-      }).join('') + '</div></section>';
+      }).join('') + '</div>' +
+      (rest.length
+        ? '<div class="chiprow" style="padding:10px 16px 12px;margin:0">' +
+          rest.map(function (s, i) {
+            var w = whyOf(src, s);
+            return '<button class="chip" type="button" data-sector="' + E(s) + '"' +
+              (w ? ' title="' + E(w) + '"' : '') + '>' +
+              '<span style="color:var(--ink-4);font-weight:800">' + (SECTOR_ROWS + i + 1) + '</span>' + E(s) + '</button>';
+          }).join('') + '</div>'
+        : '') +
+      '</section>';
   }
 
   var TOP_N = 5;

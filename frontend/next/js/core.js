@@ -139,20 +139,37 @@
   }
 
   function buildIndex(f) {
-    var seen = {}, out = [];
+    var byCode = {}, out = [];
+    // 같은 종목이 여러 목록에 있으면 **합친다.** 먼저 온 쪽이 이기게만 하면
+    // 이탈 신호 종목의 상세에 시가총액이 안 나오고(그건 universeMetadata 에만
+    // 있다), 유니버스 종목의 상세에 이탈 정보가 안 나온다. 어느 쪽이든
+    // 화면이 반쯤 빈 채로 뜬다. 종류(kind)는 처음 잡힌 것을 쓴다 — 목록의
+    // 성격은 가장 구체적인 것부터 넣기 때문이다.
     function push(arr, kind) {
       (arr || []).forEach(function (c) {
         var code = String(c.code || '').trim();
-        if (!code || seen[code]) return;
-        seen[code] = 1;
-        out.push({ code: code, name: c.name || '', sector: c.sector || '', kind: kind, rec: c });
+        if (!code) return;
+        var hit = byCode[code];
+        if (!hit) {
+          var merged = {};
+          for (var k in c) merged[k] = c[k];
+          hit = byCode[code] = {
+            code: code, name: c.name || '', sector: c.sector || '', kind: kind, rec: merged, kinds: [kind]
+          };
+          out.push(hit);
+          return;
+        }
+        hit.kinds.push(kind);
+        for (var k2 in c) if (hit.rec[k2] == null) hit.rec[k2] = c[k2];
+        if (!hit.sector && c.sector) hit.sector = c.sector;
+        if (!hit.name && c.name) hit.name = c.name;
       });
     }
     push(f.buyCandidates, 'cand');
     push(f.leadingValueTop, 'value');
-    push(f.tradingIntensity, 'ti');
     push(f.overflowCandidates, 'overflow');
     push(f.exitSignals, 'exit');
+    push(f.tradingIntensity, 'ti');
     push(f.universeMetadata, 'universe');
     return out;
   }

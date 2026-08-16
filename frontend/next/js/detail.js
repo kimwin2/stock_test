@@ -32,20 +32,26 @@
 
   function render(c, hit, f) {
     var watched = C.watchHas(c.code);
-    var ret5 = c.ret5d, ret20 = c.ret20d;
+    var ret5 = c.ret5d;
     var ss = C.supplyState(c);
+    var px = c.close != null ? c.close : c.lastClose;
+    var kinds = hit.kinds || [hit.kind];
+    var has = function (k) { return kinds.indexOf(k) >= 0; };
 
     var tags = [];
-    if (hit.kind === 'cand') tags.push('<span class="tag tag-up">오늘 후보</span>');
-    if (hit.kind === 'overflow') tags.push('<span class="tag tag-warn">섹터 상한</span>');
-    if (hit.kind === 'exit') tags.push('<span class="tag tag-down">이탈 신호</span>');
+    if (has('cand')) tags.push('<span class="tag tag-up">오늘 후보</span>');
+    if (has('overflow')) tags.push('<span class="tag tag-warn">업종 상한</span>');
+    if (has('exit')) tags.push('<span class="tag tag-down">이탈 신호</span>');
+    if (has('value') && !has('cand')) tags.push('<span class="tag">거래대금 상위</span>');
     if (c.vacancyZone) tags.push('<span class="tag ' + (c.vacancyZone === '빈집' ? 'tag-down' : '') + '">' + E(c.vacancyZone) + '</span>');
-    if (c.aboveMA10) tags.push('<span class="tag tag-ok">추세 생존</span>');
+    // 이탈 신호는 10일선을 내줬다는 뜻이다. 같은 카드에 '추세 생존'을 나란히
+    // 걸면 정면으로 모순돼 보인다 — 더 구체적인 판정인 이탈 쪽을 남긴다.
+    if (c.aboveMA10 && !has('exit')) tags.push('<span class="tag tag-ok">추세 생존</span>');
     if (c.newHigh50d) tags.push('<span class="tag tag-up">50일 신고가</span>');
 
     var html =
       '<div class="d-top">' +
-        (c.close != null ? '<span class="d-px num">' + C.num(c.close) + '</span>' : '<span class="d-px">—</span>') +
+        (px != null ? '<span class="d-px num">' + C.num(px) + '</span>' : '<span class="d-px">—</span>') +
         (ret5 != null ? '<span class="d-chg num ' + C.dirClass(ret5) + '">5일 ' + C.pct(ret5, 1) + '</span>' : '') +
       '</div>' +
       '<div class="d-sub">' +
@@ -278,6 +284,10 @@
     if (c.ma10 != null) items.push(['10일선', C.num(Math.round(c.ma10))]);
     if (c.ma20 != null) items.push(['20일선', C.num(Math.round(c.ma20))]);
     if (c.max250d != null) items.push(['250일 최고', C.num(Math.round(c.max250d))]);
+    if (c.drawdownFromHighPct != null)
+      items.push(['최근 고점 대비', '<span class="down">' + C.pct(c.drawdownFromHighPct, 1) + '</span>']);
+    if (c.recentHigh != null) items.push(['최근 고점', C.num(Math.round(c.recentHigh))]);
+    if (c.ti != null) items.push(['거래대금 강도', c.ti + ' <small>' + E(c.zone || '') + '</small>']);
     if (!items.length) return '';
     return '<div class="d-sec"><h4>숫자</h4><div class="kv">' +
       items.map(function (kv) {
