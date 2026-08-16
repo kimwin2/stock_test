@@ -41,16 +41,22 @@ jobs:
           python-version: '3.11'
 
       # 전체 requirements 는 Lambda 용이라 무겁다. 대조에 실제로 필요한 것만.
-      # (KRX 상장 목록 조회 → FinanceDataReader)
+      # (KRX 상장 목록 조회 → FinanceDataReader / 번들 복호화 → cryptography)
       - name: Install deps
-        run: pip install --quiet FinanceDataReader
+        run: pip install --quiet FinanceDataReader cryptography
 
       - name: Run daily check
         id: check
         env:
-          # stock_chat 의 daily JSON 을 받을 수 있는 베이스 URL.
-          # `<base>/YYYY-MM-DD.json` 로 요청한다. 미설정이면 '레퍼런스 없음'
-          # 리포트가 나오고 잡은 통과한다 (실패로 두면 매일 빨간 X 만 쌓인다).
+          # stock_chat 의 공개 배포 번들(GitHub Pages 의 core.enc)을 여는 공유 암호.
+          # stock_chat 레포 시크릿의 SHARE_PASSPHRASE 와 같은 값이어야 한다.
+          # 미설정이면 '레퍼런스 없음' 리포트가 나오고 잡은 통과한다
+          # (실패로 두면 매일 빨간 X 만 쌓이고 아무도 안 본다).
+          SHARE_PASSPHRASE: ${{ secrets.SHARE_PASSPHRASE }}
+          # 번들 베이스 주소. 기본값(kimwin2.github.io/stock_chat)과 다를 때만 넣는다.
+          STOCK_CHAT_BUNDLE_URL: ${{ vars.STOCK_CHAT_BUNDLE_URL }}
+          # 레퍼런스를 어딘가로 따로 실어 나를 때의 우회로 (`<base>/YYYY-MM-DD.json`).
+          # 번들 경로가 붙어 있으면 쓰이지 않는다.
           REFERENCE_DAILY_URL: ${{ secrets.REFERENCE_DAILY_URL }}
         shell: bash
         run: |

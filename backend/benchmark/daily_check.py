@@ -24,10 +24,14 @@
     python -m benchmark.daily_check --days 5        # 최근 5일 누적까지
     python -m benchmark.daily_check --out report.md
 
-레퍼런스 출처 (둘 중 하나):
-    REFERENCE_DAILY_DIR   로컬 디렉터리 (기본 ~/repo/stock_chat/data/daily)
+레퍼런스 출처 (위에서부터 먼저 잡히는 것을 쓴다):
+    REFERENCE_DAILY_DIR   로컬 디렉터리 (기본 ~/repo/stock_chat/data/daily).
+                          stock_chat 이 있는 기계에서는 이것만으로 끝난다.
+    SHARE_PASSPHRASE      stock_chat 의 공개 배포 번들(GitHub Pages 의 core.enc)을
+                          받아 복호화한다. CI 처럼 stock_chat 체크아웃이 없는 곳의
+                          기본 경로. 베이스 주소는 STOCK_CHAT_BUNDLE_URL 로 바꾼다.
     REFERENCE_DAILY_URL   HTTP 베이스 URL — `<base>/YYYY-MM-DD.json` 로 받는다.
-                          CI 처럼 stock_chat 이 없는 곳에서 쓴다.
+                          레퍼런스를 어딘가로 따로 실어 나를 때의 우회로.
 
 경계는 compare.py 와 같다. 레퍼런스는 **정답지**일 뿐이고, 그 문장·수치는
 제품에 실어 나르지 않는다. 이 모듈도 Lambda 에 배포되지 않는다.
@@ -47,15 +51,22 @@ from pathlib import Path
 try:
     from .reference import (available_dates, collector_failure, daily_dir,
                             load_reference, staleness_days)
+    from .stock_chat_bundle import BundleError, fetch as fetch_bundle
 except ImportError:  # 스크립트로 직접 실행
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from benchmark.reference import (available_dates, collector_failure, daily_dir,
                                      load_reference, staleness_days)
+    from benchmark.stock_chat_bundle import BundleError, fetch as fetch_bundle
 
 KST = timezone(timedelta(hours=9))
 S3_BASE = "https://stock-dashboard-data.s3.ap-northeast-2.amazonaws.com"
 SNAPSHOT_URL = S3_BASE + "/history/flow/{date}.json"
 CACHE_DIR = Path(__file__).resolve().parent / "_snapshots"
+BUNDLE_CACHE = CACHE_DIR / "stock_chat"
+
+# 번들이 이 시간보다 오래 묵었으면 stock_chat 파이프라인이 멈춰 있다는 뜻이다.
+# hourly.yml 이 KST 05~24시 30분마다 도니 저녁 대조 시점엔 1시간 안쪽이 정상이다.
+BUNDLE_STALE_HOURS = 6
 
 # 관문 — 위에서부터 순서대로 판정한다. 순서가 곧 파이프라인 순서다.
 GATE_HIT = "적중"
@@ -77,6 +88,48 @@ def today_kst() -> str:
 
 
 # ── 레퍼런스 ────────────────────────────────────────────────
+def ensure_reference() -> dict | None:
+    """stock_chat 체크아웃이 없으면 공개 배포 번들에서 레퍼런스를 펼친다.
+
+    반환값은 번들 메타(`updatedAt` 등) 또는 None(로컬을 쓰거나 못 받았을 때).
+
+    **날짜 하나만 받아오는 방식(`REFERENCE_DAILY_URL`)으로는 부족하다.** 그 경로는
+    `available_dates()` 가 비어 있어서 `--days` 누적이 통째로 안 돈다 — 이 도구의
+    핵심인 '2일 이상 반복된 격차' 절이 CI 에서 영원히 안 찍힌다는 뜻이다.
+    번들은 전 기간이 한 파일에 들어있어 한 번 펼치면 그 문제가 없다.
+    """
+    if available_dates():
+        return None  # 로컬(또는 이미 펼쳐둔 캐시)에 있다. 네트워크를 안 탄다.
+    if not os.environ.get("SHARE_PASSPHRASE"):
+        return None
+    try:
+        meta = fetch_bundle(BUNDLE_CACHE)
+    except BundleError as exc:
+        print(f"[!] stock_chat 번들 수신 실패: {exc}", file=sys.stderr)
+        return None
+    except Exception as exc:
+        print(f"[!] stock_chat 번들 수신 실패 ({type(exc).__name__}): {exc}", file=sys.stderr)
+        return None
+    if not meta.get("days"):
+        return meta
+    os.environ["REFERENCE_DAILY_DIR"] = str(BUNDLE_CACHE)
+    return meta
+
+
+def bundle_age_hours(meta: dict | None) -> float | None:
+    """번들이 만들어진 지 몇 시간 됐는지. 시각을 못 읽으면 None."""
+    stamp = (meta or {}).get("updatedAt")
+    if not stamp:
+        return None
+    try:
+        made = datetime.fromisoformat(str(stamp))
+    except ValueError:
+        return None
+    if made.tzinfo is None:
+        made = made.replace(tzinfo=KST)
+    return (datetime.now(KST) - made).total_seconds() / 3600
+
+
 def load_reference_any(date_str: str) -> dict | None:
     """로컬 디렉터리 우선, 없으면 REFERENCE_DAILY_URL.
 
@@ -250,7 +303,8 @@ def check_one(date_str: str) -> dict:
 
 
 # ── 리포트 ──────────────────────────────────────────────────
-def render(res: dict, history: list[dict] | None = None) -> str:
+def render(res: dict, history: list[dict] | None = None,
+           bundle: dict | None = None) -> str:
     L: list[str] = []
     d = res["date"]
     L.append(f"# 관심종목 대조 — {d}")
@@ -259,6 +313,15 @@ def render(res: dict, history: list[dict] | None = None) -> str:
     if res["status"] == "no_reference":
         L.append("**레퍼런스 없음.** 그날 stock_chat 데이터가 없어 대조하지 못했다.")
         L.append("")
+        if bundle:
+            L.append(f"- 번들은 받았다 ({bundle.get('first')} ~ {bundle.get('last')}, "
+                     f"{bundle.get('days')}일) — 그중 {d} 가 없다")
+            L.append("- 주말·공휴일이면 정상이다. 평일인데 없으면 수집이 멈춘 것이다")
+        elif os.environ.get("SHARE_PASSPHRASE"):
+            L.append("- 번들을 못 받았다. 위 스텝 로그의 수신 실패 사유를 볼 것")
+        else:
+            L.append("- `SHARE_PASSPHRASE` 시크릿이 없어 stock_chat 번들을 못 읽는다 "
+                     "(stock_chat 과 같은 값을 이 레포 시크릿에 넣으면 붙는다)")
         L.append("- 수집이 멈췄는지 먼저 확인할 것 (초대 링크 만료가 반복된다)")
         L.append("- 복구: `cd ~/repo/stock_chat && python -m pipeline.run --weeks 1`")
         L.append(f"- 로컬 경로: `{daily_dir()}`")
@@ -360,10 +423,19 @@ def render(res: dict, history: list[dict] | None = None) -> str:
     # 레퍼런스 신선도 — 낡은 정답지로 채점하면 대조를 안 하느니만 못하다
     stale = staleness_days()
     fail = collector_failure()
+    age = bundle_age_hours(bundle)
     if fail:
         L.append(f"> ⚠ 레퍼런스 수집기 마지막 실행 실패: {fail}")
     elif stale is not None and stale >= 3:
         L.append(f"> ⚠ 레퍼런스가 {stale}일 묵었다. 수집부터 다시 돌릴 것.")
+    if age is not None and age >= BUNDLE_STALE_HOURS:
+        # 데이터 나이와 다른 신호다. 수집기가 오늘 죽어도 어제 요약이 남아 있으면
+        # 나이는 1일이라 위 경고가 안 뜬다 (2026-08-10 실사고).
+        L.append(f"> ⚠ stock_chat 번들이 {age:.0f}시간 전 것이다 "
+                 f"({bundle.get('updatedAt')}). 저쪽 파이프라인이 멈췄는지 볼 것.")
+    elif bundle:
+        L.append(f"> 레퍼런스 출처: stock_chat 배포 번들 "
+                 f"({bundle.get('days')}일 · 생성 {bundle.get('updatedAt')})")
     return "\n".join(L)
 
 
@@ -376,6 +448,7 @@ def main() -> int:
     args = ap.parse_args()
 
     date_str = args.date or today_kst()
+    bundle = ensure_reference()
     res = check_one(date_str)
 
     history: list[dict] = []
@@ -391,10 +464,11 @@ def main() -> int:
         history.insert(0, res)
 
     if args.as_json:
-        print(json.dumps({"today": res, "history": history}, ensure_ascii=False, indent=2))
+        print(json.dumps({"today": res, "history": history, "bundle": bundle},
+                         ensure_ascii=False, indent=2))
         return 0
 
-    md = render(res, history)
+    md = render(res, history, bundle)
     print(md)
     if args.out:
         Path(args.out).write_text(md, encoding="utf-8")

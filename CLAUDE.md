@@ -131,9 +131,16 @@ python -m benchmark.daily_check --days 5
 조건 탈락)를 붙인다. 관문마다 처방이 달라서다. 조치는 **2일 이상 반복된
 격차**만 — 리포트 끝에 따로 뽑아준다.
 
-> CI 에는 stock_chat 이 없다(레퍼런스 `data/` 는 평문이라 커밋 안 함).
-> 워크플로는 `REFERENCE_DAILY_URL` 시크릿을 보고, 없으면 '레퍼런스 없음'
-> 리포트를 내고 통과한다. 다리 놓는 법은 `backend/benchmark/README.md` 참고.
+> CI 에는 stock_chat 체크아웃이 없다(레퍼런스 `data/` 는 평문이라 커밋 안 함).
+> 대신 stock_chat 이 **이미 매시간 공개하는 암호화 배포 번들**(GitHub Pages 의
+> `data/core.enc`)을 `benchmark/stock_chat_bundle.py` 가 받아 복호화한다 —
+> stock_chat 쪽 변경 없이 이 레포에 `SHARE_PASSPHRASE` 시크릿 하나만 넣으면
+> 붙는다. 없으면 '레퍼런스 없음' 리포트를 내고 통과한다.
+> 절차는 `backend/benchmark/STOCK_CHAT_BRIDGE.md`.
+>
+> 번들에는 요약 문장·원문 인용·stock_chat 의 API 키까지 들어있다. `_slim()` 의
+> **화이트리스트**(`date`/`stance`/`cash.kr`/`sectors`/`tickers`/`message_count`)
+> 로만 꺼낸다. 블랙리스트로 바꾸지 말 것 — 저쪽이 필드를 추가할 때마다 샌다.
 
 > **수집이 조용히 멈춘다.** 운영자가 초대 링크를 수시로 폐기해서 `stock_chat` 크롤이
 > 에러 없이 이틀간 멈춰 있었다(2026-08-09~11). 링크가 죽어도 **이미 가입된 계정은

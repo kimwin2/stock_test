@@ -79,6 +79,11 @@ cd backend
 python -m benchmark.daily_check                  # 오늘(KST)
 python -m benchmark.daily_check --date 2026-08-11 --days 5
 python -m benchmark.daily_check --out report.md
+
+# stock_chat 체크아웃이 없는 기계에서 (공유 암호로 배포 번들을 읽는다)
+export SHARE_PASSPHRASE=...
+python -m benchmark.daily_check --days 5
+python -m benchmark.stock_chat_bundle --out /tmp/ref   # 번들만 펼쳐 보기
 ```
 
 - 스케줄: `.github/workflows/daily-benchmark.yml`, 평일 **KST 20:35**.
@@ -95,18 +100,35 @@ python -m benchmark.daily_check --out report.md
   KRX 상장 목록으로만 판정하고, 목록을 못 받으면 구분을 생략했다고 리포트에 쓴다.
 - **하루치로 결론내지 않는다.** 리포트 끝의 `2일 이상 반복된 격차` 만 조치 후보다.
 
-### 레퍼런스를 CI 로 넘기는 다리 (미결)
+### 레퍼런스를 CI 로 넘기는 다리 (2026-08-16 해결)
 
 레퍼런스 `data/` 는 평문이라 커밋하지 않는 정책이라, GitHub Actions 에는
-stock_chat 데이터가 없다. 그래서 워크플로는 `REFERENCE_DAILY_URL` 시크릿을 본다
-(`<base>/YYYY-MM-DD.json`). 미설정이면 '레퍼런스 없음' 리포트를 내고 잡은
-통과한다 — 실패로 두면 매일 빨간 X 만 쌓이고 아무도 안 본다.
+stock_chat 데이터가 없다. 그런데 stock_chat 은 **이미 매시간 그 데이터를 공개
+주소로 내보내고 있다** — GitHub Pages 의 `data/core.enc`. AES-256-GCM 이라
+레포가 public 이어도 평문 노출이 없고, 그 안의 `days[]` 가 우리가 필요한
+전부다(`tickers`/`sectors`/`cash`).
 
-놓는 절차는 **`STOCK_CHAT_BRIDGE.md`** 에 그대로 적어뒀다 (stock_chat 에
-붙일 워크플로 + 이 레포에 넣을 시크릿 + 확인 방법).
+→ `stock_chat_bundle.py` 가 그걸 받아 복호화해 `_snapshots/stock_chat/` 로
+펼친다. **stock_chat 쪽 변경은 하나도 없고**, 이 레포에 `SHARE_PASSPHRASE`
+시크릿 하나만 넣으면 붙는다. 절차는 **`STOCK_CHAT_BRIDGE.md`**.
 
-CI 없이 쓰려면 `~/repo/stock_chat` 이 있는 기계에서 그냥 돌리면 된다 —
-`REFERENCE_DAILY_DIR` 기본값이 그대로 맞아 인자 없이 동작한다.
+레퍼런스 출처 우선순위 (위에서부터 먼저 잡히는 것):
+
+| 출처 | 언제 |
+|---|---|
+| `REFERENCE_DAILY_DIR` | stock_chat 이 있는 기계. 기본값이 맞아 인자 없이 동작 |
+| `SHARE_PASSPHRASE` | CI 등 체크아웃이 없는 곳 — 배포 번들을 받아 복호화 |
+| `REFERENCE_DAILY_URL` | 레퍼런스를 어딘가로 따로 실어 나를 때의 우회로 |
+
+**날짜 하나만 받아오는 방식으로는 부족했다.** `REFERENCE_DAILY_URL` 경로는
+`available_dates()` 가 비어 있어서 `--days` 누적이 통째로 안 돈다 — 이 도구의
+핵심인 '2일 이상 반복된 격차' 절이 CI 에서 영원히 안 찍힌다는 뜻이다. 번들은
+전 기간이 한 파일에 들어있어 한 번 펼치면 그 문제가 없다.
+
+**꺼내는 건 화이트리스트로 제한한다.** `core.enc` 에는 요약 문장·원문 인용·
+stock_chat 의 Gemini 키와 GitHub 토큰까지 들어있다. `_slim()` 이 대조에 쓰는
+여섯 키만 통과시키고 나머지는 디스크에 쓰지 않는다. 블랙리스트로 두면 저쪽이
+필드를 추가할 때마다 하나씩 샌다.
 
 ## 자동 축적 (2026-08-09 설정)
 
