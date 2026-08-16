@@ -186,7 +186,7 @@
           '<b style="font-size:.875rem">' + E(sec) + ' <span class="num" style="color:var(--ink-4)">' + bySec[sec].length + '</span></b>' +
           '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
           bySec[sec].map(function (o) {
-            return '<button class="tag" type="button" style="height:32px;padding:0 11px;font-size:.8125rem" ' +
+            return '<button class="tag tag-tap" type="button" ' +
               'data-code="' + E(o.code) + '" data-name="' + E(o.name) + '">' + E(o.name) +
               (o.ret5d != null ? ' <b class="' + C.dirClass(o.ret5d) + '">' + C.pct(o.ret5d, 1) + '</b>' : '') +
               '</button>';

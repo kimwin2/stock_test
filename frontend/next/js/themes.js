@@ -60,15 +60,6 @@
       var st = e.target.closest('[data-code]');
       if (st && !e.target.closest('a')) global.Detail.open(st.dataset.code, st.dataset.name);
     });
-    root.addEventListener('keydown', function (e) {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      var tile = e.target.closest('.tmap-tile');
-      if (tile && tile.getAttribute('data-code')) {
-        e.preventDefault();
-        global.Detail.open(tile.getAttribute('data-code'), tile.getAttribute('data-name'));
-      }
-    });
-
     if (opts.focus) {
       var target = root.querySelector('[data-theme-card="' + cssEsc(opts.focus) + '"]');
       if (target) setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);

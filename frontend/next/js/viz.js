@@ -614,7 +614,7 @@
         var rate = (st.rate == null || !isFinite(st.rate)) ? 0 : st.rate;
         var lb = fitLabel(st.name, st.w, st.h);
         var showRate = lb && st.h > lb.font * 2.5 && st.w > 42;
-        s += '<g class="tmap-tile" data-code="' + E(st.code || '') + '" data-name="' + E(st.name || '') + '" role="button" tabindex="0">' +
+        s += '<g class="tmap-tile" data-code="' + E(st.code || '') + '" data-name="' + E(st.name || '') + '">' +
              '<title>' + E(st.name) + ' · ' + (rate >= 0 ? '+' : '') + rate.toFixed(2) + '% · 거래대금 ' + E(global.Core.won(st.raw)) + '</title>' +
              '<rect x="' + f1(st.x + 1) + '" y="' + f1(st.y + 1) + '" width="' + f1(Math.max(0, st.w - 2)) +
              '" height="' + f1(Math.max(0, st.h - 2)) + '" rx="3" fill="' + tmColor(rate) + '"/>' +
