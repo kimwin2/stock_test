@@ -492,9 +492,16 @@ a { color: inherit; }
 }
 
 /* 삭제 버튼이 붙는 행 (관심 목록) */
+/* 순위가 없는 목록(검색 결과)은 순위 칸을 아예 빼서 이름에 폭을 준다. */
+.row.row-norank {
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name price" "meta price";
+}
+
+/* 관심 목록은 순위가 없다. 빈 순위 칸을 두면 좁은 폭에서 이름만 손해 본다. */
 .row.row-x {
-  grid-template-columns: 26px 1fr auto 40px;
-  grid-template-areas: "rk name price x" "rk meta price x";
+  grid-template-columns: 1fr auto 40px;
+  grid-template-areas: "name price x" "meta price x";
   cursor: pointer;
 }
 .row-x .wx {
@@ -657,6 +664,10 @@ details.fold > summary .cnt ~ ::after { margin-left: 8px; }
 .d-chg { font-size: 1rem; font-weight: 750; font-variant-numeric: tabular-nums; padding-bottom: 2px; }
 .d-sub { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
 .d-acts { display: flex; gap: 8px; margin-top: 14px; }
+/* 담긴 상태는 색만이 아니라 아이콘 채움으로도 구분한다 — 색만으로 상태를
+   전달하면 색각 이상 사용자에게는 두 상태가 같아 보인다. */
+.btn-watch.is-on { background: var(--warn-weak); color: var(--warn); }
+.btn-watch.is-on svg { fill: currentColor; stroke: currentColor; }
 .d-acts .btn { flex: 1; }
 
 .d-sec { margin-top: 20px; }

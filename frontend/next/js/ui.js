@@ -17,18 +17,24 @@
   function lock() { document.body.classList.add('is-locked'); }
   function unlock() { if (!stack.length) document.body.classList.remove('is-locked'); }
 
+  /* 덮개는 히스토리 항목을 하나 밀어 넣는다.
+     이게 없으면 안드로이드 뒤로가기 제스처가 시트를 닫는 대신 앱을 나가버린다.
+     상용 앱에서 가장 먼저 티가 나는 자리라 라우터보다 먼저 맞춰야 한다.
+     (라우팅은 replaceState 만 쓰므로 여기와 충돌하지 않는다) */
   function open(el, opts) {
     opts = opts || {};
     var restore = document.activeElement;
     el.removeAttribute('hidden');
     stack.push({ el: el, restore: restore, onClose: opts.onClose });
     lock();
+    try { history.pushState({ ovl: stack.length }, ''); } catch (e) {}
     // 첫 포커스 — 스크린리더/키보드 사용자가 덮개 안에서 시작하게 한다
     var first = el.querySelector('[data-autofocus]') || el.querySelector('button, input, [tabindex]');
     if (first) setTimeout(function () { try { first.focus({ preventScroll: true }); } catch (e) {} }, 40);
   }
 
-  function closeTop() {
+  // 실제로 닫기만 한다. 히스토리는 건드리지 않는다.
+  function popOverlay() {
     var top = stack.pop();
     if (!top) return false;
     top.el.setAttribute('hidden', '');
@@ -40,12 +46,25 @@
     return true;
   }
 
+  // 버튼·Esc 로 닫을 때는 히스토리를 되감고, 실제 닫기는 popstate 가 한다.
+  // 그래야 뒤로가기와 닫기 버튼이 같은 상태를 남긴다.
+  function closeTop() {
+    if (!stack.length) return false;
+    try { history.back(); } catch (e) { popOverlay(); }
+    return true;
+  }
+
   function closeEl(el) {
     var i = stack.findIndex(function (s) { return s.el === el; });
     if (i < 0) { el.setAttribute('hidden', ''); return; }
-    // 위에 쌓인 것부터 순서대로 닫는다
-    while (stack.length > i) closeTop();
+    var n = stack.length - i;
+    try { history.go(-n); } catch (e) { while (stack.length > i) popOverlay(); }
   }
+
+  global.addEventListener('popstate', function (e) {
+    var want = (e.state && e.state.ovl) ? e.state.ovl : 0;
+    while (stack.length > want) popOverlay();
+  });
 
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape' || !stack.length) return;
@@ -172,6 +191,17 @@
       '</div>';
   }
 
+  // fetch 실패는 브라우저마다 영어 문구를 던진다("Failed to fetch" / "Load failed").
+  // 그대로 보여주면 사용자는 뭘 해야 할지 모른다.
+  function humanErr(msg) {
+    var m = String(msg || '');
+    if (/failed to fetch|load failed|networkerror/i.test(m)) return '네트워크에 연결할 수 없습니다. 연결을 확인해 주세요.';
+    if (/^HTTP 404/.test(m)) return '데이터 파일을 찾을 수 없습니다 (404).';
+    if (/^HTTP 5\d\d/.test(m)) return '서버가 응답하지 않습니다 (' + m + ').';
+    if (/^HTTP 403/.test(m)) return '데이터에 접근할 수 없습니다 (403).';
+    return m;
+  }
+
   function errorState(msg, retryFn) {
     var id = 'rt' + Math.random().toString(36).slice(2, 8);
     setTimeout(function () {
@@ -181,7 +211,7 @@
     return '<div class="empty">' +
       '<div class="e-ic"><svg viewBox="0 0 24 24"><path d="M12 3.8 21 19H3z"/><path d="M12 10v4M12 16.6h.01"/></svg></div>' +
       '<b>데이터를 불러오지 못했습니다</b>' +
-      '<p>' + E(msg || '') + '</p>' +
+      '<p>' + E(humanErr(msg)) + '</p>' +
       '<button class="btn btn-primary" type="button" id="' + id + '">다시 시도</button>' +
       '</div>';
   }
@@ -284,13 +314,19 @@
   function searchRow(x) {
     var c = x.rec || {};
     var ret = c.ret5d;
-    return '<button class="row" type="button" data-code="' + E(x.code) + '" data-name="' + E(x.name) + '">' +
-      '<span class="r-rk"></span>' +
+    // 유니버스에만 있는 종목은 시세 시계열을 계산하지 않는다. 우측 칸을 비워
+    // 두면 고장난 행처럼 보이므로 가진 정보(시가총액)를 대신 보여준다.
+    var right = c.close != null
+      ? '<b class="num">' + global.Core.num(c.close) + '</b>' +
+        (ret != null ? '<em class="num ' + global.Core.dirClass(ret) + '">5일 ' + global.Core.pct(ret, 1) + '</em>' : '')
+      : (ret != null
+          ? '<em class="num ' + global.Core.dirClass(ret) + '">5일 ' + global.Core.pct(ret, 1) + '</em>'
+          : (c.marketCap ? '<em style="color:var(--ink-4)">시총 ' + global.Core.won(c.marketCap) + '</em>' : ''));
+    return '<button class="row row-norank" type="button" data-code="' + E(x.code) + '" data-name="' + E(x.name) + '">' +
       '<span class="r-name"><b>' + E(x.name) + '</b>' + (KIND_TAG[x.kind] || '') + '</span>' +
-      '<span class="r-meta">' + E(x.sector || '-') + ' · ' + E(x.code) + '</span>' +
-      '<span class="r-price">' + (c.close != null ? '<b class="num">' + global.Core.num(c.close) + '</b>' : '') +
-      (ret != null ? '<em class="num ' + global.Core.dirClass(ret) + '">5일 ' + global.Core.pct(ret, 1) + '</em>' : '') +
-      '</span></button>';
+      '<span class="r-meta">' + E(x.sector || '-') + ' · ' + E(x.code) +
+        (c.market ? ' · ' + E(c.market) : '') + '</span>' +
+      '<span class="r-price">' + right + '</span></button>';
   }
 
   /* ── 전체화면 캔들 차트 ─────────────────────────────────── */
@@ -308,12 +344,15 @@
     document.getElementById('full-back').addEventListener('click', function () { closeEl(fullEl); });
     var seg = document.getElementById('full-tf');
     seg.innerHTML = TF.map(function (t) {
-      return '<button type="button" data-tf="' + t.key + '"' + (t.key === 'day' ? ' class="is-on"' : '') + '>' + t.label + '</button>';
+      return '<button type="button" data-tf="' + t.key + '" aria-pressed="' + (t.key === 'day') + '">' + t.label + '</button>';
     }).join('');
     seg.addEventListener('click', function (e) {
       var b = e.target.closest('[data-tf]');
       if (!b) return;
-      seg.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); });
+      seg.querySelectorAll('button').forEach(function (x) {
+        x.classList.toggle('is-on', x === b);
+        x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+      });
       fullState.tf = b.dataset.tf;
       loadFull();
     });

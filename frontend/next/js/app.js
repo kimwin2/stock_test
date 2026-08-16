@@ -51,8 +51,11 @@
     }
 
     try {
+      // 탭 이동은 히스토리 항목을 늘리지 않는다 — 뒤로가기는 '덮개 닫기'로
+      // 예약돼 있다(ui.js). state 를 그대로 넘겨야 열려 있는 덮개의 깊이가
+      // 지워지지 않는다.
       var q = route === 'home' ? '#/' : '#/' + route;
-      if (global.location.hash !== q) history.replaceState(null, '', q);
+      if (global.location.hash !== q) history.replaceState(history.state, '', q);
     } catch (e) {}
   }
 
@@ -103,7 +106,7 @@
     if (btn) btn.classList.add('is-spin');
     C.reload();
     var here = current;
-    go(here);                       // 현재 화면을 새 데이터로 다시 그린다
+    go(here, { restore: true });    // 새 데이터로 다시 그리되 보던 위치는 지킨다
     C.flow().then(function () { global.UI.toast('최신 데이터로 갱신했습니다'); })
       .catch(function () { global.UI.toast('갱신하지 못했습니다'); })
       .then(function () {

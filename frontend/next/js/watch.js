@@ -46,13 +46,12 @@
 
       return '<div class="row row-x" role="button" tabindex="0" data-code="' + E(w.code) +
         '" data-name="' + E(w.name || (c && c.name) || '') + '">' +
-        '<span class="r-rk"></span>' +
         '<span class="r-name"><b>' + E(w.name || (c && c.name) || w.code) + '</b>' +
           (isCand ? '<span class="tag tag-up">오늘 후보</span>' : '') +
           (isExit ? '<span class="tag tag-down">이탈</span>' : '') + '</span>' +
         '<span class="r-meta">' + E((c && c.sector) || (hit && hit.sector) || '—') +
           (ss ? ' · ' + E(ss.label) : '') +
-          ' · 담은 날 ' + E(day(w.at)) + '</span>' +
+          ' · ' + E(day(w.at)) + ' 담음</span>' +
         '<span class="r-price">' +
           (c && c.close != null ? '<b class="num">' + C.num(c.close) + '</b>' : '<b style="color:var(--ink-4)">—</b>') +
           (c && c.ret5d != null ? '<em class="num ' + C.dirClass(c.ret5d) + '">' + C.pct(c.ret5d, 1) + '</em>' : '') +
@@ -80,6 +79,15 @@
       '<button class="btn btn-ghost btn-block" type="button" id="w-clear" style="margin-top:12px">전체 비우기</button>';
 
     root.addEventListener('click', onClick);
+    // 행이 <div role="button"> 이라 키보드 활성화를 직접 붙여야 한다.
+    // tabindex 만 주고 끝내면 포커스는 가는데 눌리지 않는 함정이 된다.
+    root.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var row = e.target.closest('.row-x');
+      if (!row || e.target.closest('[data-remove]')) return;
+      e.preventDefault();
+      global.Detail.open(row.dataset.code, row.dataset.name);
+    });
     var cl = root.querySelector('#w-clear');
     if (cl) cl.addEventListener('click', function () {
       confirmClear(saved.length);

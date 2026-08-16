@@ -17,8 +17,7 @@
 
   var URLS = {
     theme: IS_PROD ? S3 + '/dashboard_data.json' : '../dashboard_data.json',
-    flow:  IS_PROD ? S3 + '/flow_dashboard.json' : '../flow_dashboard.json',
-    briefingSample: '../briefing_sample.json'
+    flow:  IS_PROD ? S3 + '/flow_dashboard.json' : '../flow_dashboard.json'
   };
 
   /* ── 안전한 문자열 ──────────────────────────────────────── */

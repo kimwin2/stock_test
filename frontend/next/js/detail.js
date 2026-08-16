@@ -55,8 +55,9 @@
       '</div>' +
 
       '<div class="d-acts">' +
-        '<button class="btn' + (watched ? '' : ' btn-primary') + '" type="button" id="d-watch">' +
-          starSvg() + '<span>' + (watched ? '관심 해제' : '관심 담기') + '</span>' +
+        '<button class="btn btn-watch' + (watched ? ' is-on' : ' btn-primary') + '" type="button" id="d-watch" ' +
+          'aria-pressed="' + watched + '">' +
+          starSvg() + '<span>' + (watched ? '관심 담김' : '관심 담기') + '</span>' +
         '</button>' +
         '<button class="btn btn-ghost" type="button" id="d-full">' +
           '<svg viewBox="0 0 24 24"><path d="M4 19V9M9.3 19V5M14.7 19v-7M20 19V8"/></svg><span>차트 크게</span>' +
@@ -78,7 +79,9 @@
         if (wb) wb.addEventListener('click', function () {
           var on = C.watchToggle(c.code, c.name);
           wb.classList.toggle('btn-primary', !on);
-          wb.querySelector('span').textContent = on ? '관심 해제' : '관심 담기';
+          wb.classList.toggle('is-on', on);
+          wb.setAttribute('aria-pressed', String(on));
+          wb.querySelector('span').textContent = on ? '관심 담김' : '관심 담기';
           global.UI.toast(on ? '관심에 담았습니다' : '관심에서 뺐습니다');
           global.App.refreshWatchDot();
         });

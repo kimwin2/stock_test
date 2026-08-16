@@ -26,7 +26,8 @@
 
   function view(root, opts) {
     opts = opts || {};
-    if (opts.sector) { state.seg = 'cand'; state.sector = opts.sector; }
+    state.sector = opts.sector || null;
+    if (opts.sector) state.seg = 'cand';
     root.innerHTML = UI.skeleton('rows');
     C.flow()
       .then(function (f) { paint(root, f); })
@@ -37,11 +38,11 @@
 
   function paint(root, f) {
     root.innerHTML =
-      '<div class="seg" id="st-seg" role="tablist">' +
+      '<div class="seg" id="st-seg" role="group" aria-label="목록 종류">' +
         SEGS.map(function (s) {
           var n = count(f, s.key);
-          return '<button type="button" role="tab" data-seg="' + s.key + '"' +
-            (s.key === state.seg ? ' class="is-on" aria-selected="true"' : ' aria-selected="false"') + '>' +
+          return '<button type="button" data-seg="' + s.key + '"' +
+            (s.key === state.seg ? ' class="is-on" aria-pressed="true"' : ' aria-pressed="false"') + '>' +
             s.label + (n ? ' <span class="num" style="opacity:.6">' + n + '</span>' : '') + '</button>';
         }).join('') +
       '</div>' +
@@ -55,7 +56,7 @@
       root.querySelectorAll('#st-seg button').forEach(function (x) {
         var on = x.dataset.seg === state.seg;
         x.classList.toggle('is-on', on);
-        x.setAttribute('aria-selected', on ? 'true' : 'false');
+        x.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
       body(root, f);
       root.scrollIntoView({ block: 'start' });
@@ -110,17 +111,18 @@
 
     var head =
       '<div class="chiprow">' +
-        '<button class="chip' + (!state.sector ? ' is-on' : '') + '" type="button" data-sector-filter="__all">전체 <em>' + all.length + '</em></button>' +
+        '<button class="chip' + (!state.sector ? ' is-on' : '') + '" type="button" aria-pressed="' +
+          (!state.sector) + '" data-sector-filter="__all">전체 <em>' + all.length + '</em></button>' +
         sectors.map(function (s) {
           var n = all.filter(function (c) { return c.sector === s; }).length;
-          return '<button class="chip' + (state.sector === s ? ' is-on' : '') + '" type="button" data-sector-filter="' + E(s) + '">' +
-            E(s) + ' <em>' + n + '</em></button>';
+          return '<button class="chip' + (state.sector === s ? ' is-on' : '') + '" type="button" aria-pressed="' +
+            (state.sector === s) + '" data-sector-filter="' + E(s) + '">' + E(s) + ' <em>' + n + '</em></button>';
         }).join('') +
       '</div>' +
       '<div class="chiprow" style="padding-top:0">' +
         SORTS.map(function (s) {
-          return '<button class="chip' + (state.sort === s.key ? ' is-on' : '') + '" type="button" data-sort="' + s.key + '">' +
-            s.label + '</button>';
+          return '<button class="chip' + (state.sort === s.key ? ' is-on' : '') + '" type="button" aria-pressed="' +
+            (state.sort === s.key) + '" data-sort="' + s.key + '">' + s.label + '</button>';
         }).join('') +
       '</div>';
 
