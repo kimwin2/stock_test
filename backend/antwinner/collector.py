@@ -22,6 +22,46 @@ HEADERS = {
 
 TOP_N = 5  # 상위 5개 테마만 수집
 
+# ── 테마가 아닌 버킷 ────────────────────────────────────────────────
+# 개미승리 카테고리에는 업종이 아니라 **그날 장이 어땠는지**를 가리키는
+# 버킷이 섞여 있다. 이건 테마가 아니다. 테마는 "이 종목들이 무슨 사업을
+# 해서 같이 움직였나"에 답해야 하는데, '하락장' 은 그 답을 하지 않는다.
+#
+# 실사고 (2026-08-18): 개미승리 등락률 2위가 `하락장` 이었다.
+#   `analyzer._apply_antwinner_top2_postprocess` 가 상위 2개를 **검증 없이
+#   강제 삽입**하므로 그대로 테마 카드가 됐고, 코데즈컴바인(의류)·
+#   신라섬유(섬유)·양지사(문구)가 한 카드에 묶였다. 업종 공통점이 없다.
+#   같은 날 근거가 훨씬 단단한 급등클러스터 후보 `의류 및 패션`
+#   (134점 · 좋은사람들·코데즈컴바인·인디에프 동반 상한가)은 자리를 못 얻었다.
+#   즉 가짜 테마 하나가 진짜 테마 하나를 밀어낸다.
+#
+# 걸러내는 축은 셋이다 — 장세 / 매매 스타일 / 가격 패턴.
+# 재무 속성(저PBR·고배당)이나 유통물량(품절주)은 **일부러 넣지 않았다.**
+# 그건 "왜 올랐나"에 실제로 답하는 근거라 테마로 볼 여지가 있다.
+# 여기 목록은 추측으로 늘리지 말고, 아래 로그에 찍힌 실제 버킷명만 보고 늘린다.
+NON_THEME_BUCKETS = {
+    # 장세
+    "하락장", "상승장", "급등장", "급락장", "횡보장", "약세장", "강세장", "보합장",
+    "지수방어", "위험회피", "안전자산선호", "헤지", "햇지", "순환매",
+    # 매매 스타일 · 수급 형태
+    "개별주", "테마주", "급등주", "주도주", "단타", "스윙", "낙폭과대", "반등주",
+    # 가격 패턴 · 이벤트
+    "상한가", "하한가", "신고가", "신저가", "저가주", "동전주", "실적", "실적주",
+}
+
+
+def _norm_bucket(name: str) -> str:
+    """비교용 정규화 — 공백/가운뎃점 제거."""
+    return "".join(str(name or "").split()).replace("·", "").replace("/", "")
+
+
+_NON_THEME_NORM = {_norm_bucket(x) for x in NON_THEME_BUCKETS}
+
+
+def is_non_theme_bucket(name: str) -> bool:
+    """업종이 아니라 장세·매매스타일·가격패턴을 가리키는 이름인가."""
+    return _norm_bucket(name) in _NON_THEME_NORM
+
 
 def _parse_rate(rate_str: str) -> float:
     """'11.37%' → 11.37 으로 변환"""
@@ -87,7 +127,20 @@ def fetch_antwinner_top_themes(top_n: int = TOP_N) -> list[dict]:
         theme["_avg_rate"] = _parse_rate(theme.get("average_rate", "0%"))
 
     sorted_themes = sorted(raw_themes, key=lambda t: t["_avg_rate"], reverse=True)
-    top_themes = sorted_themes[:top_n]
+
+    # 테마가 아닌 버킷은 **상위 N 을 자르기 전에** 뺀다.
+    # 자른 뒤에 빼면 그 자리가 그냥 비어 진짜 테마 하나를 손해 본다.
+    kept, dropped = [], []
+    for theme in sorted_themes:
+        name = theme.get("thema", "")
+        if is_non_theme_bucket(name):
+            dropped.append(name)
+        else:
+            kept.append(theme)
+    if dropped:
+        print(f"  [제외] 테마가 아닌 버킷 {len(dropped)}개: {', '.join(dropped)}")
+
+    top_themes = kept[:top_n]
 
     results = []
     for theme in top_themes:

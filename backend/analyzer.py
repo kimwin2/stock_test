@@ -24,7 +24,8 @@ try:
     from telegram.store import load_telegram_signals
     from youtube_signals import fetch_latest_youtube_theme_signals
     from wownet_signals import fetch_latest_wownet_theme_signals
-    from antwinner.collector import fetch_antwinner_top_themes, build_antwinner_payload
+    from antwinner.collector import (fetch_antwinner_top_themes, build_antwinner_payload,
+                                     is_non_theme_bucket)
     from antwinner.store import load_antwinner_payload, save_antwinner_payload
     from infostock.collector import fetch_infostock_top_themes, build_infostock_payload
     from infostock.store import load_infostock_payload, save_infostock_payload
@@ -34,7 +35,8 @@ except ModuleNotFoundError:
     from .telegram.store import load_telegram_signals
     from .youtube_signals import fetch_latest_youtube_theme_signals
     from .wownet_signals import fetch_latest_wownet_theme_signals
-    from .antwinner.collector import fetch_antwinner_top_themes, build_antwinner_payload
+    from .antwinner.collector import (fetch_antwinner_top_themes, build_antwinner_payload,
+                                      is_non_theme_bucket)
     from .antwinner.store import load_antwinner_payload, save_antwinner_payload
     from .infostock.collector import fetch_infostock_top_themes, build_infostock_payload
     from .infostock.store import load_infostock_payload, save_infostock_payload
@@ -2324,6 +2326,24 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
         # (대장주 등락률·거래대금·외부 근거). 여기서 부족하다고 채우면 그 자리는
         # 근거 없는 테마로 메워진다 (2026-08-11 '조선기자재'·'게임' 실사고).
         print(f"  [i] 테마 후보 {len(themes)}개 (상한 7개) — 종목 선정 게이트가 최종 개수를 정합니다")
+
+        # 장세·매매스타일 이름은 출처와 무관하게 뺀다.
+        #
+        # 수집기(antwinner.collector)에서 이미 걸러내지만 그것만으로는 부족하다.
+        # 개미승리 경로만 막힐 뿐, LLM 이 뉴스만 보고 "하락장"·"낙폭과대" 같은
+        # 이름을 지어내는 길이 남는다. 실제로 프롬프트가 그런 이름을 금지하고
+        # 있는데도 나온 적이 있어(2026-08-11 '조선기자재'), 지시문만으로는
+        # 막히지 않는다는 게 이미 확인됐다. 마지막에 한 번 더 자른다.
+        #
+        # `_from_antwinner` 여부를 보지 않는 게 핵심이다. 강제 삽입된 테마는
+        # 뒤 단계의 교체 대상에서 빠지도록 되어 있어(_find_replaceable_theme_index),
+        # 출처를 존중하면 정확히 이 사고가 다시 난다.
+        before_state = len(themes)
+        themes = [t for t in themes if not is_non_theme_bucket(t.get("themeName", ""))]
+        if len(themes) < before_state:
+            dropped = before_state - len(themes)
+            print(f"  [제거] 업종이 아닌 테마명 {dropped}개를 제거했습니다 (장세·매매스타일).")
+        result["themes"] = themes
 
         # 전체 섹터 통틀어서 같은 종목은 1번만 노출
         _deduplicate_stocks_across_themes(themes, max_occurrences=1)
