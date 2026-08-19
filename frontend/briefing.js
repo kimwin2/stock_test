@@ -210,10 +210,8 @@ function buildCrowdingChart(flow, viewW) {
   const band = crowdBandOf(pct);
 
   // 방향이 수준보다 중요하다. 참고 자료는 "꺾이면 편해짐 / 하단에서 올라오면
-  // 어려워짐" 처럼 언제나 방향으로 말한다. 5거래일 변화로 잡는다.
-  // 3거래일 창. 참고 자료는 전환을 하루이틀 만에 읽는다. 5일로 잡으면
-  // 되돌아선 것을 놓친다 (실측 2026-08-10: 이틀 만에 13.5→16.2 로 튀었는데
-  // 5일 창은 '내려가는 중' 이라고 답했다). 백엔드 _crowding_state 와 같은 값.
+  // 어려워짐" 처럼 언제나 방향으로 말한다. 3거래일 창 — 5일로 잡으면 되돌아선
+  // 것을 놓친다(실측 2026-08-10: 이틀 만에 13.5→16.2). 백엔드 _crowding_state 와 동일.
   const back = vals[Math.max(0, vals.length - 4)];
   const diff = last - back;
   const span = Math.max(...vals) - Math.min(...vals) || 1;
@@ -221,73 +219,96 @@ function buildCrowdingChart(flow, viewW) {
   const falling = diff < -span * 0.02;
   const dirLabel = rising ? '올라가는 중' : (falling ? '내려가는 중' : '옆걸음');
   const dirMark = rising ? '▲' : (falling ? '▼' : '▬');
-  // 수준 × 방향 조합이 실제 판단이다. 수준만 말하면 전환점을 놓친다.
   let verdict;
   if (rising && pct < 30) verdict = '바닥에서 올라오는 중 — 지금부터 어려워질 수 있는 자리';
   else if (rising) verdict = '쏠림이 강해지는 중 — 살아남는 업종이 줄어드는 흐름';
   else if (falling && pct >= 70) verdict = '고점에서 꺾이는 중 — 순환매로 풀리는 자리';
   else if (falling) verdict = '쏠림이 풀리는 중 — 업종 간 편차가 좁아지는 흐름';
-  // 밴드 이름은 단계 헤더 pill 이 이미 말한다. 여기서 또 쓰면 한 화면에
-  // 같은 단어가 세 번 나온다. 방향이 없을 때는 그 사실만 말한다.
   else verdict = '큰 변화 없이 이어지는 중';
 
-  // ── SVG ──
-  // 높이는 폭에 완만하게 따라간다. 640×170 비율(3.8:1)을 좁은 화면에 그대로
-  // 쓰면 200px 폭에서 53px 짜리 띠가 되어 선 모양이 안 보인다.
+  // ── SVG ───────────────────────────────────────────────────────────
+  // [2026-08-19 재작업] 예전에는 백분위 4구간을 **베이지·살구색 가로 띠**로
+  // 깔고 그 위에 얇은 검정 선을 그렸다. 문제:
+  //   · 띠 4개가 화면 면적의 대부분을 차지하는데 어느 띠가 무슨 뜻인지 라벨이
+  //     없다. 색이 정보를 주지 않으면서 시선만 먹는다.
+  //   · 베이지 계열이 겹치면 채도가 낮은 진흙색으로 읽힌다(구형 엑셀 차트 인상).
+  //   · 정작 읽어야 할 선이 배경 대비가 낮아 가장 안 보인다.
+  // → 띠를 걷어내고 **경계선 두 개(30%·70%)만 점선**으로 남긴다. 선은 굵게,
+  //   아래는 그라데이션 면적. 마지막 값은 우측 pill 로 — HTS 관례다.
   const W = Math.round(Math.max(200, Math.min(760, viewW || 640)));
-  const H = Math.round(Math.max(130, Math.min(190, W * 0.45)));
-  const PL = 6, PR = W >= 400 ? 44 : 32, PT = 10, PB = 20;
+  const H = Math.round(Math.max(132, Math.min(196, W * 0.46)));
+  const PL = 6, PR = W >= 400 ? 52 : 42, PT = 12, PB = 22;
   const iw = W - PL - PR, ih = H - PT - PB;
   const lo = Math.min(...vals), hi = Math.max(...vals);
-  const rng = (hi - lo) || 1;
+  const pad = (hi - lo) * 0.08 || 1;
+  const yLo = lo - pad, yHi = hi + pad;
   const X = i => PL + (i / (vals.length - 1)) * iw;
-  const Y = v => PT + (1 - (v - lo) / rng) * ih;
-  // 백분위 경계를 y 좌표로 — 밴드를 그리려면 값이 필요하다
+  const Y = v => PT + (1 - (v - yLo) / (yHi - yLo)) * ih;
+
   const sorted = [...vals].sort((a, b) => a - b);
-  const qv = p => sorted[Math.min(sorted.length - 1, Math.floor(p / 100 * sorted.length))];
-  const bandRects = [
-    { y0: qv(90), y1: hi, cls: 'cb-x' },
-    { y0: qv(70), y1: qv(90), cls: 'cb-hard' },
-    { y0: qv(30), y1: qv(70), cls: 'cb-mid' },
-    { y0: lo, y1: qv(30), cls: 'cb-easy' },
-  ].map(b => {
-    const yTop = Y(b.y1), yBot = Y(b.y0);
-    return `<rect x="${PL}" y="${yTop.toFixed(1)}" width="${iw}" height="${Math.max(0, yBot - yTop).toFixed(1)}" class="${b.cls}"/>`;
-  }).join('');
+  const qv = p2 => sorted[Math.min(sorted.length - 1, Math.floor(p2 / 100 * sorted.length))];
+
+  // 색은 현재 구간 하나만 쓴다. 구간이 바뀌면 차트 전체 톤이 바뀌어,
+  // 숫자를 읽기 전에 "지금 어느 쪽인지"가 먼저 전달된다.
+  const TONE = { easy: '#1B8A5A', mid: '#5B6472', hard: '#C2610C', x: '#B01F26' };
+  const tone = TONE[band.tone] || TONE.mid;
+  const gid = 'cg' + Math.random().toString(36).slice(2, 7);
 
   const line = vals.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+  const area = `${line}L${X(vals.length - 1).toFixed(1)},${(PT + ih).toFixed(1)}L${X(0).toFixed(1)},${(PT + ih).toFixed(1)}Z`;
   const cx = X(vals.length - 1), cy = Y(last);
 
-  // x 축 — 월이 바뀌는 지점만 찍는다. 눈금이 촘촘하면 선이 안 보인다.
-  let ticks = '';
-  let prevMonth = '';
+  // 기준선 — 상위 30%(어려움 시작) / 하위 30%(편함 시작) 두 개만.
+  const guides = [[70, '어려움'], [30, '편함']].map(([q, lab]) => {
+    const y = Y(qv(q));
+    return `<line x1="${PL}" y1="${y.toFixed(1)}" x2="${(PL + iw).toFixed(1)}" y2="${y.toFixed(1)}" class="cc-guide"/>` +
+           `<text x="${(PL + 3)}" y="${(y - 4).toFixed(1)}" class="cc-guide-lab">${lab}</text>`;
+  }).join('');
+
+  // x 축 — 월이 바뀌는 지점만
+  let ticks = '', prevMonth = '';
   hist.forEach((h, i) => {
     const m = String(h.date || '').slice(5, 7);
     if (m && m !== prevMonth) {
       prevMonth = m;
-      if (i > 2) ticks += `<text x="${X(i).toFixed(1)}" y="${H - 6}" class="cc-tick">${parseInt(m, 10)}월</text>`;
+      if (i > 2) ticks += `<text x="${X(i).toFixed(1)}" y="${H - 7}" class="cc-tick">${parseInt(m, 10)}월</text>`;
     }
   });
 
-  // [중첩 제거] 예전에는 이 함수가 독립 카드(제목 + 밴드 pill)를 반환했다.
-  // 단계 카드 안에 들어가면서 "장 난이도"와 "편한 장"이 한 화면에 세 번씩
-  // 나오게 됐다. 헤더는 단계 카드가 이미 갖고 있으므로 여기서는 걷어낸다.
+  // 현재값 pill — 우측 축에 붙인다
+  const label = last.toFixed(1);
+  const pw = Math.max(30, label.length * 7.4 + 12), ph = 19;
+  const px = Math.min(W - pw - 2, cx + 8);
+  const pill =
+    `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${px.toFixed(1)}" y2="${cy.toFixed(1)}" class="cc-lead" stroke="${tone}"/>` +
+    `<rect x="${px.toFixed(1)}" y="${(cy - ph / 2).toFixed(1)}" width="${pw}" height="${ph}" rx="4" fill="${tone}"/>` +
+    `<text x="${(px + pw / 2).toFixed(1)}" y="${(cy + 4.6).toFixed(1)}" class="cc-now">${label}</text>`;
+
   return `
     <div class="cc-card">
       <div class="cc-verdict">
         <span class="cc-dir cc-dir-${rising ? 'up' : (falling ? 'down' : 'flat')}">${dirMark} ${dirLabel}</span>
         <span class="cc-verdict-text">${bEscape(verdict)}</span>
       </div>
-      <svg viewBox="0 0 ${W} ${H}" class="cc-svg" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-        ${bandRects}
-        <path d="${line}" class="cc-line"/>
-        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3.4" class="cc-dot"/>
-        <text x="${(cx + 6).toFixed(1)}" y="${(cy + 3.5).toFixed(1)}" class="cc-now">${last.toFixed(1)}</text>
+      <svg viewBox="0 0 ${W} ${H}" class="cc-svg" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"
+           role="img" aria-label="업종 쏠림 추이, 현재 ${label}, 6개월 분포 하위 ${pct}%">
+        <defs>
+          <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${tone}" stop-opacity="0.20"/>
+            <stop offset="100%" stop-color="${tone}" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        ${guides}
+        <path d="${area}" fill="url(#${gid})"/>
+        <path d="${line}" class="cc-line" stroke="${tone}"/>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${tone}" opacity="0.18"/>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3" fill="${tone}"/>
+        ${pill}
         ${ticks}
       </svg>
       <div class="cc-scale">
         <span class="cc-axis">↑ 어려운 장</span>
-        <span class="cc-pct">6개월 분포 하위 ${pct}%</span>
+        <span class="cc-pct">6개월 분포 하위 <b>${pct}%</b></span>
         <span class="cc-axis">↓ 편한 장</span>
       </div>
       ${whatIs('업종 쏠림은 업종별 6개월 수익률이 얼마나 벌어져 있는지를 하나의 수로 만든 값입니다. ' +
@@ -295,6 +316,7 @@ function buildCrowdingChart(flow, viewW) {
         '지수의 절대값은 산출 방식마다 달라, 여기서는 최근 6개월 자기 이력 안에서의 위치(백분위)로 구간을 나눕니다.')}
     </div>`;
 }
+
 
 // ─────────────────────────────────────────┐
 // 오늘의 재료 — 테마 탭과 이어지는 다리        │
@@ -723,40 +745,85 @@ function sourceBadge(source) {
 // 오늘의 그림 — 탭이 문장으로 시작하면 아무도 안 읽는다.
 // 반원 게이지 하나로 "지금 시장이 어디쯤"을 0.5초에 보여주고,
 // 그 옆에 오늘의 답(종목 수)을 큰 숫자로 놓는다. 설명은 붙이지 않는다.
+// 지금 시장이 어디쯤인지를 0.5초에 보여주는 자리.
+//
+// [2026-08-19 재작업] 예전 다이얼은 5색 무지개 아크 + 굵은 바늘 + 중심의 큰
+// 검은 점이었다. 문제는 셋이었다:
+//   · 무지개 아크는 색이 다섯 개나 의미를 갖는데, 정작 "지금 값"은 색이 아니라
+//     바늘 위치로만 읽힌다. 색 다섯 개가 전부 장식으로 돌아간다.
+//   · 숫자(51.1)가 화면에 아예 없었다. 구간 이름만 있으니 어제와 비교가 안 된다.
+//   · 굵은 바늘 + 중심 점은 2010년대 대시보드 위젯 인상을 준다.
+//
+// 바꾼 규칙:
+//   · 트랙은 무채색 하나. **색은 현재 구간 하나에만** 쓴다.
+//   · 값은 아크 길이로 인코딩한다 — 길이는 각도보다 정확하게 읽힌다.
+//   · 숫자를 중앙에 가장 크게. 구간 이름은 그 아래 작게.
+//   · 바늘 대신 아크 끝의 작은 노브. 중심 장식 제거.
+const DIAL_TONE = {
+  '과열': ['#D93A2B', '#F3B7AF'],
+  '강세': ['#DE8A2E', '#F4D6AC'],
+  '중립': ['#7C8493', '#D3D8DF'],
+  '약세': ['#4A86C8', '#BBD3EC'],
+  '공포': ['#1F63C4', '#B4CBEA'],
+};
+
 function buildHeroDial(fg, sentiment, flow) {
   const v = Math.max(0, Math.min(100, fg.kospi ?? 50));
   const zone = zoneOf(sentiment.kospi, fg.kospi);
   const nCand = ((flow || {}).buyCandidates || []).length;
-  const R = 74, CX = 90, CY = 92, SW = 14;
-  const pt = (deg, r) => [CX + r * Math.cos(deg * Math.PI / 180), CY + r * Math.sin(deg * Math.PI / 180)];
-  // 5구간 아크 (공포 → 탐욕)
-  const segs = [
-    [0, 25, '#1565C0'], [25, 45, '#4E8FCB'], [45, 55, '#C9B896'],
-    [55, 75, '#E58A3C'], [75, 100, '#D2402F'],
+  const tone = DIAL_TONE[zone.label] || ['#7C8493', '#D3D8DF'];
+
+  // 반원 기하 — 180°(좌) → 360°(우)
+  // 아크의 지름선(y=CY) 아래는 비어 있다. 숫자는 그릇 안, 구간 이름은
+  // 지름선 **아래**로 내려 서로 붙지 않게 한다.
+  const CX = 100, CY = 92, R = 71, SW = 12;
+  const pt = (deg, r) => [
+    CX + r * Math.cos(deg * Math.PI / 180),
+    CY + r * Math.sin(deg * Math.PI / 180),
   ];
-  const arc = segs.map(([a, b, col]) => {
-    const d0 = 180 + a * 1.8, d1 = 180 + b * 1.8;
-    const [x0, y0] = pt(d0, R), [x1, y1] = pt(d1, R);
-    return `<path d="M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}"
-      fill="none" stroke="${col}" stroke-width="${SW}" stroke-linecap="butt"/>`;
+  const arc = (from, to, r) => {
+    const [x0, y0] = pt(180 + from * 1.8, r);
+    const [x1, y1] = pt(180 + to * 1.8, r);
+    const large = (to - from) > 50 ? 1 : 0;
+    return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  };
+
+  const gid = 'dg' + Math.random().toString(36).slice(2, 7);
+  const [kx, ky] = pt(180 + v * 1.8, R);
+
+  // 25/50/75 눈금 — 값을 대략 가늠하는 기준. 숫자는 쓰지 않는다(밀도).
+  const ticks = [25, 50, 75].map(t => {
+    const [x0, y0] = pt(180 + t * 1.8, R - SW / 2 - 2.5);
+    const [x1, y1] = pt(180 + t * 1.8, R + SW / 2 + 2.5);
+    return `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" class="dl-tick"/>`;
   }).join('');
-  const nd = 180 + v * 1.8;
-  const [nx, ny] = pt(nd, R - 3);
-  const [bx, by] = pt(nd, R - SW - 7);
+
   return `
     <div class="dial">
-      <svg viewBox="0 0 180 108" class="dial-svg" xmlns="http://www.w3.org/2000/svg">
-        ${arc}
-        <line x1="${bx.toFixed(1)}" y1="${by.toFixed(1)}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}"
-          stroke="#17171C" stroke-width="3.5" stroke-linecap="round"/>
-        <circle cx="${CX}" cy="${CY}" r="5" fill="#17171C"/>
-        <text x="${CX}" y="${CY - 16}" text-anchor="middle" font-size="21" font-weight="800"
-          fill="${zone.color}" letter-spacing="-0.03em">${bEscape(zone.label)}</text>
-      </svg>
+      <div class="dial-gauge">
+        <svg viewBox="0 0 200 118" class="dial-svg" xmlns="http://www.w3.org/2000/svg" role="img"
+             aria-label="공포·탐욕 ${v.toFixed(1)}, ${bEscape(zone.label)}">
+          <defs>
+            <linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="${tone[1]}"/>
+              <stop offset="100%" stop-color="${tone[0]}"/>
+            </linearGradient>
+          </defs>
+          <path d="${arc(0, 100, R)}" class="dl-track" stroke-width="${SW}"/>
+          ${ticks}
+          <path d="${arc(0, Math.max(v, 0.6), R)}" stroke="url(#${gid})" stroke-width="${SW}"
+                fill="none" stroke-linecap="round"/>
+          <circle cx="${kx.toFixed(1)}" cy="${ky.toFixed(1)}" r="6.4" class="dl-knob-halo"/>
+          <circle cx="${kx.toFixed(1)}" cy="${ky.toFixed(1)}" r="3.4" fill="${tone[0]}"/>
+          <text x="${CX}" y="${CY - 12}" class="dl-val">${v.toFixed(1)}</text>
+          <text x="${CX}" y="${CY + 15}" class="dl-zone" fill="${tone[0]}">${bEscape(zone.label)}</text>
+        </svg>
+        <div class="dial-cap">공포·탐욕 지수 <em>KOSPI</em></div>
+      </div>
       <div class="dial-answer">
         <span>오늘 볼 종목</span>
-        <b>${nCand}</b>
-        <a class="dial-jump" href="#s4">바로 보기 ↓</a>
+        <b>${nCand}<i>개</i></b>
+        <a class="dial-jump" href="#s4">바로 보기 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></a>
       </div>
     </div>`;
 }

@@ -2527,14 +2527,25 @@ body {
    (데스크톱 1.28배 늘어남 / 모바일 0.58배 눌림). 비율을 지키고 높이는
    폭에 따라 자동으로 정해지게 둔다. */
 .cc-svg { display: block; width: 100%; height: auto; }
-.cc-svg .cb-easy { fill: #E9E0CB; }
-.cc-svg .cb-mid  { fill: #F1EADB; }
-.cc-svg .cb-hard { fill: #F3DCC9; }
-.cc-svg .cb-x    { fill: #E8C3AB; }
-.cc-svg .cc-line { fill: none; stroke: #3B372F; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
-.cc-svg .cc-dot  { fill: var(--orange); stroke: #fff; stroke-width: 1.5; }
-.cc-svg .cc-now  { font-size: 11px; font-weight: 900; fill: var(--text-primary); }
-.cc-svg .cc-tick { font-size: 9px; font-weight: 700; fill: var(--text-muted); text-anchor: middle; }
+/* 백분위 4구간을 베이지 띠로 깔던 것을 걷어냈다. 라벨 없는 색 띠는 면적만
+   먹고 뜻을 주지 못했고, 정작 읽어야 할 선의 대비를 깎았다.
+   남긴 건 경계선 두 개(30%·70%)뿐이고, 색은 현재 구간 하나만 쓴다. */
+.cc-svg .cc-guide {
+  stroke: #E3DCCD; stroke-width: 1; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke;
+}
+/* 기준선 라벨이 선 위에 겹치면 둘 다 못 읽는다. 흰 테두리를 글자 뒤로 깔아
+   어느 구간을 지나든 라벨이 살아 있게 한다(paint-order: stroke). */
+.cc-svg .cc-guide-lab {
+  font-size: 8.5px; font-weight: 800; fill: #a89f8d;
+  paint-order: stroke; stroke: #fff; stroke-width: 2.6px; stroke-linejoin: round;
+}
+.cc-svg .cc-line {
+  fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.cc-svg .cc-lead { stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.5; vector-effect: non-scaling-stroke; }
+.cc-svg .cc-now  { font-size: 11.5px; font-weight: 900; fill: #fff; text-anchor: middle; font-variant-numeric: tabular-nums; }
+.cc-svg .cc-tick { font-size: 9.5px; font-weight: 700; fill: #b8b0a0; text-anchor: middle; }
 
 /* 색 범례 4개는 축 라벨 2개로 흡수했다. 밴드 색은 차트 배경이 이미
    보여주므로, 아래 줄은 "위/아래가 무슨 뜻인지"만 말하면 된다. */
@@ -2543,7 +2554,8 @@ body {
   padding: 7px 10px 2px;
 }
 .cc-axis { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
-.cc-pct { font-size: 0.7rem; font-weight: 800; color: var(--text-secondary); }
+.cc-pct { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
+.cc-pct b { font-weight: 900; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 
 /* ─── 오늘 움직인 재료 (테마 탭 다리) ─────────────────────── */
 .tb-body { padding: 2px 0; }
@@ -2811,18 +2823,45 @@ body {
 
 /* 오늘 탭 히어로 — 문장이 아니라 그림으로 시작한다 */
 .hero2 { padding: 8px 16px 16px; }
-.dial { display: flex; align-items: center; gap: 4px; }
+/* 히어로 다이얼 — 무채색 트랙 + 현재 구간 색 하나.
+   무지개 아크는 색 다섯 개가 전부 장식으로 돌아가 정보를 주지 못했다. */
+.dial { display: flex; align-items: center; gap: 10px; }
+.dial-gauge { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.dial-cap {
+  font-size: 0.66rem; font-weight: 700; color: var(--text-muted);
+  letter-spacing: -0.01em; white-space: nowrap;
+}
+.dial-cap em { font-style: normal; font-weight: 800; color: #b3aa99; margin-left: 2px; }
+.dial-svg .dl-track { fill: none; stroke: #ECE7DC; stroke-linecap: round; }
+.dial-svg .dl-tick { stroke: #FFFFFF; stroke-width: 1.6; opacity: 0.9; }
+.dial-svg .dl-knob-halo { fill: #fff; }
+.dial-svg .dl-val {
+  font-size: 32px; font-weight: 900; letter-spacing: -0.05em;
+  fill: var(--text-primary); text-anchor: middle;
+  font-variant-numeric: tabular-nums;
+}
+.dial-svg .dl-zone { font-size: 13.5px; font-weight: 800; letter-spacing: -0.02em; text-anchor: middle; }
 /* min/max 를 함께 건다. % 만 두면 폭 280px 화면에서 125px 까지 줄어 안의
    글자가 14.6px 로 눌리고, 상한이 없으면 884px 화면에서 834px 까지 늘어
    같은 글자가 97px 이 된다(실측). 그림 크기는 화면과 함께 흔들리면 안 된다. */
-.dial-svg { width: 60%; min-width: 148px; max-width: 230px; height: auto; display: block; }
+.dial-svg { width: 168px; min-width: 148px; max-width: 190px; height: auto; display: block; }
 .dial-answer { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
 .dial-answer span { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
-.dial-answer b { font-size: 3.1rem; font-weight: 900; line-height: 1; letter-spacing: -0.05em; color: var(--text-primary); }
-.dial-jump {
-  margin-top: 7px; font-size: 0.76rem; font-weight: 800; color: var(--text-primary);
-  text-decoration: none; border-bottom: 2px solid #FFE082; padding-bottom: 1px;
+.dial-answer b {
+  font-size: 2.9rem; font-weight: 900; line-height: 1; letter-spacing: -0.05em;
+  color: var(--text-primary); font-variant-numeric: tabular-nums;
+  display: flex; align-items: baseline; gap: 2px;
 }
+.dial-answer b i { font-style: normal; font-size: 1.05rem; font-weight: 800; color: var(--text-muted); }
+/* 밑줄 형광펜(#FFE082)은 이 화면에서 유일하게 노란색을 쓰던 자리였다.
+   등락 빨강/파랑과 무관한 색이 하나 더 늘면 색 체계가 흐려진다. 알약 버튼으로. */
+.dial-jump {
+  margin-top: 9px; display: inline-flex; align-items: center; gap: 3px;
+  white-space: nowrap;   /* 320px 에서 '바로 / 보기' 로 접히던 것 */
+  font-size: 0.76rem; font-weight: 800; color: #fff; text-decoration: none;
+  background: #17171C; border-radius: 999px; padding: 7px 12px 7px 13px;
+}
+.dial-jump svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .hero2 .hero2-line {
   margin-top: 4px; font-size: 0.92rem; font-weight: 700; line-height: 1.55;
   color: var(--text-secondary); letter-spacing: -0.02em; word-break: keep-all;
