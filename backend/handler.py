@@ -65,6 +65,22 @@ def _sanitize_for_json(obj):
     return obj
 
 
+def _quote_session() -> dict:
+    """이번 회차 시세가 어느 장에서 왔는지."""
+    try:
+        from stock_data import premarket_hits
+        import nxt_quotes
+    except ModuleNotFoundError:
+        from .stock_data import premarket_hits
+        from . import nxt_quotes
+    hits = premarket_hits()
+    return {
+        "isPreMarket": nxt_quotes.is_premarket(),
+        "source": "nxt-premarket" if hits else "krx",
+        "premarketQuotes": hits,
+    }
+
+
 def _compute_changes(payload: dict, previous: dict | None) -> dict:
     """직전 실행 대비 변화.
 
@@ -332,6 +348,10 @@ def lambda_handler(event, context):
             "wownetSignals": analysis.get("wownetSignals", []),
             "telegramSignals": analysis.get("telegramSignals", []),
             "priceSignalCandidates": analysis.get("priceSignalCandidates", []),
+            # 이 회차가 정규장 시세인지 프리마켓(NXT) 시세인지.
+            # 08:00~09:00 은 정규장이 열리기 전이라 시세의 성격이 다르다.
+            # 숫자만 내려보내고 어떤 장의 값인지 안 밝히면 화면이 거짓말을 한다.
+            "quoteSession": _quote_session(),
             "themes": completed_themes,
         }
 

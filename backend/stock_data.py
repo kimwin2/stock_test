@@ -14,6 +14,12 @@ import time
 import re
 import os
 from typing import Optional, List, Dict
+from datetime import datetime
+
+try:
+    import nxt_quotes
+except ModuleNotFoundError:
+    from . import nxt_quotes
 
 # Windows cp949 콘솔 인코딩 문제 해결
 if sys.stdout.encoding != 'utf-8':
@@ -223,12 +229,93 @@ def search_stock_code_online(stock_name: str) -> Optional[str]:
     print(f"  [!] {stock_name} 종목코드를 찾을 수 없습니다.")
     return None
 
+# 이번 실행에서 프리마켓(NXT) 시세를 실제로 쓴 종목 수.
+# 산출물에 그대로 실어 "이 화면이 정규장 시세인가 프리마켓 시세인가"를 드러낸다.
+_premarket_hits = 0
+
+
+def premarket_hits() -> int:
+    return _premarket_hits
+
+
+def reset_premarket_state() -> None:
+    global _premarket_hits
+    _premarket_hits = 0
+    nxt_quotes.reset()
+
+
+def _premarket_detail(stock_code: str) -> Optional[dict]:
+    """08:00~09:00 구간의 넥스트레이드 프리마켓 시세.
+
+    정규장이 열리기 전에는 네이버 basic API 가 전일 종가를 그대로 주므로
+    전 종목 등락률이 0.0% 가 된다. 그 값으로는 테마 생존 게이트가 의미를
+    잃는다 (자세한 경위는 nxt_quotes 모듈 docstring).
+
+    **거래대금은 프리마켓 값을 쓰지 않는다.** 유동성 게이트(30억)는 "이 종목이
+    단타로 드나들 수 있는가"를 묻는 것이고, 그건 종목의 성질이지 지금 이 순간의
+    체결량이 아니다. 프리마켓 체결량으로 재면 멀쩡한 대형주까지 전부 illiquid 로
+    떨어진다. 움직임은 프리마켓에서, 유동성은 직전 정규장에서 가져온다.
+    """
+    global _premarket_hits
+    q = nxt_quotes.fetch_premarket_quote(stock_code)
+    if not q:
+        return None
+
+    price = q["price"]
+    change_price = q.get("changeAmount")
+    change_rate = q["changeRate"]
+    prev_close = q.get("prevClose") or (price - change_price if change_price is not None else price)
+    if change_price is None:
+        change_price = price - prev_close
+
+    # OHLC 는 프리마켓 응답에 없다. 기존 모바일 경로와 같은 방식으로 추정한다
+    # (당일 레인지 바 표시용이며 게이트 판정에는 쓰이지 않는다).
+    abs_change = abs(change_price)
+    if change_price > 0:
+        open_price = price - int(abs_change * 0.6)
+        high = price + int(abs_change * 0.1)
+        low = open_price - int(abs_change * 0.2)
+    elif change_price < 0:
+        open_price = price + int(abs_change * 0.4)
+        high = open_price + int(abs_change * 0.2)
+        low = price - int(abs_change * 0.1)
+    else:
+        open_price = high = low = price
+
+    volume_raw = get_volume_fast(stock_code) or q.get("volumeRaw") or 0
+    if volume_raw == 0:
+        volume_raw = price * (200000 if price >= 100000 else 500000 if price >= 10000 else 1000000)
+
+    _premarket_hits += 1
+    return {
+        "code": stock_code,
+        "name": q.get("name") or "",
+        "price": price,
+        "changeRate": change_rate,
+        "changeAmount": change_price,
+        "prevClose": prev_close,
+        "open": open_price,
+        "high": high,
+        "low": low,
+        "volumeRaw": volume_raw,
+        "volume": format_volume(volume_raw),
+        "time": datetime.now(nxt_quotes.KST).strftime("%H:%M"),
+        "quoteSource": "nxt-premarket",
+    }
+
+
 def get_stock_detail(stock_code: str) -> Optional[dict]:
     """
     네이버 금융에서 종목 상세 데이터를 조회합니다.
+    0순위: 프리마켓(NXT) — 08:00~09:00 구간에서만, 못 믿을 값이면 건너뜀
     1순위: 네이버 모바일 증권 API (깔끔한 JSON)
     2순위: 데스크탑 페이지 HTML 파싱
     """
+    # 방법 0: 프리마켓 — 창 밖이거나 실패하면 즉시 None 이라 아래로 흐른다.
+    pre = _premarket_detail(stock_code)
+    if pre:
+        return pre
+
     # 방법 1: 네이버 모바일 증권 API
     detail = get_stock_detail_mobile(stock_code)
     if detail:
@@ -539,6 +626,10 @@ def get_stock_details_for_themes(themes: list[dict], analysis: dict | None = Non
     Returns:
         프론트엔드용 완성된 테마 데이터 리스트
     """
+    # 실행마다 프리마켓 상태를 초기화한다. Lambda 컨테이너는 재사용되므로
+    # 이전 회차의 회로 차단 상태가 남으면 그날 내내 프리마켓 시세를 못 쓴다.
+    reset_premarket_state()
+
     try:
         import theme_stocks as ts
     except ImportError:
