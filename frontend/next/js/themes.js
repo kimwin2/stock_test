@@ -35,7 +35,7 @@
     }
 
     root.innerHTML =
-      stale(td) +
+      session(td) + stale(td) +
       '<div class="stack">' +
         '<section class="card">' +
           '<div class="card-h"><h3>오늘의 테마 지도</h3>' + UI.info('theme') + '</div>' +
@@ -67,6 +67,20 @@
   }
 
   function cssEsc(s) { return String(s).replace(/["\\]/g, '\\$&'); }
+
+  // 장 시작 전(08:00~09:00)에는 정규장이 아직 안 열렸다. 시세의 성격이 다르므로
+  // 그 사실을 화면에 밝힌다 — 숫자만 보여주고 어느 장인지 안 말하면 거짓말이 된다.
+  function session(td) {
+    var q = td.quoteSession;
+    if (!q || !q.isPreMarket) return '';
+    var pre = q.premarketQuotes || 0;
+    return '<div class="notice" style="margin-bottom:12px;background:var(--surface-2);color:var(--ink-2)">' +
+      '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>' +
+      '<span><b>장 시작 전입니다.</b> ' +
+      (pre ? '넥스트레이드 프리마켓 체결가 기준 ' + pre + '종목 — 09:00 정규장 개장 후 다시 계산됩니다.'
+           : '아직 체결이 없어 등락률이 잡히지 않습니다. 09:00 개장 후 채워집니다.') +
+      '</span></div>';
+  }
 
   // 테마 분석이 실패한 회차에는 서버가 기존 themes 를 그대로 두고 updatedAt 만
   // 갱신한다. 그 사실을 드러내지 않으면 몇 달 지난 테마를 최신으로 오인한다.
