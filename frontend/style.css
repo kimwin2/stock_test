@@ -2825,7 +2825,10 @@ body {
 .hero2 { padding: 8px 16px 16px; }
 /* 히어로 다이얼 — 무채색 트랙 + 현재 구간 색 하나.
    무지개 아크는 색 다섯 개가 전부 장식으로 돌아가 정보를 주지 못했다. */
-.dial { display: flex; align-items: center; gap: 10px; }
+/* 게이지와 답(종목 수)을 **한 덩어리로 가운데** 세운다.
+   왼쪽 정렬이면 게이지가 카드 왼쪽 끝에 붙고 답 블록이 그 옆에 매달린 모양이
+   되어 히어로의 무게중심이 한쪽으로 쏠린다. */
+.dial { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .dial-gauge { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .dial-cap {
   font-size: 0.66rem; font-weight: 700; color: var(--text-muted);
@@ -2845,12 +2848,13 @@ body {
    글자가 14.6px 로 눌리고, 상한이 없으면 884px 화면에서 834px 까지 늘어
    같은 글자가 97px 이 된다(실측). 그림 크기는 화면과 함께 흔들리면 안 된다. */
 .dial-svg { width: 168px; min-width: 148px; max-width: 190px; height: auto; display: block; }
-.dial-answer { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
+.dial-answer { flex: 0 1 auto; display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 1px; min-width: 0; }
 .dial-answer span { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
 .dial-answer b {
   font-size: 2.9rem; font-weight: 900; line-height: 1; letter-spacing: -0.05em;
   color: var(--text-primary); font-variant-numeric: tabular-nums;
-  display: flex; align-items: baseline; gap: 2px;
+  display: flex; align-items: baseline; justify-content: center; gap: 2px;
 }
 .dial-answer b i { font-style: normal; font-size: 1.05rem; font-weight: 800; color: var(--text-muted); }
 /* 밑줄 형광펜(#FFE082)은 이 화면에서 유일하게 노란색을 쓰던 자리였다.
@@ -2863,8 +2867,9 @@ body {
 }
 .dial-jump svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .hero2 .hero2-line {
-  margin-top: 4px; font-size: 0.92rem; font-weight: 700; line-height: 1.55;
+  margin-top: 10px; font-size: 0.92rem; font-weight: 700; line-height: 1.55;
   color: var(--text-secondary); letter-spacing: -0.02em; word-break: keep-all;
+  text-align: center;
 }
 @media (max-width: 420px) {
   .dial-svg { width: 55%; }
