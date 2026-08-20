@@ -346,71 +346,78 @@ def get_stock_detail(stock_code: str) -> Optional[dict]:
 # 규칙: **하드 게이트는 실측값에만 건다.** 못 읽으면 0 을 주고 모른다고
 # 밝힌다. 지어낸 숫자로 종목을 떨어뜨리느니 떨어뜨린 이유를 남기는 편이 낫다.
 
-_VOL_LABEL_WINDOW = 600      # 라벨 뒤 이 범위 밖은 다른 셀이다
-# 크롤 값이 거래량×현재가와 이 배수 밖으로 벌어지면 엉뚱한 셀을 읽은 것으로 본다.
-# 거래대금은 체결가 가중합이라 현재가 기준 추정과 보통 ±20% 안이고, 상·하한가를
-# 오간 종목도 2배를 넘지 않는다. 5배는 자릿수 오독만 걸러내는 넉넉한 창이다.
+# 라벨된 거래대금과 거래량×현재가가 이 배수 밖으로 벌어지면 둘 중 하나를 잘못
+# 읽은 것이다. 거래대금은 체결가 가중합이라 현재가 기준 추정과 보통 ±20% 안이고,
+# 상·하한가를 오간 종목도 2배를 넘지 않는다.
 _VOL_SANITY_RATIO = 5.0
 
 
-def _blind_number_near(html: str, label: str) -> int:
-    """`label` 바로 뒤 좁은 창 안의 첫 숫자. 못 찾으면 0.
+def _labeled_cell_number(soup, label: str) -> int:
+    """라벨이 붙은 **같은 셀 안**의 숫자. 못 찾으면 0.
 
-    문서 전체를 훑지 않는 것이 핵심이다. 네이버 시세 페이지에는 `<td><span>숫자`
-    모양이 수십 개 있어서, 창을 안 두면 라벨과 아무 상관 없는 값이 잡힌다.
+    라벨과 값이 같은 td 안에 있을 때만 인정한다. 형제 셀로 넘어가거나 문서를
+    훑기 시작하면 라벨과 상관없는 값이 잡힌다 — 2026-08-20 에 거래대금이
+    호가(164,800)를 물어와 실거래 7억짜리가 '1,648억' 으로 찍힌 경로다.
     """
-    idx = html.find(label)
-    if idx < 0:
+    if soup is None:
         return 0
-    window = html[idx + len(label): idx + len(label) + _VOL_LABEL_WINDOW]
-    m = re.search(r'<span class="blind">\s*([0-9,]+)\s*</span>', window)
-    if not m:
-        m = re.search(r'<span[^>]*>\s*([0-9,]{2,})\s*</span>', window)
-    return parse_number(m.group(1)) if m else 0
+    for td in soup.select("td"):
+        text = td.get_text(" ", strip=True)
+        if label not in text:
+            continue
+        # '거래량' 을 찾을 때 '거래대금' 셀이 먼저 걸리면 안 된다 (부분 문자열).
+        if label == "거래량" and "거래대금" in text:
+            continue
+        blind = td.select_one("em span.blind") or td.select_one("span.blind")
+        if blind:
+            value = parse_number(blind.get_text(strip=True))
+            if value > 0:
+                return value
+    return 0
+
+
+def _volume_pair(html: str) -> tuple[int, int]:
+    """(거래대금 백만원, 거래량 주). 라벨과 **같은 칸**에 있는 값만 인정한다.
+
+    정규식 폴백을 두지 않는 이유: 라벨 뒤 좁은 창으로 좁혀도 바로 옆 형제 셀은
+    그 안에 들어온다. 그게 정확히 2026-08-20 의 사고 모양(라벨은 거래대금인데
+    값은 호가)이라, 창을 좁히는 것으로는 종류가 같은 실수를 못 막는다.
+    파싱이 안 되면 0(=모른다)을 주고 게이트가 `noVolume` 로 처리한다.
+    """
+    try:
+        soup = BeautifulSoup(html, "lxml")
+    except Exception:
+        return 0, 0
+    return (_labeled_cell_number(soup, "거래대금"),
+            _labeled_cell_number(soup, "거래량"))
 
 
 def _volume_from_html(html: str, price: int = 0) -> int:
-    """시세 HTML → 거래대금(원). 못 읽거나 못 믿을 값이면 0.
+    """시세 HTML → 거래대금(원). 못 읽으면 0 = 모른다.
 
-    거래대금을 못 읽어도 거래량은 읽히는 경우가 많다. 거래량 × 현재가는
-    가격으로 지어낸 수가 아니라 **실측 두 값의 곱**이라 게이트에 걸어도 된다
-    (이 레포의 `trading_intensity` 도 거래대금을 같은 식으로 정의한다).
+    **라벨된 거래대금이 있으면 그걸 쓴다.** 거래량 × 현재가는 거래대금 셀을
+    못 읽었을 때의 대체값이지 심판이 아니다.
+
+    2026-08-20 회귀: 거래량이 잘못 읽히면 멀쩡한 거래대금이 '5배 밖' 으로
+    거부됐다. 삼성전자 거래대금이 2,700억 → 59억(≈21,800주)으로 찍혔다.
+    거래대금은 좁은 창으로 앵커링해 놓고 거래량은 `html.find` 로 문서 첫
+    등장을 쓰고 있었으니, 고친 실수를 다른 쪽에 그대로 남긴 셈이다.
+    이제 둘 다 라벨된 셀에서만 읽고, 어긋나면 로그만 남긴다.
     """
-    value = _blind_number_near(html, "거래대금") * 1_000_000   # 백만원 단위
-    shares = _blind_number_near(html, "거래량")
+    value_mil, shares = _volume_pair(html)
+    value = value_mil * 1_000_000                      # 백만원 단위
     derived = shares * price if (shares > 0 and price > 0) else 0
 
-    if value > 0 and derived > 0:
-        hi, lo = derived * _VOL_SANITY_RATIO, derived / _VOL_SANITY_RATIO
-        if value > hi or value < lo:
-            return int(derived)          # 자릿수가 어긋난다 — 파싱을 못 믿는다
-    return int(value or derived)
-
-
-# 네이버 모바일 API 가 쓰는 거래대금/거래량 키. 응답마다 있을 때도 없을 때도
-# 있어서, 있으면 공짜로 정확한 값을 얻고 없으면 조용히 크롤로 넘어간다.
-_BASIC_VALUE_KEYS = ("accumulatedTradingValue", "tradingValue", "accTradingValue")
-_BASIC_SHARE_KEYS = ("accumulatedTradingVolume", "tradingVolume", "accTradingVolume")
-
-
-def _to_int(value) -> int:
-    try:
-        return int(float(str(value).replace(",", "").strip()))
-    except (TypeError, ValueError):
-        return 0
-
-
-def _volume_from_basic(data: dict, price: int = 0) -> int:
-    """모바일 basic 응답에 거래대금이 들어 있으면 꺼낸다 (원 단위). 없으면 0."""
-    for key in _BASIC_VALUE_KEYS:
-        v = _to_int(data.get(key))
-        if v > 0:
-            return v
-    for key in _BASIC_SHARE_KEYS:
-        shares = _to_int(data.get(key))
-        if shares > 0 and price > 0:
-            return shares * price
-    return 0
+    if value > 0:
+        if derived > 0 and (value > derived * _VOL_SANITY_RATIO
+                            or value * _VOL_SANITY_RATIO < derived):
+            # 둘 다 라벨된 셀에서 왔는데 어긋난다 = 어느 한쪽 파싱이 깨졌다.
+            # 어느 쪽인지 모르므로 값을 바꾸지 않고 흔적만 남긴다. 실측
+            # 시그널이 있으면 `theme_stocks.reconcile_volume` 이 심판한다.
+            print(f"  [?] 거래대금 {value / 1e8:,.0f}억 vs 거래량×현재가 "
+                  f"{derived / 1e8:,.0f}억 — 한쪽 파싱이 의심스럽다")
+        return int(value)
+    return int(derived)
 
 
 def get_volume_fast(stock_code: str, price: int = 0) -> int:
@@ -471,10 +478,11 @@ def get_stock_detail_mobile(stock_code: str) -> Optional[dict]:
             high = price
             low = price
 
-        # 거래대금 — ① 이미 받아온 basic 응답에 들어 있으면 그걸 쓴다(공짜·정확),
-        # ② 없으면 시세 페이지, ③ 그것도 실패하면 0(=모른다). 가격으로 지어내지
-        # 않는다. 지어낸 값이 유동성 게이트를 여닫으면 사고가 조용히 난다.
-        volume_raw = _volume_from_basic(data, price) or get_volume_fast(stock_code, price)
+        # 거래대금 — 시세 페이지의 라벨된 셀에서 읽고, 실패하면 0(=모른다).
+        # 가격으로 지어내지 않는다. 지어낸 값이 유동성 게이트를 여닫으면 사고가
+        # 조용히 난다. basic 응답의 필드명을 추측해 쓰던 경로는 제거했다 —
+        # 실측으로 확인하지 못한 키였고, 그런 건 넣지 말았어야 했다.
+        volume_raw = get_volume_fast(stock_code, price)
 
         return {
             "code": stock_code,
@@ -583,43 +591,14 @@ def get_stock_detail_desktop(stock_code: str) -> Optional[dict]:
         return None
 
 
-def _cell_number(table, label: str) -> int:
-    """`table.no_info` 안에서 라벨이 붙은 셀의 숫자. 못 찾으면 0.
-
-    같은 셀 안에서만 찾는다. 형제 td 로 넘어가면 라벨과 상관없는 값을 읽는다.
-    """
-    if not table:
-        return 0
-    for td in table.select("td"):
-        text = td.get_text(" ", strip=True)
-        if label not in text:
-            continue
-        # 거래량 셀을 찾을 때 거래대금 셀이 먼저 걸리면 안 된다 (부분 문자열).
-        if label == "거래량" and "거래대금" in text:
-            continue
-        blind = td.select_one("em span.blind") or td.select_one("span.blind")
-        if blind:
-            value = parse_number(blind.get_text(strip=True))
-            if value > 0:
-                return value
-    return 0
-
-
 def extract_volume_amount(soup: BeautifulSoup, stock_code: str, price: int = 0) -> int:
     """거래대금을 추출합니다 (원 단위). 못 읽으면 0 = 모른다."""
-    table = soup.select_one("table.no_info")
-    value = _cell_number(table, "거래대금") * 1_000_000      # 백만원 단위
-    shares = _cell_number(table, "거래량")
-    derived = shares * price if (shares > 0 and price > 0) else 0
-
-    if value > 0 and derived > 0:
-        hi, lo = derived * _VOL_SANITY_RATIO, derived / _VOL_SANITY_RATIO
-        if value > hi or value < lo:
-            value = 0                                        # 파싱을 못 믿는다
+    value = _labeled_cell_number(soup, "거래대금") * 1_000_000   # 백만원 단위
+    shares = _labeled_cell_number(soup, "거래량")
     if value > 0:
         return int(value)
-    if derived > 0:
-        return int(derived)
+    if shares > 0 and price > 0:
+        return int(shares * price)
 
     # 마지막으로 시세 페이지 — 같은 규칙(라벨 뒤 좁은 창 + 정합성 검사)을 쓴다.
     try:

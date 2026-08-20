@@ -102,6 +102,12 @@ def _theme_names_are_similar(left: str, right: str) -> bool:
     return left_key == right_key or left_key in right_key or right_key in left_key
 
 
+try:
+    from antwinner.collector import is_non_theme_bucket
+except ImportError:  # 패키지로 임포트될 때
+    from ..antwinner.collector import is_non_theme_bucket
+
+
 def _extract_strong_theme_names(content: str, top_n: int) -> list[dict]:
     soup = BeautifulSoup(content or "", "html.parser")
     strong_text = ""
@@ -124,6 +130,15 @@ def _extract_strong_theme_names(content: str, top_n: int) -> list[dict]:
     for raw_name in _split_top_level_themes(strong_text):
         simplified = _simplify_theme_name(raw_name)
         if not simplified:
+            continue
+
+        # 인포스탁 강세 테마에는 업종 버킷과 **바스켓 라벨**이 섞여 있다.
+        # 2026-08-20 3위가 `S7(삼성전자/SK하이닉스 등)` 이었고 그대로 카드가
+        # 돼서 SK스퀘어·삼성생명(보험)·삼성전자가 한 테마로 묶였다.
+        # 상위 N 을 자르기 **전에** 걸러야 한다 — 자른 뒤에 빼면 그 자리가
+        # 그냥 비어 진짜 테마 하나를 손해 본다 (antwinner 와 같은 이유).
+        if is_non_theme_bucket(simplified, raw_name):
+            print(f"    [제외] 테마가 아닌 이름: {_normalize_spacing(raw_name)}")
             continue
 
         dedupe_key = re.sub(r"[^0-9A-Za-z가-힣]+", "", simplified).lower()

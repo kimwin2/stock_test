@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime
 from typing import Any
 
@@ -58,9 +59,45 @@ def _norm_bucket(name: str) -> str:
 _NON_THEME_NORM = {_norm_bucket(x) for x in NON_THEME_BUCKETS}
 
 
-def is_non_theme_bucket(name: str) -> bool:
-    """업종이 아니라 장세·매매스타일·가격패턴을 가리키는 이름인가."""
-    return _norm_bucket(name) in _NON_THEME_NORM
+# ── 바스켓 라벨 ────────────────────────────────────────────────────────
+#
+# 실사고 (2026-08-20): 인포스탁 장중 강세 3위가 `S7(삼성전자/SK하이닉스 등)`
+# 이었고 그대로 테마 카드가 됐다. 안에는 SK스퀘어(반도체 지주)·삼성생명
+# (**보험**)·삼성전자(반도체)가 들어 있었다 — 업종 공통점이 없다.
+#
+# `S7` 은 업종이 아니라 **시총 상위 대형주 바스켓**이다. "S7이 올랐다"는
+# "대형주가 올랐다"는 동어반복이라 '왜 올랐나'에 아무 답을 안 한다.
+# `하락장`(2026-08-18)과 같은 부류인데, 이름 목록으로는 못 잡는다 —
+# 목록은 추측으로 늘리면 안 되고(위 주석), 'S7' 을 넣는 건 예외처리다.
+#
+# 그래서 **모양**으로 잡는다. 두 신호를 각각 독립적으로 본다:
+#   ① 정의가 종목 나열 — 괄호 안이 설명이 아니라 회사명을 `/` 로 이어놓고
+#      '등' 으로 닫는다. `S7(삼성전자/SK하이닉스 등)` 이 정확히 이 모양이다.
+#      `귀금속(금/은)` 은 '등' 이 없어 걸리지 않는다(원자재 나열이지
+#      바스켓 정의가 아니다).
+#   ② 이름이 뜻을 안 담은 코드 — 한글이 없고 `영문 1~2자 + 숫자` 다
+#      (S7, K200, F1). 글자 수를 2자로 묶은 건 `HBM3`·`CXL2` 같은 실제
+#      기술 테마를 살리기 위해서다. 3자까지 열면 그것들이 같이 죽는다.
+_BASKET_LISTING = re.compile(r"\([^)]*/[^)]*\s*등\s*\)")
+_BASKET_CODE = re.compile(r"^[A-Za-z]{1,2}\d{1,4}$")
+
+
+def is_basket_label(name: str, raw_name: str = "") -> bool:
+    """업종이 아니라 '구성종목 묶음'을 가리키는 이름인가.
+
+    raw_name 은 출처가 준 원본 이름(`S7(삼성전자/SK하이닉스 등)`).
+    괄호가 떨어져 나간 뒤(`S7`)에도 잡히도록 두 신호를 따로 본다.
+    """
+    if _BASKET_LISTING.search(str(raw_name or "")):
+        return True
+    return bool(_BASKET_CODE.match(str(name or "").strip()))
+
+
+def is_non_theme_bucket(name: str, raw_name: str = "") -> bool:
+    """업종이 아니라 장세·매매스타일·가격패턴·바스켓을 가리키는 이름인가."""
+    if _norm_bucket(name) in _NON_THEME_NORM:
+        return True
+    return is_basket_label(name, raw_name)
 
 
 def _parse_rate(rate_str: str) -> float:

@@ -66,19 +66,21 @@ broken = sise_html("1,000,000", "28,100").replace(
     '<span class="sptxt sp_txt10">거래대금</span>\n      <em class="no_up"><span class="blind">28,100</span></em>', "")
 check("거래대금 셀 소실", sd._volume_from_html(broken, 2810), 2_810_000_000)
 
-print("\n[4] 자릿수가 어긋난 거래대금은 버리고 거래량×현재가를 쓴다")
-# 파서가 호가(164,800백만 = 1,648억)를 물어온 경우 — 실측 추정의 140배
-check("자릿수 오독", sd._volume_from_html(sise_html("7,000", "164,800"), 164200), 1_149_400_000)
+print("\n[4] 라벨된 거래대금이 있으면 거래량과 어긋나도 그걸 쓴다 (경고만)")
+# 2026-08-20 회귀: 거래량을 잘못 읽으면 멀쩡한 거래대금이 거부됐다.
+# 삼성전자 2,700억이 59억(≈21,800주)으로 찍힌 경로다. 거래량은 심판이 아니다.
+check("거래량 오독에도 거래대금 유지",
+      sd._volume_from_html(sise_html("21,800", "270,000"), 271000), 270_000_000_000)
 
 print("\n[5] 아무것도 못 읽으면 0 = '모른다'. 가격으로 지어내지 않는다")
 check("빈 페이지", sd._volume_from_html("<html><body>없음</body></html>", 2810), 0)
 
-print("\n[6] basic API 에 거래대금이 있으면 크롤 없이 쓴다")
-check("accumulatedTradingValue",
-      sd._volume_from_basic({"accumulatedTradingValue": "28,100,000,000"}, 2810), 28_100_000_000)
-check("거래량만 있을 때",
-      sd._volume_from_basic({"accumulatedTradingVolume": "1,000,000"}, 2810), 2_810_000_000)
-check("둘 다 없을 때", sd._volume_from_basic({"closePrice": "2,810"}, 2810), 0)
+print("\n[6] 거래대금 셀은 라벨과 같은 칸에서만 읽는다 (형제 셀로 안 넘어간다)")
+stray = """<html><body><table class="no_info"><tbody>
+<tr><td><span class="sptxt">거래대금</span></td>
+    <td><span class="blind">999,999</span></td></tr>
+</tbody></table></body></html>"""
+check("값 없는 라벨 셀", sd._volume_from_html(stray, 2810), 0)
 
 print("\n[7] 게이트: 모르는 거래대금은 illiquid 가 아니라 noVolume")
 sk = {"name": "SK증권", "price": 2810, "changeRate": 29.79, "volumeRaw": 0, "volumeUnknown": True}

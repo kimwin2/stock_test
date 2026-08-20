@@ -577,6 +577,9 @@ ARTICLE_MATCH_STOPWORDS = {
 }
 MIN_CONFIDENT_ARTICLE_MATCH_SCORE = 6.0
 MIN_CONFIDENT_ARTICLE_MATCH_MARGIN = 1.5
+# 하락 기사 감점. 종목명 2개가 제목에 걸리면 12점이므로, 그것만으로는 확신
+# 기준(6.0)을 못 넘게 하는 크기여야 한다.
+BEARISH_HEADLINE_PENALTY = 8.0
 
 
 def _is_priority_article(title: str) -> bool:
@@ -1022,10 +1025,18 @@ def _score_article_relevance(theme: dict, article: dict, article_index: int) -> 
             score += 0.5
             headline_term_hits += 1
 
+    # 하락을 말하는 기사는 '급등·테마' 카드의 근거가 될 수 없다. 점수를
+    # 깎아 확신 기준(MIN_CONFIDENT_ARTICLE_MATCH_SCORE)을 넘지 못하게 한다 —
+    # 더 나은 기사가 있으면 그쪽이 이기고, 없으면 아예 안 붙는다.
+    bearish = _is_bearish_headline(title)
+    if bearish:
+        score -= BEARISH_HEADLINE_PENALTY
+
     return {
         "index": article_index,
         "article": article,
         "score": score,
+        "bearish": bearish,
         "exactThemeHits": exact_theme_hits,
         "stockHits": stock_hits,
         "themeTermHits": theme_term_hits,
@@ -1036,6 +1047,10 @@ def _score_article_relevance(theme: dict, article: dict, article_index: int) -> 
 
 def _is_confident_article_match(best_match: dict | None, second_match: dict | None = None) -> bool:
     if not best_match:
+        return False
+    if best_match.get("bearish"):
+        # 감점만으로는 점수가 높은 기사가 살아남는다. 방향이 반대인 기사는
+        # 점수와 무관하게 카드의 근거가 아니다.
         return False
     if float(best_match.get("score", 0.0) or 0.0) < MIN_CONFIDENT_ARTICLE_MATCH_SCORE:
         return False
@@ -1155,6 +1170,53 @@ def _build_local_headline_link(match: dict) -> dict:
     )
 
 
+# ── 헤드라인 방향 검증 ────────────────────────────────────────────────
+#
+# 실사고 (2026-08-20): `S7` 카드의 헤드라인이
+#   "美 금리 상승·반도체주 약세…SK스퀘어·삼성생명 **급락**"
+# 인데 카드는 SK스퀘어 **+11.85%**, 삼성생명 **+7.61%** 였다.
+#
+# 기사 매칭은 `_score_article_relevance` 든 구글뉴스 폴백이든 **이름 겹침만**
+# 본다. 제목에 종목명이 있으면 붙는다. 방향은 아무도 안 본다.
+# 이 탭은 '급등·테마' 다 — 카드가 존재한다는 것 자체가 "이게 올랐다"는
+# 주장이므로, 하락을 말하는 기사는 어느 카드의 근거도 될 수 없다.
+#
+# 상승어가 같이 있으면 건드리지 않는다. "코스피 하락에도 반도체 강세" 같은
+# 제목은 정당한 근거고, 하락어 하나로 자르면 그런 기사가 전부 죽는다.
+_BEARISH_TERMS = (
+    "급락", "폭락", "하락", "약세", "내림세", "하한가", "신저가", "부진",
+    "충격", "패닉", "매도세", "손절", "미끄러", "추락", "곤두박질",
+)
+_BULLISH_TERMS = (
+    "급등", "폭등", "상승", "강세", "오름세", "상한가", "신고가", "반등",
+    "랠리", "훈풍", "수혜", "호재", "질주", "날았", "뛴다", "뛰어", "치솟",
+)
+
+
+# 거시 지표의 방향은 종목의 방향이 아니다. "美 금리 상승·반도체주 약세…
+# SK스퀘어·삼성생명 급락" 에서 '상승' 은 금리 이야기고 종목은 전부 하락이다.
+# 이걸 안 떼면 상승어 하나에 걸려 하락 기사가 통과한다 (실측 실패 사례).
+_MACRO_DIRECTION = re.compile(
+    r"(금리|환율|유가|물가|국채|달러|엔화|위안|증시|지수|코스피|코스닥|나스닥|다우)"
+    r"[가-힣\s]{0,6}?(상승|급등|강세|오름세|하락|급락|약세|내림세|폭락|폭등)"
+)
+
+
+def _is_bearish_headline(title: str) -> bool:
+    """하락만 말하는 제목인가. 상승어가 하나라도 같이 있으면 False.
+
+    단, 거시 지표(금리·환율·지수)에 붙은 방향어는 먼저 떼어낸다 — 그건
+    종목이 어느 쪽으로 갔는지에 대한 말이 아니다.
+    """
+    text = str(title or "")
+    if not text:
+        return False
+    stripped = _MACRO_DIRECTION.sub(" ", text)
+    if any(term in stripped for term in _BULLISH_TERMS):
+        return False
+    return any(term in stripped for term in _BEARISH_TERMS)
+
+
 def _build_google_headline_links(theme: dict, used_urls: set[str] | None = None) -> list[dict]:
     used_urls = {url for url in (used_urls or set()) if url}
     queries = _build_google_news_queries(theme)
@@ -1164,6 +1226,9 @@ def _build_google_headline_links(theme: dict, used_urls: set[str] | None = None)
     for query in queries:
         for link in _search_google_news_links(query):
             if link.get("url") in used_urls:
+                continue
+            if _is_bearish_headline(link.get("title", "")):
+                print(f"  [제외] 하락을 말하는 헤드라인: {link.get('title', '')[:60]}")
                 continue
             results.append(link)
             used_urls.add(link.get("url", ""))
@@ -1177,6 +1242,8 @@ def _build_google_headline_links(theme: dict, used_urls: set[str] | None = None)
         for query in queries:
             for link in _search_naver_news_links(query):
                 if link.get("url") in used_urls:
+                    continue
+                if _is_bearish_headline(link.get("title", "")):
                     continue
                 results.append(link)
                 used_urls.add(link.get("url", ""))
