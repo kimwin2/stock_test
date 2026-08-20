@@ -282,9 +282,10 @@ def _premarket_detail(stock_code: str) -> Optional[dict]:
     else:
         open_price = high = low = price
 
-    volume_raw = get_volume_fast(stock_code) or q.get("volumeRaw") or 0
-    if volume_raw == 0:
-        volume_raw = price * (200000 if price >= 100000 else 500000 if price >= 10000 else 1000000)
+    # 거래대금은 프리마켓 값을 쓰지 않는다(위 docstring 참고) — 직전 정규장 값을
+    # 크롤하고, 그마저 실패하면 0(=모른다). 여기서 지어내면 유동성 게이트가
+    # 지어낸 수로 종목을 떨어뜨린다.
+    volume_raw = get_volume_fast(stock_code, price) or int(q.get("volumeRaw") or 0)
 
     _premarket_hits += 1
     return {
@@ -299,6 +300,7 @@ def _premarket_detail(stock_code: str) -> Optional[dict]:
         "low": low,
         "volumeRaw": volume_raw,
         "volume": format_volume(volume_raw),
+        "volumeUnknown": volume_raw <= 0,
         "time": datetime.now(nxt_quotes.KST).strftime("%H:%M"),
         "quoteSource": "nxt-premarket",
     }
@@ -325,16 +327,103 @@ def get_stock_detail(stock_code: str) -> Optional[dict]:
     return get_stock_detail_desktop(stock_code)
 
 
-def get_volume_fast(stock_code: str) -> int:
-    """네이버 시세 페이지에서 거래대금을 빠르게 가져옵니다."""
+# ── 거래대금 읽기 ─────────────────────────────────────────────────────
+#
+# 거래대금은 유동성 하드 게이트(30억)를 여닫는 값이다. 그래서 "못 읽었을 때
+# 무엇을 넣는가" 가 곧 "어떤 종목이 조용히 사라지는가" 가 된다.
+#
+# 2026-08-20 실사고: SK하이닉스 40조 자사주 중개 소식에 SK증권(2,810원)이
+# 상한가를 갔고 헤드라인까지 그 종목을 가리키는데 카드에 안 잡혔다. 경로는
+#   ① `거래대금.*?<td><span>` 정규식이 DOTALL 로 문서 전체를 훑어 엉뚱한
+#      셀을 잡거나(신영증권: 호가 164,800 → '1,648억', 실제 7억) 아무것도
+#      못 잡고 0 을 돌려주고,
+#   ② 0 이면 **가격으로 거래대금을 지어냈다** (`price × 100만`).
+#      2,810원 × 100만 = 28.1억 < 30억 → 항상 `illiquid` 탈락.
+# 즉 3,000원 미만 종목은 크롤이 실패하는 순간 거래대금이 얼마든 무조건
+# 떨어졌다. 같은 날 다날(5,240원)의 카드 거래대금 '52억' 도 실측 788억이
+# 아니라 5,240 × 100만 이었다 — 점수와 트리맵 면적까지 같이 틀어진다.
+#
+# 규칙: **하드 게이트는 실측값에만 건다.** 못 읽으면 0 을 주고 모른다고
+# 밝힌다. 지어낸 숫자로 종목을 떨어뜨리느니 떨어뜨린 이유를 남기는 편이 낫다.
+
+_VOL_LABEL_WINDOW = 600      # 라벨 뒤 이 범위 밖은 다른 셀이다
+# 크롤 값이 거래량×현재가와 이 배수 밖으로 벌어지면 엉뚱한 셀을 읽은 것으로 본다.
+# 거래대금은 체결가 가중합이라 현재가 기준 추정과 보통 ±20% 안이고, 상·하한가를
+# 오간 종목도 2배를 넘지 않는다. 5배는 자릿수 오독만 걸러내는 넉넉한 창이다.
+_VOL_SANITY_RATIO = 5.0
+
+
+def _blind_number_near(html: str, label: str) -> int:
+    """`label` 바로 뒤 좁은 창 안의 첫 숫자. 못 찾으면 0.
+
+    문서 전체를 훑지 않는 것이 핵심이다. 네이버 시세 페이지에는 `<td><span>숫자`
+    모양이 수십 개 있어서, 창을 안 두면 라벨과 아무 상관 없는 값이 잡힌다.
+    """
+    idx = html.find(label)
+    if idx < 0:
+        return 0
+    window = html[idx + len(label): idx + len(label) + _VOL_LABEL_WINDOW]
+    m = re.search(r'<span class="blind">\s*([0-9,]+)\s*</span>', window)
+    if not m:
+        m = re.search(r'<span[^>]*>\s*([0-9,]{2,})\s*</span>', window)
+    return parse_number(m.group(1)) if m else 0
+
+
+def _volume_from_html(html: str, price: int = 0) -> int:
+    """시세 HTML → 거래대금(원). 못 읽거나 못 믿을 값이면 0.
+
+    거래대금을 못 읽어도 거래량은 읽히는 경우가 많다. 거래량 × 현재가는
+    가격으로 지어낸 수가 아니라 **실측 두 값의 곱**이라 게이트에 걸어도 된다
+    (이 레포의 `trading_intensity` 도 거래대금을 같은 식으로 정의한다).
+    """
+    value = _blind_number_near(html, "거래대금") * 1_000_000   # 백만원 단위
+    shares = _blind_number_near(html, "거래량")
+    derived = shares * price if (shares > 0 and price > 0) else 0
+
+    if value > 0 and derived > 0:
+        hi, lo = derived * _VOL_SANITY_RATIO, derived / _VOL_SANITY_RATIO
+        if value > hi or value < lo:
+            return int(derived)          # 자릿수가 어긋난다 — 파싱을 못 믿는다
+    return int(value or derived)
+
+
+# 네이버 모바일 API 가 쓰는 거래대금/거래량 키. 응답마다 있을 때도 없을 때도
+# 있어서, 있으면 공짜로 정확한 값을 얻고 없으면 조용히 크롤로 넘어간다.
+_BASIC_VALUE_KEYS = ("accumulatedTradingValue", "tradingValue", "accTradingValue")
+_BASIC_SHARE_KEYS = ("accumulatedTradingVolume", "tradingVolume", "accTradingVolume")
+
+
+def _to_int(value) -> int:
+    try:
+        return int(float(str(value).replace(",", "").strip()))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _volume_from_basic(data: dict, price: int = 0) -> int:
+    """모바일 basic 응답에 거래대금이 들어 있으면 꺼낸다 (원 단위). 없으면 0."""
+    for key in _BASIC_VALUE_KEYS:
+        v = _to_int(data.get(key))
+        if v > 0:
+            return v
+    for key in _BASIC_SHARE_KEYS:
+        shares = _to_int(data.get(key))
+        if shares > 0 and price > 0:
+            return shares * price
+    return 0
+
+
+def get_volume_fast(stock_code: str, price: int = 0) -> int:
+    """네이버 시세 페이지에서 거래대금(원)을 가져옵니다. 실패하면 0.
+
+    0 은 '거래대금 0원' 이 아니라 **모른다** 는 뜻이다. 호출자는 이 값을
+    가격 기반 추정으로 메우면 안 된다.
+    """
     try:
         url = f"https://finance.naver.com/item/sise.naver?code={stock_code}"
         resp = requests.get(url, headers=HEADERS, timeout=3)
         if resp.status_code == 200:
-            # 거래대금 백만원 단위로 표시됨
-            match = re.search(r'거래대금.*?<td[^>]*>\s*<span[^>]*>([0-9,]+)</span>', resp.text, re.DOTALL)
-            if match:
-                return parse_number(match.group(1)) * 1_000_000
+            return _volume_from_html(resp.text, price)
     except Exception:
         pass
     return 0
@@ -382,16 +471,10 @@ def get_stock_detail_mobile(stock_code: str) -> Optional[dict]:
             high = price
             low = price
 
-        # 거래대금: 네이버 시세 페이지에서 빠르게 가져오기
-        volume_raw = get_volume_fast(stock_code)
-        if volume_raw == 0:
-            # 못 가져오면 가격 기반 대략 추정 (대형주/중형주/소형주)
-            if price >= 100000:
-                volume_raw = price * 200000  # 대형주 거래량 추정
-            elif price >= 10000:
-                volume_raw = price * 500000
-            else:
-                volume_raw = price * 1000000
+        # 거래대금 — ① 이미 받아온 basic 응답에 들어 있으면 그걸 쓴다(공짜·정확),
+        # ② 없으면 시세 페이지, ③ 그것도 실패하면 0(=모른다). 가격으로 지어내지
+        # 않는다. 지어낸 값이 유동성 게이트를 여닫으면 사고가 조용히 난다.
+        volume_raw = _volume_from_basic(data, price) or get_volume_fast(stock_code, price)
 
         return {
             "code": stock_code,
@@ -405,6 +488,7 @@ def get_stock_detail_mobile(stock_code: str) -> Optional[dict]:
             "low": low,
             "volumeRaw": volume_raw,
             "volume": format_volume(volume_raw),
+            "volumeUnknown": volume_raw <= 0,
             "time": time_str,
         }
 
@@ -474,10 +558,11 @@ def get_stock_detail_desktop(stock_code: str) -> Optional[dict]:
                 result["open"] = parse_number(tds[3].get_text(strip=True))
                 result["low"] = parse_number(tds[4].get_text(strip=True))
 
-        # 거래대금
-        volume_amount = extract_volume_amount(soup, stock_code)
+        # 거래대금 — 못 읽으면 0(=모른다). 여기서도 지어내지 않는다.
+        volume_amount = extract_volume_amount(soup, stock_code, result.get("price") or 0)
         result["volumeRaw"] = volume_amount
         result["volume"] = format_volume(volume_amount)
+        result["volumeUnknown"] = volume_amount <= 0
 
         # 거래 시간
         time_tag = soup.select_one("em.date")
@@ -498,31 +583,50 @@ def get_stock_detail_desktop(stock_code: str) -> Optional[dict]:
         return None
 
 
-def extract_volume_amount(soup: BeautifulSoup, stock_code: str) -> int:
-    """거래대금을 추출합니다 (원 단위)."""
-    # 방법 1: 종목 페이지의 테이블에서 추출
-    table = soup.select_one("table.no_info")
-    if table:
-        tds = table.select("td")
-        for td in tds:
-            text = td.get_text(strip=True)
-            if "거래대금" in text:
-                blind = td.select_one("span.blind")
-                if blind:
-                    return parse_number(blind.get_text(strip=True)) * 1_000_000  # 백만원 단위
+def _cell_number(table, label: str) -> int:
+    """`table.no_info` 안에서 라벨이 붙은 셀의 숫자. 못 찾으면 0.
 
-    # 방법 2: 시세 API
+    같은 셀 안에서만 찾는다. 형제 td 로 넘어가면 라벨과 상관없는 값을 읽는다.
+    """
+    if not table:
+        return 0
+    for td in table.select("td"):
+        text = td.get_text(" ", strip=True)
+        if label not in text:
+            continue
+        # 거래량 셀을 찾을 때 거래대금 셀이 먼저 걸리면 안 된다 (부분 문자열).
+        if label == "거래량" and "거래대금" in text:
+            continue
+        blind = td.select_one("em span.blind") or td.select_one("span.blind")
+        if blind:
+            value = parse_number(blind.get_text(strip=True))
+            if value > 0:
+                return value
+    return 0
+
+
+def extract_volume_amount(soup: BeautifulSoup, stock_code: str, price: int = 0) -> int:
+    """거래대금을 추출합니다 (원 단위). 못 읽으면 0 = 모른다."""
+    table = soup.select_one("table.no_info")
+    value = _cell_number(table, "거래대금") * 1_000_000      # 백만원 단위
+    shares = _cell_number(table, "거래량")
+    derived = shares * price if (shares > 0 and price > 0) else 0
+
+    if value > 0 and derived > 0:
+        hi, lo = derived * _VOL_SANITY_RATIO, derived / _VOL_SANITY_RATIO
+        if value > hi or value < lo:
+            value = 0                                        # 파싱을 못 믿는다
+    if value > 0:
+        return int(value)
+    if derived > 0:
+        return int(derived)
+
+    # 마지막으로 시세 페이지 — 같은 규칙(라벨 뒤 좁은 창 + 정합성 검사)을 쓴다.
     try:
         api_url = f"https://finance.naver.com/item/sise.naver?code={stock_code}"
         resp = requests.get(api_url, headers=HEADERS, timeout=5)
-        soup2 = BeautifulSoup(resp.text, "lxml")
-        # 거래대금 필드 찾기
-        for td in soup2.select("td"):
-            text = td.get_text()
-            if "거래대금" in text:
-                next_td = td.find_next_sibling("td")
-                if next_td:
-                    return parse_number(next_td.get_text(strip=True)) * 1_000_000
+        if resp.status_code == 200:
+            return _volume_from_html(resp.text, price)
     except Exception:
         pass
 
@@ -656,6 +760,20 @@ def get_stock_details_for_themes(themes: list[dict], analysis: dict | None = Non
 
     result_themes = _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed=False)
 
+    # 거래대금 회로 차단기 — 네이버가 페이지 구조를 바꾸거나 죽으면 전 종목이
+    # `noVolume` 이 되어 탭이 통째로 빈다. 그건 "오늘 유동성 있는 종목이 없다"
+    # 가 아니라 "우리가 못 읽는다" 다. 그럴 땐 유동성 게이트만 내려놓고 간다
+    # — 거래대금 점수는 0 이 되므로 순위는 등락률·교차확인이 정한다.
+    fetched = [d for d in detail_cache.values() if d]
+    blind = [d for d in fetched if d.get("volumeUnknown") or not d.get("volumeRaw")]
+    if len(fetched) >= 10 and len(blind) / len(fetched) >= 0.6:
+        print(f"[WARN] 거래대금을 읽지 못한 종목이 {len(blind)}/{len(fetched)} — "
+              f"크롤이 깨진 것으로 보고 유동성 게이트를 끄고 재선정한다")
+        result_themes = _select_theme_stocks(themes, analysis, ts, fetch_detail,
+                                             relaxed=False, allow_unknown_volume=True)
+        for t in result_themes:
+            t["volumeGateOff"] = True
+
     # 조용한 날에도 탭이 비지 않게. 종목 조회는 캐시되어 재시도 비용이 거의 없다.
     if len(result_themes) < ts.MIN_THEMES:
         print(f"[INFO] 통과 테마 {len(result_themes)}개 — 게이트를 완화해 재선정")
@@ -668,13 +786,15 @@ def get_stock_details_for_themes(themes: list[dict], analysis: dict | None = Non
     return result_themes
 
 
-def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool) -> list[dict]:
+def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool,
+                         allow_unknown_volume: bool = False) -> list[dict]:
     """테마 리스트 → 선정 완료된 테마 리스트. relaxed 는 게이트 완화 여부."""
     result_themes = []
     used_codes: set[str] = set()   # 한 종목은 전체 테마 통틀어 1번만
     stats = {"pool": 0, "unresolved": 0, "noQuote": 0, "penny": 0,
-             "illiquid": 0, "falling": 0, "duplicate": 0, "indexProduct": 0,
-             "weakLead": 0, "unbackedDrop": 0}
+             "illiquid": 0, "noVolume": 0, "falling": 0, "duplicate": 0,
+             "indexProduct": 0, "weakLead": 0, "unbackedDrop": 0,
+             "volumeFixed": 0}
     min_stocks = 1 if relaxed else ts.MIN_STOCKS_PER_THEME
 
     for theme in themes:
@@ -707,7 +827,19 @@ def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool) -> l
                 stats["noQuote"] += 1
                 continue
 
-            reject = ts.passes_gate(detail, relaxed=relaxed)
+            # 크롤한 거래대금이 없거나 자릿수가 어긋나면 실측 시그널 값으로
+            # 바로잡는다. 이 보정이 없으면 게이트가 '못 읽었다' 를 '유동성이
+            # 없다' 로 읽어 상한가 대장주까지 떨어뜨린다 (2026-08-20 SK증권).
+            fixed = ts.reconcile_volume(detail, cand)
+            if fixed is not detail:
+                fixed["volume"] = format_volume(int(fixed["volumeRaw"]))
+                print(f"  [~] {cand.name} 거래대금 보정 {detail.get('volume')} → "
+                      f"{fixed['volume']} (실측 시그널)")
+                stats["volumeFixed"] += 1
+                detail = fixed
+
+            reject = ts.passes_gate(detail, relaxed=relaxed,
+                                    allow_unknown_volume=allow_unknown_volume)
             if reject:
                 stats[reject] += 1
                 print(f"  [-] {cand.name} 제외 ({reject}: {detail.get('changeRate')}% / "

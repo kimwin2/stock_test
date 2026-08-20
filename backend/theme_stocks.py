@@ -162,15 +162,18 @@ def _parse_pct(value) -> float | None:
 
 
 def _parse_eok(value) -> float | None:
-    """'1823억' → 182_300_000_000."""
+    """'1823억' → 182_300_000_000. '1조 2000억' 도 읽는다."""
     s = str(value or "").replace(",", "").strip()
-    m = re.match(r"^([0-9.]+)\s*억", s)
-    if m:
-        try:
-            return float(m.group(1)) * 1e8
-        except ValueError:
-            return None
-    return None
+    m = re.match(r"^(?:([0-9.]+)\s*조)?\s*(?:([0-9.]+)\s*억)?", s)
+    if not m or not (m.group(1) or m.group(2)):
+        return None
+    try:
+        jo = float(m.group(1)) if m.group(1) else 0.0
+        eok = float(m.group(2)) if m.group(2) else 0.0
+    except ValueError:
+        return None
+    total = jo * 1e12 + eok * 1e8
+    return total if total > 0 else None
 
 
 def build_candidates(theme: dict, analysis: dict) -> list[Candidate]:
@@ -335,6 +338,43 @@ def score_candidate(cand: Candidate, detail: dict) -> tuple[float, list[str]]:
     return (round(score, 1), reasons)
 
 
+# 크롤 값과 실측 시그널 값이 이 배수 밖으로 벌어지면 크롤을 못 믿는다.
+# 장중 몇 분 차이로 거래대금이 10배가 되지는 않는다.
+VOLUME_TRUST_RATIO = 10.0
+
+
+def reconcile_volume(detail: dict, cand: Candidate) -> dict:
+    """시세 크롤의 거래대금을 실측 시그널 값으로 메우거나 바로잡는다.
+
+    개미승리는 종목별 거래대금을 **실측으로 같이 들고 온다.** 그런데 우리는
+    그 값을 정렬용으로만 쓰고, 게이트에는 따로 크롤한 값을 걸고 있었다.
+    크롤은 두 가지로 틀린다 — 못 읽어서 0 이 되거나(SK증권), 엉뚱한 셀을 읽어
+    가격을 거래대금으로 착각하거나(신영증권 실거래 7억 → 카드 '1,648억').
+    이미 손에 든 실측값을 안 쓰면서 못 읽었다는 이유로 종목을 떨어뜨리는 건
+    앞뒤가 안 맞는다.
+
+    원본을 고치지 않고 사본을 돌려준다 — detail 은 종목 단위로 캐시되어
+    여러 테마가 나눠 쓰기 때문이다.
+    """
+    measured = cand.measured_value
+    if not measured or measured <= 0:
+        return detail
+
+    crawled = float(detail.get("volumeRaw") or 0)
+    unknown = bool(detail.get("volumeUnknown")) or crawled <= 0
+    conflict = (not unknown) and (
+        crawled > measured * VOLUME_TRUST_RATIO or crawled * VOLUME_TRUST_RATIO < measured
+    )
+    if not (unknown or conflict):
+        return detail
+
+    fixed = dict(detail)
+    fixed["volumeRaw"] = measured
+    fixed["volumeUnknown"] = False
+    fixed["volumeSource"] = "measured-signal"
+    return fixed
+
+
 # 완화 모드 — 시장이 조용해 통과 종목이 부족한 날, 탭을 비우느니 기준을 낮춘다.
 # 동전주 컷(MIN_PRICE)만은 완화하지 않는다. 이건 품질이 아니라 안전 문제다.
 RELAXED_TRADING_VALUE = 500_000_000
@@ -342,7 +382,8 @@ RELAXED_CHANGE_RATE = -10.0
 MIN_THEMES = 3
 
 
-def passes_gate(detail: dict, relaxed: bool = False) -> str | None:
+def passes_gate(detail: dict, relaxed: bool = False,
+                allow_unknown_volume: bool = False) -> str | None:
     """하드 게이트. 통과하면 None, 아니면 탈락 사유 키."""
     min_value = RELAXED_TRADING_VALUE if relaxed else MIN_TRADING_VALUE
     min_rate = RELAXED_CHANGE_RATE if relaxed else MIN_CHANGE_RATE
@@ -350,7 +391,21 @@ def passes_gate(detail: dict, relaxed: bool = False) -> str | None:
         return "indexProduct"
     if float(detail.get("price") or 0) < MIN_PRICE:
         return "penny"
-    if float(detail.get("volumeRaw") or 0) < min_value:
+    volume = float(detail.get("volumeRaw") or 0)
+    unknown = bool(detail.get("volumeUnknown")) or volume <= 0
+    if unknown and allow_unknown_volume:
+        # 회로 차단 모드 — 유동성 판정 자체를 건너뛴다. 여기서 illiquid 로
+        # 흘려보내면 게이트를 껐다는 말이 무색해진다 (volume 이 0 이므로 어떤
+        # 하한을 걸어도 전부 탈락한다).
+        pass
+    elif unknown:
+        # '거래대금 0원' 이 아니라 **못 읽었다**. 예전에는 이 자리를 가격으로
+        # 지어낸 수(price × 100만)가 메웠고, 3,000원 미만 종목은 실제로 얼마가
+        # 거래됐든 항상 30억 미만이 되어 조용히 탈락했다 (2026-08-20 SK증권:
+        # 상한가 · 실거래 281억 · 헤드라인 주인공인데 카드에 없었다).
+        # 모르면 모른다고 떨어뜨린다 — 통계에 이유가 남아야 다음에 보인다.
+        return "noVolume"
+    elif volume < min_value:
         return "illiquid"
     if float(detail.get("changeRate") or 0) < min_rate:
         return "falling"
