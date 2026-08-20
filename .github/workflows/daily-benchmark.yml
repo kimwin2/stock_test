@@ -41,9 +41,39 @@ jobs:
           python-version: '3.11'
 
       # 전체 requirements 는 Lambda 용이라 무겁다. 대조에 실제로 필요한 것만.
-      # (KRX 상장 목록 조회 → FinanceDataReader / 번들 복호화 → cryptography)
+      #   KRX 상장 목록 조회 → finance-datareader
+      #   번들 복호화        → cryptography
+      #
+      # 2026-08-20: 여기에 **import 이름**(`FinanceDataReader`)을 적어놔서
+      # PyPI 에 없는 배포를 찾다가 `No matching distribution found` 로 죽었다.
+      # 5회 예약 실행이 전부 이 줄에서 멈췄고, 그 결과 대조는 **한 번도 돈 적이
+      # 없다.** 배포 이름은 `finance-datareader` 다 (requirements.txt 는 처음부터
+      # 맞게 적혀 있었는데 이 파일만 틀렸다).
+      #
+      # 그리고 **의존성 하나 때문에 그날 기록을 통째로 잃으면 안 된다.**
+      # 둘 다 없어도 대조는 의미 있는 리포트를 낸다:
+      #   cryptography 없음        → '레퍼런스 없음' (ensure_reference 가 흡수)
+      #   finance-datareader 없음  → 국내/해외 구분만 생략하고 그렇게 적는다
+      # 그래서 continue-on-error 로 둔다. 설치 실패는 아래 스텝이 리포트에 적는다.
       - name: Install deps
-        run: pip install --quiet FinanceDataReader cryptography
+        id: deps
+        continue-on-error: true
+        run: pip install --quiet finance-datareader cryptography
+
+      - name: Check optional deps
+        id: depcheck
+        shell: bash
+        run: |
+          missing=""
+          python -c "import FinanceDataReader" 2>/dev/null || missing="$missing finance-datareader"
+          python -c "import cryptography"      2>/dev/null || missing="$missing cryptography"
+          if [ -n "$missing" ]; then
+            echo "missing=$missing" >> "$GITHUB_OUTPUT"
+            echo "::warning::설치 실패한 의존성:$missing — 리포트가 축소된 상태로 나온다"
+          else
+            echo "missing=" >> "$GITHUB_OUTPUT"
+            echo "의존성 정상"
+          fi
 
       - name: Run daily check
         id: check
@@ -75,6 +105,14 @@ jobs:
       - name: Publish to job summary
         if: always()
         run: |
+          if [ -n "${{ steps.depcheck.outputs.missing }}" ]; then
+            {
+              echo "> ⚠️ 설치 실패한 의존성:${{ steps.depcheck.outputs.missing }}"
+              echo ">"
+              echo "> 리포트가 축소된 상태다. 이 줄이 보이면 먼저 이것부터 고칠 것."
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
           if [ -f benchmark-report.md ]; then
             cat benchmark-report.md >> "$GITHUB_STEP_SUMMARY"
           else
