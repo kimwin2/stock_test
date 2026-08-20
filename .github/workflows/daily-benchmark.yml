@@ -102,6 +102,14 @@ jobs:
           echo "status=$?" >> "$GITHUB_OUTPUT"
           set -e
 
+      # 대조를 못 한 회차는 **초록으로 묻히면 안 된다.** 실패로 두면 매일 빨간 X 만
+      # 쌓여 아무도 안 보고(실측: 5회 연속 실패를 6일간 아무도 못 봄), 그렇다고
+      # 조용히 초록이면 빈 리포트가 정상처럼 보인다. 경고 애노테이션이 그 중간이다.
+      - name: Annotate when comparison did not happen
+        if: always() && steps.check.outputs.status != '0'
+        run: |
+          echo "::warning::대조를 못 했다 (exit=${{ steps.check.outputs.status }}) — 리포트 첫 줄의 사유를 볼 것"
+
       - name: Publish to job summary
         if: always()
         run: |

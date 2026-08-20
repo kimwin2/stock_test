@@ -76,3 +76,40 @@ Job Summary 에 관문별 표가 나오면 다리가 붙은 것이다.
 - **요약 대기 중인 날은 건너뛴다.** 오늘 글은 올라왔는데 요약이 아직 없으면
   번들에 `pending: true` 인 빈 껍데기가 들어간다. 그대로 채점하면
   "관심종목 0개 · 적중 0%" 라는 멀쩡해 보이는 거짓 리포트가 된다.
+
+---
+
+## 실측 확인 (2026-08-20)
+
+양쪽 끝을 stock_chat 원본 코드와 대조했다. **계약은 전부 맞고, 빠진 건 시크릿 하나뿐이다.**
+
+| 항목 | stock_chat (`pipeline/bundle.py`) | 이 레포 (`stock_chat_bundle.py`) | |
+|---|---|---|---|
+| 경로 | `WEB_DATA_DIR` = `web/data/` → Pages 루트 | `<base>/data/manifest.json`, `data/core.enc` | ✅ |
+| KDF | PBKDF2-HMAC-SHA256, **600,000회**, salt 16B | 동일 | ✅ |
+| 암호 | AES-256-GCM, 출력 `iv(12) ‖ ct+tag` | `IV_BYTES = 12` | ✅ |
+| 평문 | gzip(JSON) | gunzip | ✅ |
+| 일자 | `core["days"]`, `summary.archive_days` 기본 **400일** | `--days` 로 소급 대조 가능 | ✅ |
+| 필드 | `date`/`stance`/`cash`/`tickers`/`sectors`/`message_count` | `KEEP_KEYS` 화이트리스트와 정확히 일치 | ✅ |
+
+수집도 살아 있다 — `hourly.yml` 이 30분 간격(KST 05~24시)으로 돌고 최근 실행이 전부 성공이다.
+
+> **`core["secrets"]` 에 `gemini_key`·`gh_token` 이 들어 있는 것을 원본에서 재확인했다.**
+> `_slim()` 의 화이트리스트를 블랙리스트로 바꾸면 그 순간 새어 나간다. 저쪽이
+> 필드를 추가할 때마다 샌다는 뜻이라, 이건 취향 문제가 아니다.
+
+### 남은 한 칸
+
+`stock_test` 레포에 **`SHARE_PASSPHRASE` 시크릿이 없다.** 실측 로그:
+
+```
+SHARE_PASSPHRASE:
+STOCK_CHAT_BUNDLE_URL:
+REFERENCE_DAILY_URL:
+```
+
+→ Settings → Secrets and variables → Actions → New repository secret
+→ 이름 `SHARE_PASSPHRASE`, 값은 **stock_chat 레포에 넣어둔 것과 같은 값**.
+
+넣고 나면 `Daily Benchmark` 를 `workflow_dispatch` 로 한 번 돌려 확인한다
+(`days` 를 10 이상으로 주면 과거 날짜까지 한 번에 소급 대조된다).
