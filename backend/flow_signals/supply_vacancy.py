@@ -397,6 +397,15 @@ def enrich_with_chart_and_buyzone(
 
         enriched = {
             **item,
+            # `item["close"]`/`item["lastDate"]` 는 **투자자별 수급 데이터** 기준이다.
+            # 그쪽 집계는 하루 늦어서, 가격·MA·등락률(전부 FDR 일봉 기준)과
+            # 하루가 어긋난 채 같은 카드에 실려 나갔다 — 실측 2026-08-20:
+            # 카드의 큰 숫자는 133,100(8/19)인데 차트 마지막 종가는
+            # 136,600(8/20)이었고, `aboveMA10`·`ret5d`·`close/max250d` 판정은
+            # 8/20 종가로 하고 있었다. 가격은 가격 시계열을 따른다.
+            "close": round(last_close, 0),
+            "priceDate": date_hist[-1] if date_hist else None,
+            "flowDate": item.get("lastDate"),
             "priceHistory60d": price_hist,
             "ohlc60d": ohlc_hist,
             "dateHistory60d": date_hist,

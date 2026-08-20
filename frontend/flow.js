@@ -226,9 +226,17 @@ function renderDualAxisChart(history, opts = {}) {
   const ma5Pts = projP(ma5);
   const ma20Pts = projP(ma20);
 
+  // 구간 방향은 면적 색에만. 마지막 점·태그는 **전일 대비** (종목 차트와 같은 규칙).
   const firstVal = valid[0], lastVal = valid[valid.length - 1];
-  const rising = lastVal >= firstVal;
-  const areaColor = rising ? '#E53935' : '#1565C0';
+  const areaColor = lastVal >= firstVal ? '#E53935' : '#1565C0';
+  let lastIdx = -1;
+  for (let i = closeArr.length - 1; i >= 0; i--) if (closeArr[i] != null) { lastIdx = i; break; }
+  let prevIdx = -1;
+  for (let i = lastIdx - 1; i >= 0; i--) if (closeArr[i] != null) { prevIdx = i; break; }
+  const prevVal = prevIdx >= 0 ? closeArr[prevIdx] : null;
+  const lastColor = (prevVal == null || closeArr[lastIdx] === prevVal)
+    ? '#4A5058'
+    : (closeArr[lastIdx] > prevVal ? '#E53935' : '#1565C0');
 
   // 일봉 캔들 + 거래량 — 종목 차트와 동일 규칙(양봉 빨강 채움 / 음봉 파랑 테두리)
   let candleSvg = '', volSvg = '', priceArea = '';
@@ -267,13 +275,17 @@ function renderDualAxisChart(history, opts = {}) {
   }
 
   // 지표창 — F&G 오실레이터 백분위 음영 + 분위 점선
-  const oscVals = oscArr.map(v => v == null ? 0 : v);
-  let oMin = Math.min(...oscVals), oMax = Math.max(...oscVals);
+  // 값이 없는 날은 비워 둔다 — 0 은 '중립' 이라는 뜻이라 없는 관측을 만든다.
+  const oscVals = oscArr.slice();
+  const oscValid = oscVals.filter(v => v != null);
+  let oMin = Math.min(...oscValid), oMax = Math.max(...oscValid);
   const oPad = (oMax - oMin) * 0.12 || 0.001; oMin -= oPad; oMax += oPad;
   const yO = (v) => oscTop + (1 - (v - oMin) / (oMax - oMin)) * oscH;
-  const lastOsc = oscVals[oscVals.length - 1];
+  let lastOscIdx = -1;
+  for (let i = oscVals.length - 1; i >= 0; i--) if (oscVals[i] != null) { lastOscIdx = i; break; }
+  const lastOsc = oscVals[lastOscIdx];
 
-  const sorted = [...oscVals].sort((a, b) => a - b);
+  const sorted = [...oscValid].sort((a, b) => a - b);
   const pq = (q) => sorted[Math.max(0, Math.min(sorted.length - 1, Math.round(q * (sorted.length - 1))))];
   const p90 = pq(0.90), p75 = pq(0.75), p50 = pq(0.50), p25 = pq(0.25), p10 = pq(0.10);
   const band = (a, b, fill) => {
@@ -289,24 +301,26 @@ function renderDualAxisChart(history, opts = {}) {
   const dl = (y, color, dash) =>
     `<line x1="${x0}" y1="${y.toFixed(1)}" x2="${x1}" y2="${y.toFixed(1)}" stroke="${color}" stroke-width="0.8"${dash ? ` stroke-dasharray="${dash}"` : ''} opacity="0.55"/>`;
   const dashed = dl(yO(p90), '#E53935', '3 3') + dl(yO(p10), '#1E88E5', '3 3') + dl(yO(p50), '#cbb8bb', '');
-  const oscPts = oscVals.map((v, i) => `${X(i).toFixed(1)},${yO(v).toFixed(1)}`).join(' ');
+  const oscPts = oscVals
+    .map((v, i) => v == null ? null : `${X(i).toFixed(1)},${yO(v).toFixed(1)}`)
+    .filter(Boolean).join(' ');
   const oscSvg = bands + dashed
     + `<polyline points="${oscPts}" fill="none" stroke="${CHART_OSC}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`;
   const oscFg =
-    `<circle cx="${X(n - 1).toFixed(1)}" cy="${yO(lastOsc).toFixed(1)}" r="2.2" fill="${CHART_OSC}"/>` +
+    `<circle cx="${X(lastOscIdx).toFixed(1)}" cy="${yO(lastOsc).toFixed(1)}" r="2.2" fill="${CHART_OSC}"/>` +
     `<text x="${(x1 - 2).toFixed(1)}" y="${(yO(lastOsc) + (lastOsc >= p50 ? 10 : 3)).toFixed(1)}" font-size="11" font-weight="800" fill="#B4560F" text-anchor="end">${lastOsc.toFixed(3)}</text>`;
 
   // 현재 지수 태그 — 종목 차트의 현재가 pill 과 동일
-  const lastY = yP(lastVal);
-  const label = Math.round(lastVal).toLocaleString('ko-KR');
+  const lastY = yP(closeArr[lastIdx]);
+  const label = Math.round(closeArr[lastIdx]).toLocaleString('ko-KR');
   const tagW = Math.max(30, label.length * 6.0 + 9), tagH = 13;
-  const closeDot = `<circle cx="${X(n - 1).toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.2" fill="${areaColor}"/>`;
+  const closeDot = `<circle cx="${X(lastIdx).toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.2" fill="${lastColor}"/>`;
   const closeTag = `
-      <line x1="${x0}" y1="${lastY.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${lastY.toFixed(1)}" stroke="${areaColor}" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
-      <rect x="${(x1 + 2).toFixed(1)}" y="${(lastY - tagH / 2).toFixed(1)}" width="${tagW}" height="${tagH}" rx="2.5" fill="${areaColor}"/>
+      <line x1="${x0}" y1="${lastY.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${lastY.toFixed(1)}" stroke="${lastColor}" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
+      <rect x="${(x1 + 2).toFixed(1)}" y="${(lastY - tagH / 2).toFixed(1)}" width="${tagW}" height="${tagH}" rx="2.5" fill="${lastColor}"/>
       <text x="${(x1 + 2 + tagW / 2).toFixed(1)}" y="${(lastY + 3.2).toFixed(1)}" font-size="9.2" font-weight="800" fill="#fff" text-anchor="middle">${fEscape(label)}</text>`;
-  const priceTitle = `<text x="${x0}" y="${(padT + 6).toFixed(1)}" font-size="8.6" font-weight="700" fill="${CHART_AXIS_TEXT}">${hasCandle ? '일봉 · 거래량' : '지수'}</text>`;
-  const oscTitle = `<text x="${x0}" y="${(oscTop - 2.5).toFixed(1)}" font-size="8.6" font-weight="700" fill="${CHART_OSC}">Fear &amp; Greed 오실레이터</text>`;
+  const priceTitle = `<text x="${x0}" y="${(padT + 6).toFixed(1)}" font-size="8.6" paint-order="stroke" stroke="#fff" stroke-width="2.6" stroke-linejoin="round" font-weight="700" fill="${CHART_AXIS_TEXT}">${hasCandle ? '일봉 · 거래량' : '지수'}</text>`;
+  const oscTitle = `<text x="${x0}" y="${(oscTop - 2.5).toFixed(1)}" font-size="8.6" paint-order="stroke" stroke="#fff" stroke-width="2.6" stroke-linejoin="round" font-weight="700" fill="${CHART_OSC}">Fear &amp; Greed 오실레이터</text>`;
 
   // X축 날짜 — 종목 차트와 동일하게 3틱. 지수는 기간이 길어 연도까지 표기.
   let axisLabels = '';
@@ -361,15 +375,31 @@ function renderMiniPriceChart(c, opts = {}) {
   const isPriceSeries = !!(c.priceHistory60d && c.priceHistory60d.length >= 2);
   const oscFull = c.supplyOscHistory || [];
   const dateFull = c.dateHistory60d || [];
-  const N = (oscFull.length >= 2 && capFull.length >= 2)
-    ? Math.min(capFull.length, oscFull.length)
-    : capFull.length;
+
+  // ── 두 시계열은 **날짜로** 맞춘다 ────────────────────────────────
+  // 가격(FDR 일봉)과 수급 오실레이터(네이버 투자자별)는 끝나는 날이 다르다.
+  // 투자자별 집계가 하루 늦기 때문이다 — 실측 2026-08-20 17:18 페이로드에서
+  // 가격은 8/20 까지, 오실레이터는 8/19 까지였다.
+  // 예전 코드는 두 배열의 **꼬리를 맞춰** 잘랐다(`slice(-N)`). 길이만 맞추고
+  // 날짜는 안 보므로 같은 x 좌표에 다른 날이 겹친다. 실측하니 60포인트
+  // **전부** 어긋나 있었고, 거래일 집합까지 달라 어떤 구간은 이틀 벌어졌다
+  // (가격 8/18 ↔ 오실레이터 8/14). 마지막날에서 가장 크게 드러난다.
+  // → x축의 진실은 **가격 날짜**다. 같은 날짜의 수급만 겹쳐 그리고, 없는
+  //   날은 비워 둔다. 0 으로 채우면 없는 수급을 지어내는 것이다.
+  const N = capFull.length;
   const cap = capFull.slice(-N);
-  const oscSeries = oscFull.slice(-N);
-  // X축 날짜: dateHistory60d (cap 과 동일 길이) 우선, 없으면 osc 의 date
-  const dates = (dateFull.length >= N)
-    ? dateFull.slice(-N)
-    : oscSeries.map(o => o.date);
+  let dates = (dateFull.length >= N) ? dateFull.slice(-N) : [];
+  let oscSeries;
+  if (dates.length === N) {
+    const oscByDate = new Map();
+    oscFull.forEach(o => { if (o && o.date) oscByDate.set(o.date, o); });
+    oscSeries = dates.map(d => oscByDate.get(d) || null);
+  } else {
+    // 날짜가 없는 구버전 페이로드 — 맞출 근거가 없으니 꼬리를 맞춘다.
+    oscSeries = oscFull.slice(-N);
+    while (oscSeries.length < N) oscSeries.unshift(null);
+    dates = oscSeries.map(o => (o && o.date) || '');
+  }
   if (!cap || cap.length < 2) return '<div class="sparkline-empty"></div>';
 
   const validCap = cap.filter(v => v != null);
@@ -408,10 +438,24 @@ function renderMiniPriceChart(c, opts = {}) {
   const ma5Pts = projP(ma5Series);
   const ma20Pts = projP(ma20Series);
 
-  // 구간 등락 방향 — 현재가 태그 색에 쓴다.
+  // 구간 등락 방향 — **면적 그라데이션 색에만** 쓴다.
   const firstVal = validCap[0], lastVal = validCap[validCap.length - 1];
-  const rising = lastVal >= firstVal;
-  const areaColor = rising ? '#E53935' : '#1565C0';
+  const areaColor = lastVal >= firstVal ? '#E53935' : '#1565C0';
+
+  // 마지막 점은 '마지막 값' 이 아니라 '마지막 값이 있는 날' 에 찍는다.
+  // 끝에 빈 날이 있으면 점만 오른쪽 끝으로 날아가 캔들에서 떨어진다.
+  let lastIdx = -1;
+  for (let i = cap.length - 1; i >= 0; i--) if (cap[i] != null) { lastIdx = i; break; }
+  let prevIdx = -1;
+  for (let i = lastIdx - 1; i >= 0; i--) if (cap[i] != null) { prevIdx = i; break; }
+  // 현재가 pill·점 색은 **전일 종가 대비**다 (한국 HTS 표준). 60일 구간
+  // 방향을 여기에 쓰면 오늘 오른 종목에 파란 알약이 붙는다 — 실측
+  // 2026-08-20 후보 6종목 중 3종목(티에프이·가온칩스·심텍)이 마지막날
+  // 양봉인데 pill 은 파랑이었다. 보합은 빨강도 파랑도 아니다.
+  const prevVal = prevIdx >= 0 ? cap[prevIdx] : null;
+  const lastColor = (prevVal == null || cap[lastIdx] === prevVal)
+    ? '#4A5058'
+    : (cap[lastIdx] > prevVal ? '#E53935' : '#1565C0');
 
   // ── 일봉 캔들 + 거래량 ──────────────────────────
   // 종가 선 하나로는 그날 무슨 일이 있었는지 안 보인다. 종가베팅 대상을
@@ -457,14 +501,20 @@ function renderMiniPriceChart(c, opts = {}) {
   // 지표창 — 수급 오실레이터 + 백분위 음영
   let oscSvg = '', oscFg = '';
   let lastOscVal = null;
-  if (oscSeries.length >= 2) {
-    const oscVals = oscSeries.map(o => (o && o.osc != null) ? o.osc : 0);
-    let oMin = Math.min(...oscVals), oMax = Math.max(...oscVals);
+  // 수급이 없는 날은 **비워 둔다.** 예전에는 null 을 0 으로 바꿔 그렸는데,
+  // 0 은 '수급 중립' 이라는 뜻이라 없는 관측을 있는 것처럼 만든다. 날짜 정렬을
+  // 켜면 마지막 날(수급 미집계)이 매번 0 으로 찍혀 선이 끝에서 꺾인다.
+  const oscVals = oscSeries.map(o => (o && o.osc != null) ? o.osc : null);
+  const oscValid = oscVals.filter(v => v != null);
+  if (oscValid.length >= 2) {
+    let oMin = Math.min(...oscValid), oMax = Math.max(...oscValid);
     const oPad = (oMax - oMin) * 0.12 || 0.001; oMin -= oPad; oMax += oPad;
     const yO = (v) => oscTop + (1 - (v - oMin) / (oMax - oMin)) * oscH;
-    lastOscVal = oscVals[oscVals.length - 1];
+    let lastOscIdx = -1;
+    for (let i = oscVals.length - 1; i >= 0; i--) if (oscVals[i] != null) { lastOscIdx = i; break; }
+    lastOscVal = oscVals[lastOscIdx];
 
-    const sorted = [...oscVals].sort((a, b) => a - b);
+    const sorted = [...oscValid].sort((a, b) => a - b);
     const pq = (q) => sorted[Math.max(0, Math.min(sorted.length - 1, Math.round(q * (sorted.length - 1))))];
     const p90 = pq(0.90), p75 = pq(0.75), p50 = pq(0.50), p25 = pq(0.25), p10 = pq(0.10);
 
@@ -481,7 +531,9 @@ function renderMiniPriceChart(c, opts = {}) {
     const dl = (y, color, dash) =>
       `<line x1="${x0}" y1="${y.toFixed(1)}" x2="${x1}" y2="${y.toFixed(1)}" stroke="${color}" stroke-width="0.8"${dash ? ` stroke-dasharray="${dash}"` : ''} opacity="0.55"/>`;
     const dashed = dl(yO(p90), '#E53935', '3 3') + dl(yO(p10), '#1E88E5', '3 3') + dl(yO(p50), '#cbb8bb', '');
-    const oscPts = oscVals.map((v, i) => `${X(i).toFixed(1)},${yO(v).toFixed(1)}`).join(' ');
+    const oscPts = oscVals
+      .map((v, i) => v == null ? null : `${X(i).toFixed(1)},${yO(v).toFixed(1)}`)
+      .filter(Boolean).join(' ');
 
     oscSvg = bands + dashed
       + `<polyline points="${oscPts}" fill="none" stroke="${CHART_OSC}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -504,32 +556,41 @@ function renderMiniPriceChart(c, opts = {}) {
     // c.oscPercentile 이 없는 경량 번들용 폴백 — 그릴 수 있는 구간으로만 계산한다.
     const oscPct = (c.oscPercentile != null)
       ? c.oscPercentile
-      : (oscVals.length ? oscVals.filter(v => v < lastOscVal).length / oscVals.length * 100 : null);
+      : (oscValid.length ? oscValid.filter(v => v < lastOscVal).length / oscValid.length * 100 : null);
     const oscLabel = (oscPct != null)
       ? `빈집 하위 ${Math.round(oscPct)}%<tspan font-size="8.6" font-weight="600" fill="#9A8F7C"> ${bpTxt}</tspan>`
       : bpTxt;
 
     oscFg =
-      `<circle cx="${X(n - 1).toFixed(1)}" cy="${yO(lastOscVal).toFixed(1)}" r="2.2" fill="${CHART_OSC}"/>` +
+      `<circle cx="${X(lastOscIdx).toFixed(1)}" cy="${yO(lastOscVal).toFixed(1)}" r="2.2" fill="${CHART_OSC}"/>` +
       // 끝점 점(r=2.2)과 같은 높이에 놓이므로 x1-2 면 글자가 점에 닿는다. 6 을 띄운다.
       `<text x="${(x1 - 6).toFixed(1)}" y="${(yO(lastOscVal) + (lastOscVal >= p50 ? 10 : 3)).toFixed(1)}" font-size="11" font-weight="800" fill="#B4560F" text-anchor="end">${oscLabel}</text>`;
   }
 
   // 현재가 태그 — HTS 처럼 우측 가격축에 색 pill + 점선 가이드
-  const lastCapVal = [...cap].reverse().find(v => v != null);
+  const lastCapVal = cap[lastIdx];
   const capLabel = isPriceSeries
     ? Number(lastCapVal).toLocaleString('ko-KR')
     : (lastCapVal >= 1e12 ? `${(lastCapVal / 1e12).toFixed(1)}조`
       : lastCapVal >= 1e8 ? `${(lastCapVal / 1e8).toFixed(0)}억` : `${lastCapVal}`);
   const lastY = yP(lastCapVal);
   const tagW = Math.max(30, capLabel.length * 6.0 + 9), tagH = 13;
-  const capDot = `<circle cx="${X(n - 1).toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.2" fill="${areaColor}"/>`;
+  const capDot = `<circle cx="${X(lastIdx).toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.2" fill="${lastColor}"/>`;
   const capLabelSvg = `
-      <line x1="${x0}" y1="${lastY.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${lastY.toFixed(1)}" stroke="${areaColor}" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
-      <rect x="${(x1 + 2).toFixed(1)}" y="${(lastY - tagH / 2).toFixed(1)}" width="${tagW}" height="${tagH}" rx="2.5" fill="${areaColor}"/>
+      <line x1="${x0}" y1="${lastY.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${lastY.toFixed(1)}" stroke="${lastColor}" stroke-width="0.7" stroke-dasharray="3 2" opacity="0.5"/>
+      <rect x="${(x1 + 2).toFixed(1)}" y="${(lastY - tagH / 2).toFixed(1)}" width="${tagW}" height="${tagH}" rx="2.5" fill="${lastColor}"/>
       <text x="${(x1 + 2 + tagW / 2).toFixed(1)}" y="${(lastY + 3.2).toFixed(1)}" font-size="9.2" font-weight="800" fill="#fff" text-anchor="middle">${fEscape(capLabel)}</text>`;
-  const priceTitle = `<text x="${x0}" y="${(padT + 6).toFixed(1)}" font-size="8.6" font-weight="700" fill="${CHART_AXIS_TEXT}">${candleSvg ? '일봉 · 거래량' : (isPriceSeries ? '주가' : '시가총액')}</text>`;
-  const oscTitle = `<text x="${x0}" y="${(oscTop - 2.5).toFixed(1)}" font-size="8.6" font-weight="700" fill="${CHART_OSC}">수급 오실레이터</text>`;
+  const priceTitle = `<text x="${x0}" y="${(padT + 6).toFixed(1)}" font-size="8.6" paint-order="stroke" stroke="#fff" stroke-width="2.6" stroke-linejoin="round" font-weight="700" fill="${CHART_AXIS_TEXT}">${candleSvg ? '일봉 · 거래량' : (isPriceSeries ? '주가' : '시가총액')}</text>`;
+  // 수급 집계는 가격보다 하루 늦다. 선이 오른쪽 끝까지 안 가는 이유를 밝힌다 —
+  // 안 밝히면 "데이터가 빠졌나?" 로 읽히고, 그렇다고 끝까지 늘리면 없는 수급을
+  // 지어내는 것이다.
+  const oscLastDate = (() => {
+    for (let i = oscSeries.length - 1; i >= 0; i--) if (oscSeries[i] && oscSeries[i].osc != null) return oscSeries[i].date;
+    return null;
+  })();
+  const oscStale = !!(oscLastDate && dates.length && dates[dates.length - 1] && oscLastDate !== dates[dates.length - 1]);
+  const oscAsOf = oscStale ? ` · ${oscLastDate.slice(5).replace('-', '/')} 기준` : '';
+  const oscTitle = `<text x="${x0}" y="${(oscTop - 2.5).toFixed(1)}" font-size="8.6" paint-order="stroke" stroke="#fff" stroke-width="2.6" stroke-linejoin="round" font-weight="700" fill="${CHART_OSC}">수급 오실레이터${fEscape(oscAsOf)}</text>`;
 
   // X축 날짜 라벨 — 3개 (좌끝 / 중앙 / 우끝)
   let axisLabels = '';
