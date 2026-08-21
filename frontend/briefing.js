@@ -759,42 +759,59 @@ function sourceBadge(source) {
 //   · 값은 아크 길이로 인코딩한다 — 길이는 각도보다 정확하게 읽힌다.
 //   · 숫자를 중앙에 가장 크게. 구간 이름은 그 아래 작게.
 //   · 바늘 대신 아크 끝의 작은 노브. 중심 장식 제거.
-const DIAL_TONE = {
-  '과열': ['#D93A2B', '#F3B7AF'],
-  '강세': ['#DE8A2E', '#F4D6AC'],
-  '중립': ['#7C8493', '#D3D8DF'],
-  '약세': ['#4A86C8', '#BBD3EC'],
-  '공포': ['#1F63C4', '#B4CBEA'],
-};
+// 색은 **zone.color 하나에서 파생**한다. 색표를 따로 두면 안 된다 —
+// 이 화면에는 구간 이름 어휘가 두 벌 있다:
+//   OSC_ZONE_COLORS  과열/강세/중립/약세/공포        (백엔드 zone, 정상 경로)
+//   FG_ZONES         극단적 공포/공포/중립/탐욕/극단적 탐욕 (레벨 폴백 경로)
+// 처음엔 앞 어휘만 담은 표(DIAL_TONE)를 따로 뒀는데, 폴백 경로로 흐르는 날엔
+// '탐욕'·'극단적 탐욕'·'극단적 공포' 가 표에 없어 게이지가 통째로 무채색이 됐다.
+// zone.color 는 두 어휘 모두가 이미 들고 있으므로 그것만 쓰면 갈라질 일이 없다.
+function tintHex(hex, ratio) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
+  if (!m) return '#D3D8DF';
+  const n = parseInt(m[1], 16);
+  const up = (c) => Math.round(c + (255 - c) * ratio);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(up);
+  return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+}
 
 function buildHeroDial(fg, sentiment, flow) {
   const v = Math.max(0, Math.min(100, fg.kospi ?? 50));
   const zone = zoneOf(sentiment.kospi, fg.kospi);
   const nCand = ((flow || {}).buyCandidates || []).length;
-  const tone = DIAL_TONE[zone.label] || ['#7C8493', '#D3D8DF'];
+  const tone = [zone.color || '#7C8493', tintHex(zone.color || '#7C8493', 0.70)];
 
   // 반원 기하 — 180°(좌) → 360°(우)
   // 아크의 지름선(y=CY) 아래는 비어 있다. 숫자는 그릇 안, 구간 이름은
   // 지름선 **아래**로 내려 서로 붙지 않게 한다.
   const CX = 100, CY = 92, R = 71, SW = 12;
+  const DEG = 1.8;                     // 0~100 → 180° (반원)
   const pt = (deg, r) => [
     CX + r * Math.cos(deg * Math.PI / 180),
     CY + r * Math.sin(deg * Math.PI / 180),
   ];
   const arc = (from, to, r) => {
-    const [x0, y0] = pt(180 + from * 1.8, r);
-    const [x1, y1] = pt(180 + to * 1.8, r);
-    const large = (to - from) > 50 ? 1 : 0;
+    const [x0, y0] = pt(180 + from * DEG, r);
+    const [x1, y1] = pt(180 + to * DEG, r);
+    // SVG large-arc-flag 는 **쓸린 각이 180°를 넘을 때만** 1 이다.
+    // 예전엔 `(to - from) > 50` 이었는데 그건 각도가 아니라 값이다 —
+    // 값 50 은 90°일 뿐이라, F&G 가 50 을 넘는 순간 플래그가 1 이 되어
+    // SVG 가 반대편 대호(major arc)를 그렸다. 작은 부채꼴이어야 할 것이
+    // 거의 한 바퀴를 돌아 원형이 깨져 보인다.
+    // 실측: 2026-08-20 은 49.25 라 멀쩡했고 2026-08-21 은 51.0 이라 깨졌다.
+    // 여기 정의역(0~100)에서 쓸린 각은 최대 180° 라 실은 항상 0 이지만,
+    // 기하가 바뀌어도 맞도록 **각도로** 판정한다.
+    const large = (to - from) * DEG > 180 ? 1 : 0;
     return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
   };
 
   const gid = 'dg' + Math.random().toString(36).slice(2, 7);
-  const [kx, ky] = pt(180 + v * 1.8, R);
+  const [kx, ky] = pt(180 + v * DEG, R);
 
   // 25/50/75 눈금 — 값을 대략 가늠하는 기준. 숫자는 쓰지 않는다(밀도).
   const ticks = [25, 50, 75].map(t => {
-    const [x0, y0] = pt(180 + t * 1.8, R - SW / 2 - 2.5);
-    const [x1, y1] = pt(180 + t * 1.8, R + SW / 2 + 2.5);
+    const [x0, y0] = pt(180 + t * DEG, R - SW / 2 - 2.5);
+    const [x1, y1] = pt(180 + t * DEG, R + SW / 2 + 2.5);
     return `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" class="dl-tick"/>`;
   }).join('');
 
