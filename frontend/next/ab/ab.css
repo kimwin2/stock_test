@@ -1,0 +1,66 @@
+/* 세 안 공용 셸. 기존 화면(next/app.css)과 분리해 둔다 —
+   비교용 샌드박스라 기존 토큰을 건드리면 안 된다. */
+:root{
+  --bg:#F6F7F9; --card:#fff; --ink:#12151A; --ink2:#3E454F; --ink3:#6B7280;
+  --line:#E3E6EB; --up:#D32F2F; --down:#1565C0; --flat:#6B7280;
+  --accent:#111827; --soft:#F0F2F5;
+  font-size:17px;                      /* 폰 우선 — 기본을 크게 */
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",system-ui,sans-serif;
+  line-height:1.6;word-break:keep-all;overflow-wrap:break-word;-webkit-text-size-adjust:100%}
+.wrap{max-width:560px;margin:0 auto;padding:16px 14px 64px}
+.top{display:flex;align-items:baseline;gap:8px;margin:6px 0 4px}
+.top h1{font-size:1.35rem;margin:0;letter-spacing:-.02em}
+.top .v{font-size:.8rem;color:#fff;background:var(--accent);padding:2px 8px;border-radius:999px;font-weight:700}
+.lead{color:var(--ink2);font-size:.95rem;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.hd{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.hd b{font-size:1.15rem;letter-spacing:-.01em}
+.hd .sec{font-size:.78rem;color:var(--ink3);background:var(--soft);padding:2px 7px;border-radius:6px}
+.hd .px{margin-left:auto;font-size:.95rem;font-variant-numeric:tabular-nums;font-weight:700}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--flat)}
+.why{font-size:1.02rem;color:var(--ink);margin:0 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font-size:.8rem;color:var(--ink2);background:var(--soft);border-radius:999px;padding:4px 10px}
+details.more{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+details.more summary{font-size:.86rem;color:var(--ink3);cursor:pointer;list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::after{content:' ▾'}
+details.more[open] summary::after{content:' ▴'}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin-top:10px;font-size:.88rem}
+.kv dt{color:var(--ink3)} .kv dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
+.err{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--ink2)}
+.nav{display:flex;gap:8px;margin:14px 0 18px}
+.nav a{flex:1;text-align:center;padding:11px 8px;border-radius:10px;border:1px solid var(--line);
+  background:#fff;color:var(--ink2);text-decoration:none;font-size:.86rem;font-weight:700}
+.nav a.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ask{background:#FFF8E1;border:1px solid #F3E0A8;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.9rem;color:#5B4A17}
+.ask b{display:block;margin-bottom:2px}
+
+/* ── B안: 일별 수급 막대 ─────────────────────────── */
+/* 0선을 정확히 가운데 두고 위(매수)·아래(매도)로 가른다.
+   flex + margin:auto 로 짜니 높이 0 인 쪽이 레이아웃을 밀어 파랑 막대가
+   0선 아래로 안 내려갔다. 절대 위치가 이 그림에는 확실하다. */
+.bars{position:relative;display:flex;align-items:stretch;gap:3px;height:96px;margin:6px 0 4px}
+.bars::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:#CDD2D9}
+.bcol{flex:1;position:relative}
+.bcol i{position:absolute;left:0;right:0;display:block}
+.bcol i.up{bottom:50%;background:var(--up);border-radius:2px 2px 0 0}
+.bcol i.dn{top:50%;background:var(--down);border-radius:0 0 2px 2px}
+.bax{display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink3);font-variant-numeric:tabular-nums}
+.blab{font-size:.86rem;color:var(--ink2);margin-top:8px}
+
+/* ── C안: 3단계 레일 ─────────────────────────────── */
+.rail{display:flex;gap:0;margin:4px 0 12px}
+.step{flex:1;position:relative;padding:10px 8px 10px 0}
+.step .dot{width:12px;height:12px;border-radius:50%;background:var(--line);margin-bottom:6px}
+.step .bar{position:absolute;top:15px;left:12px;right:0;height:2px;background:var(--line)}
+.step:last-child .bar{display:none}
+.step .t{font-size:.82rem;color:var(--ink3);font-weight:700;line-height:1.35}
+.step.on .dot{background:var(--accent);box-shadow:0 0 0 4px rgba(17,24,39,.12)}
+.step.on .t{color:var(--ink)}
+.step.done .dot{background:#9AA1AC}
+.step.done .t{color:var(--ink2)}
+.now{background:var(--soft);border-radius:10px;padding:11px 13px;font-size:.95rem;margin-top:2px}
