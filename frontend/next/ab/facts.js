@@ -39,6 +39,13 @@
     return Math.round(e).toLocaleString('ko-KR') + '억';
   }
 
+  /* 조사 — 받침이 있으면 '으로', 없으면 '로'. money() 는 '억'(받침 ㄱ) 또는
+     '조'(받침 없음) 로 끝난다. 붙여 쓰지 않으면 "787억 으로" 처럼 어색해진다. */
+  function euro(word) {
+    var last = String(word).slice(-1);
+    return word + (last === '조' ? '로' : '으로');
+  }
+
   /* ── 상황 판정 ────────────────────────────────────────────
      5일 순매수와 20일 순매수의 **부호 조합**으로 나눈다.
      이 네 가지는 트레이더에게 뜻이 완전히 다르고, 지금은 전부
@@ -75,6 +82,21 @@
     var p = f.pace, pct;
     switch (f.situation.key) {
       case 'slowing':
+        // **그림과 같은 양을 말한다.** 예전엔 '5일 페이스 ÷ 20일 페이스'(아모레
+        // 81%)를 썼는데, 그림은 '5일 합계 꼭지 → 현재'(644억 → 113억, 17%)를
+        // 보여준다. 둘 다 참이지만 재는 대상이 달라서 나란히 놓으면 서로
+        // 어긋나 보인다 — 숫자를 꼼꼼히 보는 사람일수록 먼저 걸린다.
+        // 그림에서 눈으로 확인되는 쪽을 문장으로 쓴다. 20일 페이스 비교는
+        // '숫자로 보기' 에 그대로 남아 있다.
+        var b = bars(c), cum = b.rows.filter(function (r) { return r.cum5 != null; }).map(function (r) { return r.cum5; });
+        if (cum.length >= 2) {
+          var peak = cum.reduce(function (a, v) { return Math.abs(v) > Math.abs(a) ? v : a; }, cum[0]);
+          var now = cum[cum.length - 1];
+          if (Math.abs(peak) > Math.abs(now) * 1.3) {
+            return '외인·기관 5일 합계가 ' + money(peak) + '에서 ' + euro(money(now)) +
+              ' 줄었습니다. 그날그날은 사고 있지만 들어오는 힘이 빠지는 중입니다.';
+          }
+        }
         pct = (p && p.ratio != null) ? Math.round(p.ratio * 100) : null;
         return pct != null && pct < 90
           ? '외인·기관이 계속 담고 있지만, 최근 5일 사들이는 속도가 지난 20일 평균의 ' + pct + '% 로 내려왔습니다.'
@@ -119,24 +141,36 @@
      (2026-08-20 에 가격↔오실레이터가 정확히 그렇게 어긋났다). */
   function bars(c) {
     var raw = c.dailyFlow10d || [];
-    var oscAll = c.supplyOscHistory || [];
+
+    // 시총은 날짜마다 다르다. ratio 는 그날 시총으로 나눈 값이라, 되돌릴 때도
+    // 그날 시총을 써야 한다 (현재 시총으로 일괄 곱하면 과거일수록 어긋난다).
+    var capBy = {};
+    var dh = c.dateHistory60d || [], ch = c.capHistory60d || [];
+    for (var i = 0; i < dh.length && i < ch.length; i++) capBy[dh[i]] = ch[i];
+
     var oscBy = {};
-    oscAll.forEach(function (o) { if (o && o.date) oscBy[o.date] = o.osc; });
+    (c.supplyOscHistory || []).forEach(function (o) {
+      if (o && o.date) oscBy[o.date] = o;
+    });
 
     var rows = raw.map(function (r) {
       var o = oscBy[r.date];
-      return { date: r.date, v: r.instAmount || 0, osc: (o == null ? null : o) };
+      var cap = capBy[r.date] || c.marketCap || 0;
+      // 5일 누적 = ratio × 그날 시총. 백엔드가 오실레이터를 만들 때 쓴 바로 그 양.
+      var cum = (o && o.ratio != null && cap) ? o.ratio * cap : null;
+      return { date: r.date, v: r.instAmount || 0, cum5: cum, osc: (o && o.osc != null) ? o.osc : null };
     });
-    var max = Math.max.apply(null, rows.map(function (r) { return Math.abs(r.v); }).concat([1]));
 
-    // 선의 세로 스케일은 **그 종목의 전체 이력** 기준이다. 보이는 10일만으로
-    // 재면 거의 안 움직인 종목도 요동치는 것처럼 그려진다.
-    var span = 0;
-    oscAll.forEach(function (o) {
-      if (o && o.osc != null) span = Math.max(span, Math.abs(o.osc));
+    // 막대(일별)와 선(5일 누적)은 **같은 단위(원)** 라 한 축을 공유한다.
+    // 실측 9종목에서 누적 최대가 일별 최대의 0.8~2.6배라 막대가 죽지 않는다.
+    // 무단위 오실레이터를 얹던 예전 방식은 축이 둘이라, 그날 빨간 막대와
+    // 큰 음수 선이 같이 보여도 왜 그런지 그림이 설명하지 못했다.
+    var max = 1;
+    rows.forEach(function (r) {
+      max = Math.max(max, Math.abs(r.v), r.cum5 == null ? 0 : Math.abs(r.cum5));
     });
-    var drawn = rows.filter(function (r) { return r.osc != null; }).length;
-    return { rows: rows, max: max, oscSpan: span || 1e-6, oscDrawn: drawn };
+    var drawn = rows.filter(function (r) { return r.cum5 != null; }).length;
+    return { rows: rows, max: max, cumDrawn: drawn };
   }
 
   function facts(c) {

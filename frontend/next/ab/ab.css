@@ -16,10 +16,11 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .top .v{font-size:.8rem;color:#fff;background:var(--accent);padding:2px 8px;border-radius:999px;font-weight:700}
 .lead{color:var(--ink2);font-size:.95rem;margin:0 0 16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
-.hd{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
-.hd b{font-size:1.15rem;letter-spacing:-.01em}
-.hd .sec{font-size:.78rem;color:var(--ink3);background:var(--soft);padding:2px 7px;border-radius:6px}
-.hd .px{margin-left:auto;font-size:.95rem;font-variant-numeric:tabular-nums;font-weight:700}
+.hd{display:flex;align-items:baseline;gap:7px;margin-bottom:10px;min-width:0}
+.hd b{font-size:1.12rem;letter-spacing:-.01em;white-space:nowrap}
+.hd .sec{font-size:.75rem;color:var(--ink3);background:var(--soft);padding:2px 7px;border-radius:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38%}
+.hd .px{margin-left:auto;font-size:.92rem;font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
 .up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--flat)}
 .why{font-size:1.02rem;color:var(--ink);margin:0 0 10px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
