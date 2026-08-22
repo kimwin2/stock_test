@@ -51,25 +51,84 @@
       detail(c) + '</section>';
   }
 
-  /* ── B안: 그림형 ──────────────────────────────────────── */
+  /* ── B안: 그림형 ──────────────────────────────────────────
+     막대 = 그날 사고판 **금액**, 선 = 사들이는 **속도**.
+     둘은 단위가 다르지만 0 의 뜻이 같다 — 위면 붙는 중, 아래면 식는 중.
+     그래서 **0선을 공유**할 수 있고, 공유하는 순간 "막대가 작아지니 선이
+     내려간다" 가 눈에 보인다. 이 지표가 왜 금액이 아니라 감속을 재는지를
+     말이 아니라 그림이 설명한다. */
+  var BW = 320, BH = 116, BPADX = 4, BPADT = 8, BPADB = 20;
+  var OSC_COLOR = '#B4560F';               // 기존 수급 차트와 같은 색
+
   function cardB(c) {
     var b = F.bars(c), f = F.facts(c);
-    var cols = b.rows.map(function (r) {
-      // 선형 스케일을 유지한다. 첫날이 크면 나머지가 납작해지는데, 그게 바로
-      // "그날 몰렸고 그 뒤로 안 담았다" 는 사실이다 — 로그·제곱근으로 펴면
-      // 보이기는 좋아져도 '감속' 의 크기를 왜곡한다. 이 그림의 존재 이유가
-      // 감속을 보여주는 것이라 여기서 정직함을 포기하면 안 된다.
-      var h = Math.max(2, Math.round(Math.abs(r.v) / b.max * 44));
+    var n = b.rows.length;
+    if (!n) return '<section class="card">' + head(c) + '<p class="blab">수급 데이터가 없습니다.</p></section>';
+
+    var plotH = BH - BPADT - BPADB;
+    var zeroY = BPADT + plotH / 2;
+    var half = plotH / 2 - 4;
+    var step = (BW - BPADX * 2) / n;
+    var bw = Math.max(4, step * 0.56);
+    var cx = function (i) { return BPADX + step * (i + 0.5); };
+
+    var barSvg = b.rows.map(function (r, i) {
+      var h = Math.max(1.5, Math.abs(r.v) / b.max * half);
       var up = r.v >= 0;
-      return '<div class="bcol" title="' + E(r.date) + ' ' + (up ? '+' : '−') + F.money(Math.abs(r.v)) + '">' +
-        '<i class="' + (up ? 'up' : 'dn') + '" style="height:' + h + 'px"></i></div>';
+      return '<rect x="' + (cx(i) - bw / 2).toFixed(1) + '" y="' + (up ? zeroY - h : zeroY).toFixed(1) +
+        '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1.5" fill="' +
+        (up ? 'var(--up)' : 'var(--down)') + '" opacity="0.85"><title>' +
+        E(r.date) + ' ' + (up ? '+' : '−') + F.money(Math.abs(r.v)) + '</title></rect>';
     }).join('');
-    var first = b.rows[0], lastR = b.rows[b.rows.length - 1];
+
+    // 선 — 값이 없는 날은 잇지 않는다(0 으로 메우면 없는 관측이 생긴다).
+    var oy = function (v) { return zeroY - (v / b.oscSpan) * half; };
+    var pts = b.rows.map(function (r, i) {
+      return r.osc == null ? null : cx(i).toFixed(1) + ',' + oy(r.osc).toFixed(1);
+    });
+    var segs = [], cur = [];
+    pts.forEach(function (p) { if (p) cur.push(p); else if (cur.length) { segs.push(cur); cur = []; } });
+    if (cur.length) segs.push(cur);
+    var lineSvg = segs.filter(function (g) { return g.length > 1; }).map(function (g) {
+      return '<polyline points="' + g.join(' ') + '" fill="none" stroke="' + OSC_COLOR +
+        '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+    }).join('');
+
+    var lastIdx = -1;
+    for (var i = n - 1; i >= 0; i--) if (b.rows[i].osc != null) { lastIdx = i; break; }
+    var endDot = '', endLab = '';
+    if (lastIdx >= 0) {
+      var lv = b.rows[lastIdx].osc;
+      endDot = '<circle cx="' + cx(lastIdx).toFixed(1) + '" cy="' + oy(lv).toFixed(1) +
+        '" r="3.2" fill="' + OSC_COLOR + '"/>';
+      // 라벨 자리 — 점 아래가 기본이지만, 선이 바닥까지 내려간 종목에서는
+      // 날짜 축과 겹친다(LG생활건강 osc −19.9bp 에서 실제로 겹쳤다).
+      // 축 영역을 침범하면 점 위로 올린다. 반대로 천장에 닿으면 아래로.
+      var FLOOR = BH - BPADB - 3, CEIL = BPADT + 10;
+      var ly = oy(lv) + (lv >= 0 ? -8 : 14);
+      if (ly > FLOOR) ly = oy(lv) - 8;
+      if (ly < CEIL) ly = oy(lv) + 14;
+      // 막대·선 위에 얹혀도 읽히도록 흰 halo (flow.js 창 제목과 같은 기법).
+      endLab = '<text x="' + (BW - BPADX).toFixed(1) + '" y="' + ly.toFixed(1) +
+        '" text-anchor="end" font-size="10.5" font-weight="800" fill="' + OSC_COLOR +
+        '" paint-order="stroke" stroke="#fff" stroke-width="3" stroke-linejoin="round">' +
+        (lv < 0 ? '식는 중' : '붙는 중') + '</text>';
+    }
+
+    var d0 = (b.rows[0] || {}).date || '', d1 = (b.rows[n - 1] || {}).date || '';
+    var axis =
+      '<text x="' + BPADX + '" y="' + (BH - 6) + '" font-size="10" fill="var(--ink3)">' + E(d0.slice(5)) + '</text>' +
+      '<text x="' + (BW - BPADX) + '" y="' + (BH - 6) + '" font-size="10" fill="var(--ink3)" text-anchor="end">' + E(d1.slice(5)) + '</text>';
+
     return '<section class="card">' + head(c) +
-      '<div class="bars">' + cols + '</div>' +
-      '<div class="bax"><span>' + E((first || {}).date || '').slice(5) + '</span>' +
-      '<span>외인·기관 일별 순매수 (위 빨강 = 사들임)</span>' +
-      '<span>' + E((lastR || {}).date || '').slice(5) + '</span></div>' +
+      '<svg class="bchart" viewBox="0 0 ' + BW + ' ' + BH + '" xmlns="http://www.w3.org/2000/svg" role="img" ' +
+      'aria-label="외인·기관 일별 순매수와 사들이는 속도">' +
+        '<line x1="' + BPADX + '" y1="' + zeroY + '" x2="' + (BW - BPADX) + '" y2="' + zeroY +
+        '" stroke="#CDD2D9" stroke-width="1"/>' +
+        barSvg + lineSvg + endDot + endLab + axis +
+      '</svg>' +
+      '<p class="legend"><i class="sw up"></i>산 날 <i class="sw dn"></i>판 날 ' +
+      '<i class="sw ln"></i>사들이는 속도<span class="hint">— 선이 0 아래로 내려가면 식는 중</span></p>' +
       '<p class="blab"><b>' + E((f.situation || {}).title || '') + '</b> · ' + E(F.headline(c)) + '</p>' +
       detail(c) + '</section>';
   }

@@ -39,18 +39,18 @@ details.more[open] summary::after{content:' ▴'}
 .ask{background:#FFF8E1;border:1px solid #F3E0A8;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.9rem;color:#5B4A17}
 .ask b{display:block;margin-bottom:2px}
 
-/* ── B안: 일별 수급 막대 ─────────────────────────── */
-/* 0선을 정확히 가운데 두고 위(매수)·아래(매도)로 가른다.
-   flex + margin:auto 로 짜니 높이 0 인 쪽이 레이아웃을 밀어 파랑 막대가
-   0선 아래로 안 내려갔다. 절대 위치가 이 그림에는 확실하다. */
-.bars{position:relative;display:flex;align-items:stretch;gap:3px;height:96px;margin:6px 0 4px}
-.bars::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:#CDD2D9}
-.bcol{flex:1;position:relative}
-.bcol i{position:absolute;left:0;right:0;display:block}
-.bcol i.up{bottom:50%;background:var(--up);border-radius:2px 2px 0 0}
-.bcol i.dn{top:50%;background:var(--down);border-radius:0 0 2px 2px}
-.bax{display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink3);font-variant-numeric:tabular-nums}
-.blab{font-size:.86rem;color:var(--ink2);margin-top:8px}
+/* ── B안: 막대 + 속도선 한 그림 ───────────────────
+   0선을 공유한다 — 막대(금액)와 선(속도)은 단위가 다르지만
+   0 의 뜻이 같다(위=붙는 중, 아래=식는 중). */
+.bchart{display:block;width:100%;height:auto;margin:6px 0 2px}
+.legend{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:0;
+  font-size:.78rem;color:var(--ink3)}
+.legend .sw{display:inline-block;width:11px;height:9px;border-radius:2px;margin-right:1px}
+.legend .sw.up{background:var(--up)} .legend .sw.dn{background:var(--down)}
+.legend .sw.ln{width:14px;height:2.5px;border-radius:2px;background:#B4560F}
+.legend .hint{flex-basis:100%;color:#8A9099}
+.blab{font-size:.92rem;color:var(--ink2);margin:8px 0 0}
+.blab b{color:var(--ink)}
 
 /* ── C안: 3단계 레일 ─────────────────────────────── */
 .rail{display:flex;gap:0;margin:4px 0 12px}

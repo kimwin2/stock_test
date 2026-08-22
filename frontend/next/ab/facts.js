@@ -107,13 +107,36 @@
     return parts;
   }
 
-  /* 일별 막대 — '감속' 은 글이 아니라 그림이다.
-     외인+기관 합계(instAmount)를 쓴다. 부호가 곧 방향. */
+  /* 일별 막대 + 수급 속도 — '감속' 은 글이 아니라 그림이다.
+     막대(instAmount) = 그날 사고판 **금액**.
+     선(supplyOscHistory.osc) = 사들이는 **속도**. 둘은 다른 양이지만
+     0 의 뜻이 같아서(위=붙는 중, 아래=식는 중) 0선을 공유할 수 있다.
+     같이 그리면 "막대가 작아지니 선이 내려간다" 가 눈에 보인다 —
+     이 지표가 왜 감속을 재는지를 말이 아니라 그림이 설명한다.
+
+     두 배열은 **날짜를 키로** 맞춘다. 실측으로는 10/10 이 겹치지만
+     서로 다른 fetch 에서 오므로 길이가 같다고 같은 날이 아니다
+     (2026-08-20 에 가격↔오실레이터가 정확히 그렇게 어긋났다). */
   function bars(c) {
     var raw = c.dailyFlow10d || [];
-    var vals = raw.map(function (r) { return { date: r.date, v: r.instAmount || 0 }; });
-    var max = Math.max.apply(null, vals.map(function (r) { return Math.abs(r.v); }).concat([1]));
-    return { rows: vals, max: max };
+    var oscAll = c.supplyOscHistory || [];
+    var oscBy = {};
+    oscAll.forEach(function (o) { if (o && o.date) oscBy[o.date] = o.osc; });
+
+    var rows = raw.map(function (r) {
+      var o = oscBy[r.date];
+      return { date: r.date, v: r.instAmount || 0, osc: (o == null ? null : o) };
+    });
+    var max = Math.max.apply(null, rows.map(function (r) { return Math.abs(r.v); }).concat([1]));
+
+    // 선의 세로 스케일은 **그 종목의 전체 이력** 기준이다. 보이는 10일만으로
+    // 재면 거의 안 움직인 종목도 요동치는 것처럼 그려진다.
+    var span = 0;
+    oscAll.forEach(function (o) {
+      if (o && o.osc != null) span = Math.max(span, Math.abs(o.osc));
+    });
+    var drawn = rows.filter(function (r) { return r.osc != null; }).length;
+    return { rows: rows, max: max, oscSpan: span || 1e-6, oscDrawn: drawn };
   }
 
   function facts(c) {
