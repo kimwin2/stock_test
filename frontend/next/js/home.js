@@ -187,7 +187,7 @@
     if (!cands.length) {
       return '<section class="card card-pad">' + UI.empty({
         title: '오늘 조건을 통과한 종목이 없습니다',
-        desc: '빈집·추세·주도 업종 세 조건을 모두 넘긴 종목이 없다는 뜻입니다. 무리해서 채우지 않습니다.'
+        desc: '큰손이 빠졌고 · 추세가 살아 있고 · 주도 업종인 종목이 오늘은 없다는 뜻입니다. 무리해서 채우지 않습니다.'
       }) + '</section>';
     }
     return '<section class="card">' +
@@ -210,7 +210,7 @@
       '<span class="r-rk num">' + (i + 1) + '</span>' +
       '<span class="r-name"><b>' + E(c.name) + '</b></span>' +
       '<span class="r-meta">' + E(c.sector || '-') +
-        (d != null ? '<span class="depth" title="빈집 깊이 — 낮을수록 깊다"><i><b style="width:' +
+        (d != null ? '<span class="depth" title="큰손이 빠진 정도 — 막대가 짧을수록 많이 빠졌다"><i><b style="width:' +
           Math.max(6, 100 - d) + '%"></b></i>하위 ' + Math.round(d) + '%</span>' : '') +
         '<span class="tag">' + E(ss.label) + '</span>' +
       '</span>' +
@@ -233,7 +233,7 @@
     var max = Math.max.apply(null, steps.map(function (s) { return s[1]; }).concat([1]));
     var dropped = [];
     if (st.droppedByTrend) dropped.push('추세 이탈 ' + st.droppedByTrend);
-    if (st.droppedByVacancy) dropped.push('빈집 아님 ' + st.droppedByVacancy);
+    if (st.droppedByVacancy) dropped.push('큰손이 아직 있음 ' + st.droppedByVacancy);
     if (st.droppedByScore) dropped.push('점수 미달 ' + st.droppedByScore);
     if (st.droppedByConcentration) dropped.push('업종 상한 ' + st.droppedByConcentration);
 
@@ -247,7 +247,7 @@
       }).join('') +
       '</div>' +
       (dropped.length ? '<p class="fn-note" style="margin-top:12px">제외: ' + E(dropped.join(' · ')) + '</p>' : '') +
-      (st.scoreCutoffRelaxed ? '<p class="fn-note">후보가 적어 점수 커트라인만 완화했습니다. 추세·빈집 조건은 그대로입니다.</p>' : '') +
+      (st.scoreCutoffRelaxed ? '<p class="fn-note">후보가 적어 점수 커트라인만 완화했습니다. 추세·큰손 조건은 그대로입니다.</p>' : '') +
       '</div></details>';
   }
 
@@ -337,7 +337,7 @@
         '<div class="rows" style="margin-top:12px">' + rows + '</div>' +
         '<p style="padding:10px 16px 14px;font-size:.8125rem;color:var(--ink-3)">' +
           (overlap ? '노란 종목은 재료가 돌면서 수급도 아직 빈 자리입니다.'
-                   : '오늘은 급등 재료와 수급 빈집이 겹치는 종목이 없습니다. 이미 급등한 종목은 수급이 들어와 있어 잘 겹치지 않습니다.') +
+                   : '오늘은 급등 재료와 큰손이 빠진 자리가 겹치는 종목이 없습니다. 이미 급등한 종목은 큰손이 들어와 있어 잘 겹치지 않습니다.') +
         '</p></section>';
     }).catch(function () { /* 재료가 없어도 오늘 화면은 성립한다 */ });
   }

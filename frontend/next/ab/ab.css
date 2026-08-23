@@ -4,6 +4,8 @@
   --bg:#F6F7F9; --card:#fff; --ink:#12151A; --ink2:#3E454F; --ink3:#6B7280;
   --line:#E3E6EB; --up:#D32F2F; --down:#1565C0; --flat:#6B7280;
   --accent:#111827; --soft:#F0F2F5;
+  /* supply.js 차트가 쓰는 next/app.css 토큰 별칭 */
+  --ink-4:#8A9099; --surface:#fff;
   font-size:17px;                      /* 폰 우선 — 기본을 크게 */
 }
 *{box-sizing:border-box}
@@ -40,16 +42,15 @@ details.more[open] summary::after{content:' ▴'}
 .ask{background:#FFF8E1;border:1px solid #F3E0A8;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.9rem;color:#5B4A17}
 .ask b{display:block;margin-bottom:2px}
 
-/* ── B안: 막대 + 속도선 한 그림 ───────────────────
-   0선을 공유한다 — 막대(금액)와 선(속도)은 단위가 다르지만
-   0 의 뜻이 같다(위=붙는 중, 아래=식는 중). */
-.bchart{display:block;width:100%;height:auto;margin:6px 0 2px}
-.legend{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:0;
+/* ── B안 그림은 supply.js 가 그린다 (제품과 같은 코드).
+   여기서는 카드 안에서의 여백만 잡는다. */
+.sup-chart{display:block;width:100%;height:auto;margin:6px 0 2px}
+.sup-legend{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:0;
   font-size:.78rem;color:var(--ink3)}
-.legend .sw{display:inline-block;width:11px;height:9px;border-radius:2px;margin-right:1px}
-.legend .sw.up{background:var(--up)} .legend .sw.dn{background:var(--down)}
-.legend .sw.ln{width:14px;height:2.5px;border-radius:2px;background:#B4560F}
-.legend .hint{flex-basis:100%;color:#8A9099}
+.sup-legend .sw{display:inline-block;width:11px;height:9px;border-radius:2px}
+.sup-legend .sw.up{background:var(--up)} .sup-legend .sw.dn{background:var(--down)}
+.sup-legend .sw.ln{width:14px;height:2.5px;background:#B4560F}
+.sup-legend .hint{flex-basis:100%;color:#8A9099}
 .blab{font-size:.92rem;color:var(--ink2);margin:8px 0 0}
 .blab b{color:var(--ink)}
 

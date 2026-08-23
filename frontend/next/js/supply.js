@@ -1,27 +1,24 @@
 /* ============================================================
-   facts.js — 수급 데이터 → **평문 사실**
+   supply.js — 수급을 **평문**으로 말한다 (next 공용)
    ------------------------------------------------------------
-   이 파일은 화면을 그리지 않는다. "이 종목에 무슨 일이 있었나"를
-   한국어 문장으로 만들 수 있는 재료만 뽑는다.
+   왜 이 모듈이 따로 있나:
+     한 화면에 수급을 말하는 그림이 셋이었고(60일 오실레이터 / 5단
+     게이지 / 10일 히트맵) 셋이 서로 다른 언어를 썼다. 사용자는
+     "이 셋이 같은 얘긴가" 부터 풀어야 했다.
+     → 화면에 수급 그림은 **하나만** 둔다. 문장도 한 곳에서만 만든다.
+       화면마다 따로 지으면 같은 종목이 화면마다 다르게 말한다.
 
-   왜 따로 두는가:
-     세 안(A/B/C)이 **같은 사실**을 서로 다른 방식으로 보여줘야
-     비교가 성립한다. 안마다 문장을 따로 지으면 무엇이 더 잘
-     읽히는지가 아니라 어느 문장이 더 잘 쓰였는지를 재게 된다.
+   화면 규칙 — **'빈집' 이라는 말을 쓰지 않는다.**
+     그 한 단어가 서로 다른 네 상황을 덮고 있어서(2026-08-22 실측)
+     어떤 설명을 붙여도 학습이 안 됐다. 용어를 설명하는 대신 상황을
+     그대로 말한다.
 
-   가장 중요한 발견 (2026-08-21 실측):
-     `vacancyZone: '빈집'` 한 단어가 **서로 다른 네 상황**을 덮고 있다.
-       LG생활건강  5일 +39억  / 20일 +681억  → 담다가 속도가 1/4 로 죽음
-       아모레퍼시픽 5일 +113억 / 20일 +553억  → 담는 중, 속도만 조금 둔화
-       실리콘투    5일 -55억  / 20일 +236억  → 담다가 최근 돌아섬
-       SK스퀘어    5일 -736억 / 20일 -1,367억 → 계속 파는 중, 오히려 가속
-     같은 태그를 달고 있으니 사용자는 "빈집"이 무슨 뜻인지 영영 못 배운다.
-     실제로 LG생활건강은 외인·기관이 **순매수 중**인데 화면엔 '빈집' 이라
-     붙어 있어, 지금 UI 는 그 모순을 해명하는 문단을 따로 달고 있다.
-     → 용어를 설명하지 말고, **상황을 그대로 말한다.**
+   오실레이터는 지우지 않는다. 시스템이 실제로 후보를 거르는 값이라
+   근거로 남아야 한다 — 다만 기본 화면이 아니라 '숫자로 보기' 안이다.
    ============================================================ */
 (function (global) {
   'use strict';
+
 
   var EOK = 1e8;
 
@@ -186,8 +183,96 @@
     };
   }
 
-  global.Facts = {
+  /* ── B안 차트 — 막대(그날) + 선(최근 5일 합계) ─────────────
+     같은 단위(원)라 한 축을 공유한다. 무단위 오실레이터를 얹던 방식은
+     축이 둘이라 "그날은 빨간 막대인데 선은 왜 큰 음수냐" 를 설명하지
+     못했다 (2026-08-22). 5일 합계를 그대로 그리면 그 간극이 보인다. */
+  var BW = 320, BH = 124, PADX = 4, PADT = 16, PADB = 20;
+  var CUM = '#B4560F';
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) { return ESC[m]; }); }
+
+  function chart(c) {
+    var b = bars(c), n = b.rows.length;
+    if (!n) return '';
+    // 0선은 **데이터 범위에 맞춰** 놓는다. 늘 한가운데 두면 전부 순매수인
+    // 종목은 아래 절반이 통째로 비어, 모바일에서 그림이 절반 크기가 된다.
+    // 0 의 위치는 선으로 표시되므로 위아래 비대칭이어도 오해가 없다.
+    var plotH = BH - PADT - PADB;
+    var vmax = 0, vmin = 0;
+    b.rows.forEach(function (r) {
+      [r.v, r.cum5].forEach(function (v) {
+        if (v == null) return;
+        if (v > vmax) vmax = v;
+        if (v < vmin) vmin = v;
+      });
+    });
+    var pad = (vmax - vmin) * 0.08 || 1;
+    vmax += pad; vmin -= (vmin < 0 ? pad : 0);
+    var span = (vmax - vmin) || 1;
+    var zeroY = PADT + plotH * (vmax / span);
+    var step = (BW - PADX * 2) / n, bw = Math.max(4, step * 0.56);
+    var cx = function (i) { return PADX + step * (i + 0.5); };
+    var y = function (v) { return zeroY - (v / span) * plotH; };
+
+    var barSvg = b.rows.map(function (r, i) {
+      var h = Math.max(1.5, Math.abs(r.v) / span * plotH), up = r.v >= 0;
+      return '<rect x="' + (cx(i) - bw / 2).toFixed(1) + '" y="' + (up ? zeroY - h : zeroY).toFixed(1) +
+        '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1.5" fill="' +
+        (up ? 'var(--up)' : 'var(--down)') + '" opacity="0.8"><title>' + esc(r.date) + ' ' +
+        (up ? '+' : '−') + money(Math.abs(r.v)) + '</title></rect>';
+    }).join('');
+
+    // 값이 없는 날은 잇지 않는다 (0 으로 메우면 없는 관측이 생긴다).
+    var pts = b.rows.map(function (r, i) {
+      return r.cum5 == null ? null : cx(i).toFixed(1) + ',' + y(r.cum5).toFixed(1);
+    });
+    var segs = [], cur = [];
+    pts.forEach(function (p) { if (p) cur.push(p); else if (cur.length) { segs.push(cur); cur = []; } });
+    if (cur.length) segs.push(cur);
+    var line = segs.filter(function (g) { return g.length > 1; }).map(function (g) {
+      return '<polyline points="' + g.join(' ') + '" fill="none" stroke="' + CUM +
+        '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';
+    }).join('');
+
+    var lastIdx = -1, peakIdx = -1, peak = -Infinity;
+    for (var i = 0; i < n; i++) {
+      if (b.rows[i].cum5 == null) continue;
+      lastIdx = i;
+      if (Math.abs(b.rows[i].cum5) > peak) { peak = Math.abs(b.rows[i].cum5); peakIdx = i; }
+    }
+    var marks = '';
+    if (lastIdx >= 0) {
+      var lv = b.rows[lastIdx].cum5, FLOOR = BH - PADB - 3, CEIL = PADT + 10;
+      var ly = y(lv) + (lv >= 0 ? -9 : 15);
+      if (ly > FLOOR) ly = y(lv) - 9;
+      if (ly < CEIL) ly = y(lv) + 15;
+      marks += '<circle cx="' + cx(lastIdx).toFixed(1) + '" cy="' + y(lv).toFixed(1) + '" r="3.2" fill="' + CUM + '"/>' +
+        '<text x="' + (BW - PADX) + '" y="' + ly.toFixed(1) + '" text-anchor="end" font-size="10.5" font-weight="800" fill="' + CUM +
+        '" paint-order="stroke" stroke="var(--surface)" stroke-width="3" stroke-linejoin="round">' + esc(money(lv)) + '</text>';
+      if (peakIdx >= 0 && peakIdx !== lastIdx && Math.abs(peak) > Math.abs(lv) * 1.5) {
+        var pv = b.rows[peakIdx].cum5, py = y(pv) - 7;
+        if (py < 10) py = y(pv) + 13;
+        marks += '<text x="' + cx(peakIdx).toFixed(1) + '" y="' + py.toFixed(1) +
+          '" text-anchor="middle" font-size="10" font-weight="700" fill="#8A7350"' +
+          ' paint-order="stroke" stroke="var(--surface)" stroke-width="3" stroke-linejoin="round">' + esc(money(pv)) + '</text>';
+      }
+    }
+    var d0 = (b.rows[0] || {}).date || '', d1 = (b.rows[n - 1] || {}).date || '';
+    var axis = '<text x="' + PADX + '" y="' + (BH - 6) + '" font-size="10" fill="var(--ink-4)">' + esc(d0.slice(5)) + '</text>' +
+      '<text x="' + (BW - PADX) + '" y="' + (BH - 6) + '" font-size="10" fill="var(--ink-4)" text-anchor="end">' + esc(d1.slice(5)) + '</text>';
+
+    return '<svg class="sup-chart" viewBox="0 0 ' + BW + ' ' + BH + '" xmlns="http://www.w3.org/2000/svg" role="img" ' +
+      'aria-label="외인·기관 일별 순매수와 최근 5일 합계">' +
+      '<line x1="' + PADX + '" y1="' + zeroY + '" x2="' + (BW - PADX) + '" y2="' + zeroY + '" stroke="var(--line)" stroke-width="1"/>' +
+      barSvg + line + marks + axis + '</svg>' +
+      '<p class="sup-legend"><i class="sw up"></i>산 날 <i class="sw dn"></i>판 날 ' +
+      '<i class="sw ln"></i>최근 5일 합계' +
+      '<span class="hint">그날 사도, 5일 합계가 줄면 힘이 빠지는 중입니다</span></p>';
+  }
+
+  global.Supply = {
     facts: facts, headline: headline, whyNow: whyNow, bars: bars,
-    money: money, eok: eok, CASES: CASES
+    money: money, chart: chart, CASES: CASES
   };
 })(window);

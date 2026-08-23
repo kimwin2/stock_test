@@ -20,7 +20,7 @@
   ];
   var SORTS = [
     { key: 'rank',  label: '기본순' },
-    { key: 'depth', label: '빈집 깊은순' },
+    { key: 'depth', label: '큰손 많이 빠진 순' },
     { key: 'ret',   label: '5일 등락순' }
   ];
 
@@ -99,7 +99,7 @@
     if (!all.length) {
       return UI.empty({
         title: '오늘 조건을 통과한 종목이 없습니다',
-        desc: '빈집·추세·주도 업종을 모두 넘긴 종목이 없다는 뜻입니다. 자리를 억지로 채우지 않습니다.'
+        desc: '큰손이 빠졌고 · 추세가 살아 있고 · 주도 업종인 종목이 오늘은 없다는 뜻입니다. 자리를 억지로 채우지 않습니다.'
       });
     }
 
@@ -199,7 +199,7 @@
     var list = f.leadingValueTop || [];
     if (!list.length) return UI.empty({ title: '거래대금 상위 목록이 없습니다' });
     return '<p style="font-size:.8125rem;color:var(--ink-3);padding:2px 2px 10px">' +
-      '주도 업종 안에서 <b>외인·기관이 가장 큰 돈을 넣고 있는</b> 종목입니다. 빈집 여부와 무관하게 거래대금 순으로 세웁니다 — ' +
+      '주도 업종 안에서 <b>외인·기관이 가장 큰 돈을 넣고 있는</b> 종목입니다. 큰손이 빠졌는지와 무관하게 거래대금 순으로 세웁니다 — ' +
       '이미 수급이 채워진 종목도 들어 있습니다.</p>' +
       '<section class="card"><div class="rows">' +
       list.map(function (c, i) {
@@ -207,7 +207,7 @@
         return '<button class="row" type="button" data-code="' + E(c.code) + '" data-name="' + E(c.name) + '">' +
           '<span class="r-rk num">' + (i + 1) + '</span>' +
           '<span class="r-name"><b>' + E(c.name) + '</b>' +
-            (c.vacancyZone === '빈집' ? '<span class="tag tag-down">빈집</span>' : '') + '</span>' +
+            (c.vacancyZone === '빈집' ? '<span class="tag tag-down">큰손 빠짐</span>' : '') + '</span>' +
           '<span class="r-meta">' + E(c.sector || '-') +
             (c.tradingValue5dAvg != null ? ' · 하루 ' + C.won(c.tradingValue5dAvg) : '') + '</span>' +
           '<span class="r-price"><b class="num">' + C.num(c.close) + '</b>' +

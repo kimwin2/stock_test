@@ -877,3 +877,28 @@ details.fold > summary .cnt ~ ::after { margin-left: 8px; }
   .view { padding-top: 64px; padding-bottom: 48px; }
   .toast { bottom: 32px; }
 }
+
+/* ── 큰손 움직임 (supply.js) ────────────────────────────────
+   한 화면에 수급 그림은 하나만. 예전에는 60일 오실레이터·5단 게이지·
+   10일 히트맵 셋이 서로 다른 언어로 같은 사실을 말했다 (2026-08-22). */
+.sup-head { margin: 2px 0 4px; font-size: 1.0625rem; font-weight: 800; letter-spacing: -.01em; }
+.sup-why  { margin: 0 0 8px; font-size: .9375rem; color: var(--ink-2); line-height: 1.6; }
+.sup-chart { display: block; width: 100%; height: auto; margin: 2px 0; }
+.sup-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+  margin: 2px 0 0; font-size: .75rem; color: var(--ink-4); }
+.sup-legend .sw { display: inline-block; width: 11px; height: 9px; border-radius: 2px; }
+.sup-legend .sw.up { background: var(--up); }
+.sup-legend .sw.dn { background: var(--down); }
+.sup-legend .sw.ln { width: 14px; height: 2.5px; background: #B4560F; }
+.sup-legend .hint { flex-basis: 100%; }
+.sup-more { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.sup-more summary { font-size: .8125rem; color: var(--ink-3); cursor: pointer;
+  list-style: none; min-height: 32px; display: flex; align-items: center; }
+.sup-more summary::-webkit-details-marker { display: none; }
+.sup-more summary::after { content: ' ▾'; }
+.sup-more[open] summary::after { content: ' ▴'; }
+.sup-kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px;
+  margin: 8px 0 0; font-size: .8125rem; }
+.sup-kv dt { color: var(--ink-4); }
+.sup-kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.sup-note { margin: 10px 0 0; font-size: .75rem; color: var(--ink-4); line-height: 1.55; }

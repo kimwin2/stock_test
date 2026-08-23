@@ -107,7 +107,9 @@
     if (ohlc && ohlc.length !== n) ohlc = ohlc.slice(-n);
     var osc = oscSrc.slice(-n).map(function (o) { return (o && o.osc != null) ? o.osc : null; });
     while (osc.length < n) osc.unshift(null);
-    var hasOsc = fin(osc).length >= 2;
+    // opts.noOsc — 수급 창을 끈다. 종목 상세는 수급을 '큰손 움직임' 섹션이
+    // 전담하므로, 여기서 또 그리면 한 화면에 수급 그림이 둘이 된다.
+    var hasOsc = !opts.noOsc && fin(osc).length >= 2;
 
     var H = opts.height || Math.round(Math.max(180, Math.min(320, W * 0.64)));
     var padL = 6, padR = 58, padT = 16, padB = 16;
@@ -205,7 +207,7 @@
       s += '<line x1="' + x0 + '" y1="' + f1(zeroY) + '" x2="' + f1(x1) + '" y2="' + f1(zeroY) +
            '" stroke="' + T.axis + '" stroke-width=".9" opacity=".6"/>';
       s += '<text x="' + x0 + '" y="' + f1(oscTop - 4) + '" font-size="11" font-weight="700" fill="' + T.osc +
-           '">수급 오실레이터<tspan fill="' + T.axis + '" font-weight="600"> · 0 아래 = 빈집</tspan></text>';
+           '">수급 오실레이터<tspan fill="' + T.axis + '" font-weight="600"> · 0 아래 = 큰손이 빠지는 중</tspan></text>';
 
       // 끝점 라벨은 백분위로. 원값(1e-4 수준)을 %로 찍으면 0 과 구별이 안 된다.
       var pctv = c.oscPercentile;

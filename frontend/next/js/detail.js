@@ -43,7 +43,11 @@
     if (has('overflow')) tags.push('<span class="tag tag-warn">업종 상한</span>');
     if (has('exit')) tags.push('<span class="tag tag-down">이탈 신호</span>');
     if (has('value') && !has('cand')) tags.push('<span class="tag">거래대금 상위</span>');
-    if (c.vacancyZone) tags.push('<span class="tag ' + (c.vacancyZone === '빈집' ? 'tag-down' : '') + '">' + E(c.vacancyZone) + '</span>');
+    // 백엔드 zone 값을 그대로 찍지 않는다 — '빈집' 은 화면 언어가 아니다.
+    if (c.vacancyZone) {
+      var zl = c.vacancyZone === '빈집' ? '큰손 빠짐' : (c.vacancyZone === '찼음' ? '큰손 들어옴' : c.vacancyZone);
+      tags.push('<span class="tag ' + (c.vacancyZone === '빈집' ? 'tag-down' : '') + '">' + E(zl) + '</span>');
+    }
     // 이탈 신호는 10일선을 내줬다는 뜻이다. 같은 카드에 '추세 생존'을 나란히
     // 걸면 정면으로 모순돼 보인다 — 더 구체적인 판정인 이탈 쪽을 남긴다.
     if (c.aboveMA10 && !has('exit')) tags.push('<span class="tag tag-ok">추세 생존</span>');
@@ -73,13 +77,12 @@
       chartSection(c) +
       pathSection(c, f) +
       gaugeSection(c) +
-      heatSection(c, ss) +
       numbersSection(c);
 
     global.UI.sheet(c.name || hit.name, html, {
       mounted: function (body) {
         var box = body.querySelector('#d-chart');
-        if (box) global.Viz.mount(box, function (w) { return global.Viz.priceOsc(c, w); });
+        if (box) global.Viz.mount(box, function (w) { return global.Viz.priceOsc(c, w, { noOsc: true }); });
 
         var wb = body.querySelector('#d-watch');
         if (wb) wb.addEventListener('click', function () {
@@ -112,11 +115,11 @@
     return '<div class="d-sec">' +
       '<h4>흐름 <span style="text-transform:none;letter-spacing:0;font-weight:600">· 60거래일</span>' + global.UI.info('osc') + '</h4>' +
       '<div class="chart-box"><div id="d-chart"></div></div>' +
+      // 수급 계열은 이 범례에서 뺐다. 수급은 아래 '큰손 움직임' 섹션이
+      // 전담한다 — 한 화면에서 같은 것을 두 언어로 말하면 둘 다 안 배워진다.
       '<div class="legend">' +
         '<span><i style="background:var(--c-ma5)"></i>5일선</span>' +
         '<span><i style="background:var(--c-ma20)"></i>20일선</span>' +
-        '<span><i style="background:var(--up)"></i>수급 유입</span>' +
-        '<span><i style="background:var(--down)"></i>수급 빈집</span>' +
       '</div></div>';
   }
 
@@ -152,7 +155,7 @@
     }
 
     var last = [];
-    if (c.oscPercentile != null) last.push('빈집 하위 ' + Math.round(c.oscPercentile) + '%');
+    if (c.oscPercentile != null) last.push('큰손 1년 중 하위 ' + Math.round(c.oscPercentile) + '%');
     if (c.aboveMA10) last.push('10일선 위');
     if (c.flowScore != null) last.push('점수 ' + c.flowScore);
     if (last.length) steps.push([c.name, last.join(' · ')]);
@@ -207,67 +210,48 @@
       rs.map(function (x) { return '<span class="tag">' + E(x.text) + '</span>'; }).join('') + '</div>';
   }
 
-  /* 수급 게이지 5단 */
+  /* 큰손 움직임 — 이 화면의 유일한 수급 그림.
+     예전에는 여기 5단 게이지('강한 빈집'/'빈집'/…)가 있었고, 순매수인데
+     '빈집' 이라 붙는 모순을 해명하는 문단이 따로 달려 있었다. 해명이
+     필요하다는 것 자체가 라벨이 틀렸다는 신호다 (2026-08-22).
+     → 용어를 설명하지 않고 상황을 그대로 말한다. */
   function gaugeSection(c) {
-    if (c.vacancyZone == null && c.oscPercentile == null) return '';
-    var idx = C.supplyLevel(c.vacancyZone, c.oscPercentile);
-    var lv = C.SUPPLY_LEVELS[idx];
-    var amt = c.institutionNet5d;
-    return '<div class="d-sec"><h4>수급 상태' + global.UI.info('vacancy') + '</h4>' +
-      '<div class="gauge5"><div class="g5-track">' +
-      C.SUPPLY_LEVELS.map(function (s, i) {
-        return '<span class="g5-seg on-' + i + (i === idx ? ' is-on' : '') + '">' + E(s.label) + '</span>';
-      }).join('') +
-      '</div><p class="g5-cap"><b>' + E(lv.label) + '</b> — ' + E(lv.desc) +
-      (amt != null ? ' · 외인+기관 5일 <b class="num ' + C.dirClass(amt) + '">' + C.won(amt) + '</b>' : '') +
-      '</p>' +
-      // 순매수인데 '빈집' 이면 정면으로 모순돼 보인다. 빈집은 부호가 아니라
-      // 감속이라는 걸 이 자리에서 한 줄로 밝혀야 오해가 안 남는다.
-      ((amt != null && amt > 0 && c.vacancyZone === '빈집')
-        ? '<p class="g5-cap" style="color:var(--ink-4)">순매수인데 빈집인 이유 — 빈집은 사고 파는 <b>부호</b>가 아니라 ' +
-          '<b>사들이는 속도</b>를 봅니다. 5일 순매수가 플러스여도 20일 페이스보다 느려졌으면 빈집입니다.</p>'
-        : '') +
-      '</div></div>';
+    var S = global.Supply;
+    if (!S) return '';
+    var f = S.facts(c);
+    if (!f.situation) return '';
+    return '<div class="d-sec"><h4>큰손 움직임' + global.UI.info('vacancy') + '</h4>' +
+      '<p class="sup-head"><b>' + E(f.situation.title) + '</b></p>' +
+      '<p class="sup-why">' + E(S.headline(c)) + '</p>' +
+      S.chart(c) +
+      numbersFold(c, f) +
+      '</div>';
   }
 
-  /* 4) 10일 수급 히트맵 */
-  function heatSection(c, ss) {
-    var days = c.dailyFlow10d || [];
-    if (!days.length) return '';
-    var maxAbs = Math.max.apply(null, days.map(function (d) {
-      return Math.max(Math.abs(d.foreigner || 0), Math.abs(d.organ || 0));
-    }).concat([1]));
-
-    function cells(key) {
-      return days.map(function (d, i) {
-        var v = d[key] || 0;
-        var a = Math.min(1, Math.abs(v) / maxAbs);
-        var col = v === 0 ? 'var(--surface-3)'
-          : (v > 0 ? 'color-mix(in srgb, var(--up) ' + Math.round(18 + a * 82) + '%, transparent)'
-                   : 'color-mix(in srgb, var(--down) ' + Math.round(18 + a * 82) + '%, transparent)');
-        // style 을 두 번 쓰면 뒤쪽이 무시된다 — 전환일 테두리가 안 그려지던 원인.
-        // 한 속성으로 합친다.
-        var css = 'background:' + col +
-          ((ss && ss.turnIdx === i) ? ';box-shadow:inset 0 0 0 2px var(--ink)' : '');
-        return '<i class="hm-cell" style="' + css + '" title="' +
-               E(String(d.date || '')) + ' ' + E(C.won(v)) + '"></i>';
-      }).join('');
+  /* 판정에 쓰인 원값 — 기본 화면에는 안 보인다. 지우지는 않는다:
+     시스템이 실제로 후보를 거르는 값이라 따지는 사람은 확인할 수 있어야 한다. */
+  function numbersFold(c, f) {
+    var S = global.Supply, p = f.pace || {};
+    function row(k, v, cls) {
+      return '<dt>' + E(k) + '</dt><dd' + (cls ? ' class="' + cls + '"' : '') + '>' + v + '</dd>';
     }
-
-    return '<div class="d-sec"><h4>수급이 언제 돌았나 <span style="text-transform:none;letter-spacing:0;font-weight:600">· 최근 10거래일</span></h4>' +
-      '<div class="hm">' +
-        '<div class="hm-line"><span class="hm-lab">외국인</span><span class="hm-cells">' + cells('foreigner') + '</span></div>' +
-        '<div class="hm-line"><span class="hm-lab">기관</span><span class="hm-cells">' + cells('organ') + '</span></div>' +
-        '<div class="hm-line"><span class="hm-lab"></span><span class="hm-days">' +
-          days.map(function (d) {
-            var m = /(\d{2})-(\d{2})$/.exec(String(d.date || ''));
-            return '<span class="hm-day">' + (m ? (+m[2]) : '') + '</span>';
-          }).join('') + '</span></div>' +
-        '<p class="hm-legend">붉을수록 순매수 · 푸를수록 순매도' +
-          (ss && ss.turnIdx >= 0 ? ' · 테두리 = 순매수로 돌아선 날' : '') +
-          ' · 지금은 <b>' + E(ss.label) + '</b></p>' +
-      '</div></div>';
+    var sign = function (v) { return (v >= 0 ? '+' : '−') + S.money(Math.abs(v)); };
+    return '<details class="sup-more"><summary>숫자로 보기</summary><dl class="sup-kv">' +
+      row('최근 5일 외인·기관', sign(f.n5), C.dirClass(f.n5)) +
+      row('지난 20일 외인·기관', sign(f.n20), C.dirClass(f.n20)) +
+      row('하루 평균 (최근 5일)', sign(p.p5), C.dirClass(p.p5)) +
+      row('하루 평균 (지난 20일)', sign(p.p20), C.dirClass(p.p20)) +
+      (c.oscLast != null
+        ? row('수급 오실레이터', (c.oscLast * 1e4).toFixed(1) + 'bp' +
+            (c.oscPercentile != null ? ' <span style="color:var(--ink-4)">· 1년 중 하위 ' + Math.round(c.oscPercentile) + '%</span>' : ''))
+        : '') +
+      '</dl><p class="sup-note">오실레이터는 5일 합계가 자기 20일 흐름보다 빨라졌는지 느려졌는지를 잰 값입니다. ' +
+      '후보를 고를 때 이 값이 0 아래인 종목만 남깁니다.</p></details>';
   }
+
+  /* 10일 수급 히트맵은 제거했다 — '큰손 움직임' 의 막대가 같은 사실을
+     이미 말한다. 같은 것을 두 그림으로 말하면 사용자는 둘을 대응시키느라
+     더 헷갈린다 (2026-08-22). */
 
   /* 5) 숫자 */
   function numbersSection(c) {
