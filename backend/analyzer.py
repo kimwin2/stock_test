@@ -1217,18 +1217,77 @@ def _is_bearish_headline(title: str) -> bool:
     return any(term in stripped for term in _BEARISH_TERMS)
 
 
-def _build_google_headline_links(theme: dict, used_urls: set[str] | None = None) -> list[dict]:
+def _headline_link_matches_theme(theme: dict, title: str) -> bool:
+    """폴백으로 받아온 기사 **제목이 이 테마를 증거하는가.**
+
+    로컬 기사 경로는 `_score_article_relevance` + `_is_confident_article_match`
+    를 통과해야 붙는데, 구글/네이버 폴백은 검색 결과 첫 항목을 그냥 썼다.
+    관련성 검사가 아예 없는 경로였다.
+
+    실측 2026-08-25: '화장품' 카드에 "반도체株 쏠렸던 돈 어디 갔나 봤더니…
+    한 달 새 68% 폭등" 이 붙었다. 그 기사는 본문에서 반도체→화장품 자금
+    이동을 다뤘을 수 있지만, **제목에는 화장품도 종목명도 하나 없다.**
+    카드가 '화장품' 이라고 말하는데 헤드라인이 '반도체株' 로 시작하면
+    그건 이 카드의 근거가 아니다.
+
+    **제목만 본다.** 화면에 보이는 것이 제목이기 때문이다. 본문이 아무리
+    관련 있어도 제목이 다른 업종을 가리키면 사용자에겐 틀린 카드다.
+    """
+    hay = _normalize_theme_name(title or "")
+    if not hay:
+        return False
+
+    for name in [theme.get("themeName", "")] + list(theme.get("mergedThemes") or []):
+        norm = _normalize_theme_name(name)
+        if norm and norm in hay:
+            return True
+
+    for term in _extract_meaningful_terms(theme.get("themeName", "")):
+        norm = _normalize_theme_name(term)
+        if len(norm) >= 2 and norm in hay:
+            return True
+
+    for stock in (theme.get("relatedStocks") or []):
+        norm = _normalize_theme_name(stock)
+        if len(norm) >= 2 and norm in hay:
+            return True
+
+    return False
+
+
+# 구글뉴스 RSS 는 제목 끝에 " - 언론사" 를 붙인다. 같은 기사가 네이버에서는
+# 접미사 없이 오므로, 떼지 않으면 같은 기사인데 키가 달라진다.
+_GNEWS_SUFFIX = re.compile(r"\s+[-\u2013\u2014]\s+[^-\u2013\u2014]{1,30}$")
+
+
+def _title_key(title: str) -> str:
+    """제목 기준 중복 키.
+
+    같은 기사가 두 테마의 헤드라인이 된 적이 있다 (2026-08-25: 반도체 카드는
+    `n.news.naver.com/...`, 화장품 카드는 `news.google.com/rss/...`).
+    URL 이 다르면 `used_urls` 로는 안 걸린다. 제목으로도 봐야 한다.
+    """
+    return _normalize_theme_name(_GNEWS_SUFFIX.sub("", str(title or "").strip()))[:40]
+
+
+def _build_google_headline_links(theme: dict, used_urls: set[str] | None = None,
+                                 used_titles: set[str] | None = None) -> list[dict]:
     used_urls = {url for url in (used_urls or set()) if url}
+    used_titles = used_titles if used_titles is not None else set()
     queries = _build_google_news_queries(theme)
     results: list[dict] = []
 
     # 1차: Google News RSS (36시간 필터 적용)
     for query in queries:
         for link in _search_google_news_links(query):
-            if link.get("url") in used_urls:
+            title = link.get("title", "")
+            if link.get("url") in used_urls or _title_key(title) in used_titles:
                 continue
-            if _is_bearish_headline(link.get("title", "")):
-                print(f"  [제외] 하락을 말하는 헤드라인: {link.get('title', '')[:60]}")
+            if _is_bearish_headline(title):
+                print(f"  [제외] 하락을 말하는 헤드라인: {title[:60]}")
+                continue
+            if not _headline_link_matches_theme(theme, title):
+                print(f"  [제외] 테마와 무관한 헤드라인: {title[:60]}")
                 continue
             results.append(link)
             used_urls.add(link.get("url", ""))
@@ -1241,9 +1300,12 @@ def _build_google_headline_links(theme: dict, used_urls: set[str] | None = None)
     if len(results) < GOOGLE_NEWS_FALLBACK_LIMIT:
         for query in queries:
             for link in _search_naver_news_links(query):
-                if link.get("url") in used_urls:
+                title = link.get("title", "")
+                if link.get("url") in used_urls or _title_key(title) in used_titles:
                     continue
-                if _is_bearish_headline(link.get("title", "")):
+                if _is_bearish_headline(title):
+                    continue
+                if not _headline_link_matches_theme(theme, title):
                     continue
                 results.append(link)
                 used_urls.add(link.get("url", ""))
@@ -1287,9 +1349,11 @@ def _bind_verified_headline(
     sorted_articles: list[dict],
     used_article_indices: set[int] | None = None,
     used_urls: set[str] | None = None,
+    used_titles: set[str] | None = None,
 ) -> None:
     used_article_indices = used_article_indices if used_article_indices is not None else set()
     used_urls = used_urls if used_urls is not None else set()
+    used_titles = used_titles if used_titles is not None else set()
 
     match = _resolve_representative_article(
         theme,
@@ -1304,14 +1368,19 @@ def _bind_verified_headline(
         used_article_indices.add(int(match["index"]))
         if local_link.get("url"):
             used_urls.add(local_link["url"])
+        # 제목도 잠근다 — 같은 기사가 다른 URL(구글 RSS)로 다시 올 수 있다.
+        if local_link.get("title"):
+            used_titles.add(_title_key(local_link["title"]))
         return
 
     theme["representativeArticleIndex"] = 0
-    google_links = _build_google_headline_links(theme, used_urls=used_urls)
+    google_links = _build_google_headline_links(theme, used_urls=used_urls, used_titles=used_titles)
     _set_theme_headline_links(theme, google_links)
     for link in google_links:
         if link.get("url"):
             used_urls.add(link["url"])
+        if link.get("title") and link.get("sourceType") != "google_news_search":
+            used_titles.add(_title_key(link["title"]))
     if google_links:
         print(
             f"  [!] 테마 '{theme.get('themeName', '')}'에 로컬 대표 기사가 없어 "
@@ -2426,6 +2495,7 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
          # 각 테마 검증 및 대표 기사 URL 매핑
         used_article_indices: set[int] = set()
         used_headline_urls: set[str] = set()
+        used_headline_titles: set[str] = set()
         for theme in themes:
             if "themeName" not in theme:
                 raise ValueError(f"테마에 'themeName'이 없습니다: {theme}")
@@ -2434,7 +2504,8 @@ def analyze_themes(articles: list[dict], date_str: str = None) -> dict:
 
             theme.pop("_from_antwinner", False)
             theme.pop("_from_infostock", False)
-            _bind_verified_headline(theme, sorted_articles, used_article_indices, used_headline_urls)
+            _bind_verified_headline(theme, sorted_articles, used_article_indices,
+                                    used_headline_urls, used_headline_titles)
 
         print(f"\n[INFO] 추출된 테마:")
         for i, theme in enumerate(themes, 1):

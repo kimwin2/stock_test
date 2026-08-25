@@ -70,6 +70,37 @@ print(f"     점수 {scored['score']} · bearish={scored['bearish']}")
 check("하락 표시", scored["bearish"], True)
 check("확신 매칭 거부", analyzer._is_confident_article_match(scored), False)
 
+print("\n[7] 폴백 헤드라인은 제목이 그 테마를 증거해야 붙는다")
+
+# 2026-08-25 실사고: '화장품' 카드에 반도체 기사가 붙었다.
+# 그 기사는 같은 회차에 '반도체' 카드의 헤드라인이기도 했다.
+COSMETIC = {
+    "themeName": "화장품",
+    "relatedStocks": ["오가닉티코스메틱", "한국화장품제조", "제닉", "아로마티카"],
+    "headline": "",
+}
+SEMI = "반도체株 쏠렸던 돈 어디 갔나 봤더니…한 달 새 68% 폭등 [종목+] - 한국경제"
+check("그날의 오배정 헤드라인 거부", analyzer._headline_link_matches_theme(COSMETIC, SEMI), False)
+
+# 살아야 하는 것들 — 여기서 과하면 멀쩡한 테마가 헤드라인을 통째로 잃는다
+for title, want, why in [
+    ("[특징주] 화장품株 일제히 강세…수출 호조", True, "테마명이 제목에"),
+    ("한국화장품제조, 장중 16% 급등", True, "테마 종목이 제목에"),
+    ("오가닉티코스메틱 상한가", True, "테마 종목이 제목에"),
+    ("코스피 상승 마감…외국인 순매수", False, "테마도 종목도 없음"),
+    ("삼성전자 3분기 실적 발표", False, "다른 업종"),
+]:
+    check(f"{why}: {title[:24]}", analyzer._headline_link_matches_theme(COSMETIC, title), want)
+
+print("\n[8] 같은 기사가 두 테마의 헤드라인이 될 수 없다")
+# 반도체 카드는 네이버 URL, 화장품 카드는 구글 RSS URL 이라 URL 로는 안 걸렸다.
+used = set()
+used.add(analyzer._title_key("반도체株 쏠렸던 돈 어디 갔나 봤더니…한 달 새 68% 폭등 [종목+]"))
+check("URL 이 달라도 같은 제목이면 잠긴다",
+      analyzer._title_key(SEMI) in used, True)
+check("다른 기사는 안 잠긴다",
+      analyzer._title_key("화장품株 일제히 강세") in used, False)
+
 print("\n" + ("=" * 52))
 print("모두 통과" if not fails else f"실패 {len(fails)}건: {fails}")
 sys.exit(1 if fails else 0)
