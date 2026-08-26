@@ -101,6 +101,69 @@ check("URL 이 달라도 같은 제목이면 잠긴다",
 check("다른 기사는 안 잠긴다",
       analyzer._title_key("화장품株 일제히 강세") in used, False)
 
+print("\n[9] 실측이 같은 이름의 명단을 갖고 있으면 그게 정답지다")
+
+# 2026-08-26 실사고: '건설' 카드의 대장주가 한미글로벌(+20.09%)이었다.
+# 개미승리는 이 종목을 '이란재건'·'우크라이나재건' 으로 분류하고 '건설'
+# 버킷에는 넣지 않았다. 카드 이름은 '건설' 인데 구성은 '재건' 이었다.
+import theme_stocks as ts
+
+ANALYSIS = {"antwinnerSignals": [
+    {"thema": "건설", "companies": [
+        {"stockname": "현대건설", "fluctuation": "8.33%"},
+        {"stockname": "GS건설", "fluctuation": "8.14%"},
+        {"stockname": "HL D&I", "fluctuation": "4.80%"},
+        {"stockname": "HDC", "fluctuation": "3.94%"},
+        {"stockname": "일성건설", "fluctuation": "3.27%"},
+        {"stockname": "동신건설", "fluctuation": "3.19%"},
+    ]},
+    {"thema": "이란재건", "companies": [
+        {"stockname": "한미글로벌", "fluctuation": "20.09%"},
+        {"stockname": "현대건설", "fluctuation": "8.33%"},
+    ]},
+    {"thema": "우크라이나재건", "companies": [
+        {"stockname": "한미글로벌", "fluctuation": "20.09%"},
+        {"stockname": "전진건설로봇", "fluctuation": "17.23%"},
+    ]},
+]}
+CONSTRUCTION = {"themeName": "건설"}
+
+
+def judge(name, rate, sources):
+    cand = ts.Candidate(name)
+    for src in sources:
+        cand.add(src)
+    return ts.offtheme_by_measured_roster(CONSTRUCTION, ANALYSIS, cand, rate)
+
+
+check("한미글로벌(LLM 단독, 명단 밖, 컷 위) 제외",
+      bool(judge("한미글로벌", 20.09, [ts.SRC_LLM])), True)
+check("제외 사유에 실제 소속이 남는다",
+      "이란재건" in (judge("한미글로벌", 20.09, [ts.SRC_LLM]) or ""), True)
+check("전진건설로봇도 제외", bool(judge("전진건설로봇", 16.49, [ts.SRC_LLM])), True)
+
+print("\n[10] 좁게 건다 — 이 셋 중 하나라도 어긋나면 심판하지 않는다")
+check("실측 소스가 이 테마로 지목했으면 유지",
+      judge("현대건설", 8.33, [ts.SRC_ANTWINNER, ts.SRC_LLM]), None)
+check("명단에 있으면 유지", judge("동신건설", 3.19, [ts.SRC_LLM]), None)
+# 명단은 등락률 상위 6개로 잘려 있다 — 컷 아래면 '없다' 가 '아니다' 를 뜻하지 않는다
+check("컷(3.19%) 아래면 반증 불가", judge("어떤건설사", 2.0, [ts.SRC_LLM]), None)
+# 이름이 정확히 같을 때만 그 명단을 정답지로 쓴다
+check("이름이 다르면 심판 안 함 (반도체소부장 ↔ 반도체(전력))",
+      ts.offtheme_by_measured_roster(
+          {"themeName": "반도체소부장"},
+          {"antwinnerSignals": [{"thema": "반도체(전력)", "companies": [
+              {"stockname": "코스텍시스", "fluctuation": "14.50%"},
+              {"stockname": "나노씨엠에스", "fluctuation": "13.07%"},
+              {"stockname": "시지트로닉스", "fluctuation": "0.75%"}]}]},
+          (lambda: (lambda c: (c.add(ts.SRC_LLM), c)[1])(ts.Candidate("티엘비")))(),
+          0.9),
+      None)
+check("실측에 같은 이름 버킷이 없으면 심판 안 함",
+      ts.offtheme_by_measured_roster({"themeName": "AI"}, ANALYSIS,
+          (lambda: (lambda c: (c.add(ts.SRC_LLM), c)[1])(ts.Candidate("아무종목")))(), 30.0),
+      None)
+
 print("\n" + ("=" * 52))
 print("모두 통과" if not fails else f"실패 {len(fails)}건: {fails}")
 sys.exit(1 if fails else 0)

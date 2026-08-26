@@ -773,7 +773,7 @@ def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool,
     stats = {"pool": 0, "unresolved": 0, "noQuote": 0, "penny": 0,
              "illiquid": 0, "noVolume": 0, "falling": 0, "duplicate": 0,
              "indexProduct": 0, "weakLead": 0, "unbackedDrop": 0,
-             "volumeFixed": 0}
+             "volumeFixed": 0, "offTheme": 0}
     min_stocks = 1 if relaxed else ts.MIN_STOCKS_PER_THEME
 
     for theme in themes:
@@ -823,6 +823,16 @@ def _select_theme_stocks(themes, analysis, ts, fetch_detail, relaxed: bool,
                 stats[reject] += 1
                 print(f"  [-] {cand.name} 제외 ({reject}: {detail.get('changeRate')}% / "
                       f"{detail.get('price')}원 / {detail.get('volume')})")
+                continue
+
+            # 실측 소스가 같은 이름의 테마 명단을 갖고 있는데 이 종목이 거기
+            # 없으면, LLM 이 잘못 배치한 것이다. 실측이 이미 답을 말하고 있는데
+            # 무시하고 LLM 지목만으로 카드에 올리면 안 된다 (2026-08-26 한미글로벌).
+            off = ts.offtheme_by_measured_roster(theme, analysis, cand,
+                                                 detail.get("changeRate"))
+            if off:
+                stats["offTheme"] += 1
+                print(f"  [-] {cand.name} 제외 (LLM 단독 지목 · 개미승리 {off})")
                 continue
 
             score, reasons = ts.score_candidate(cand, detail)

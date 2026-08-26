@@ -375,6 +375,71 @@ def reconcile_volume(detail: dict, cand: Candidate) -> dict:
     return fixed
 
 
+def offtheme_by_measured_roster(theme: dict, analysis: dict, cand: Candidate,
+                                change_rate: float) -> str | None:
+    """실측 소스가 **같은 이름의 테마 명단**을 갖고 있는데 이 종목이 거기 없는가.
+
+    2026-08-26 실사고: '건설' 카드의 대장주가 **한미글로벌(+20.09%)** 이었다.
+    개미승리는 이 종목을 '이란재건'·'우크라이나재건' 으로 분류하고 있고,
+    '건설' 버킷(평균 +4.39%)에는 넣지 않았다. 같은 카드의 전진건설로봇
+    (+16.49%)도 '우크라이나재건' 소속이다. 즉 카드 이름은 '건설' 인데
+    실제 구성은 '재건' 이었고, 그 사실을 실측 소스가 이미 말하고 있었다.
+
+    `build_candidates` 는 LLM 이 지목한 종목을 **아무 검증 없이** 받는다.
+    실측이 그 종목을 다른 테마로 부르고 있어도 확인하지 않는다.
+
+    판정을 좁게 건다 — 세 조건을 모두 만족할 때만 반증으로 본다:
+
+    1) **LLM 단독** 종목일 것. 실측 소스가 이 테마로 지목했다면 반증이 아니다.
+    2) 카드 이름과 **정규화 완전 일치**하는 실측 테마가 있을 것.
+       `_theme_matches` 의 느슨한 매칭을 쓰면 '반도체소부장' 이 '반도체(전력)'
+       (3종목짜리 좁은 버킷)의 명단으로 심판받는다. 이름이 정확히 같을 때만
+       그 명단을 정답지로 인정한다.
+    3) 그 종목의 등락률이 **명단의 최저 등락률보다 높을 것.**
+       명단은 등락률 상위 6개로 잘려 있다(`_trim_companies`). 컷 아래면
+       "명단에 없다" 가 "그 테마가 아니다" 를 뜻하지 않는다. 컷 위인데도
+       빠져 있으면 그건 소속이 아니라는 뜻이다 — 한미글로벌 +20.09% 는
+       '건설' 명단 최저(+3.19%)보다 훨씬 위인데 없었다.
+    """
+    if cand.sources != {SRC_LLM}:
+        return None
+
+    names = {_norm_theme(theme.get("themeName", ""))}
+    names |= {_norm_theme(n) for n in (theme.get("mergedThemes") or [])}
+    names.discard("")
+    if not names:
+        return None
+
+    target = _norm_name(cand.name)
+    for sig in analysis.get("antwinnerSignals") or []:
+        if _norm_theme(sig.get("thema", "")) not in names:
+            continue
+        companies = sig.get("companies") or []
+        if len(companies) < 2:
+            continue
+        roster = {_norm_name(c.get("stockname", "")) for c in companies}
+        if target in roster:
+            return None
+        rates = [r for r in (_parse_pct(c.get("fluctuation")) for c in companies) if r is not None]
+        if not rates:
+            continue
+        if float(change_rate or 0.0) > min(rates):
+            # 실측이 이 종목을 **어디로** 분류했는지 같이 돌려준다.
+            # 로그에 "왜 뺐나" 뿐 아니라 "그럼 어디 소속인가" 가 남아야
+            # 다음 사람이 테마명 자체를 의심할 수 있다 — 이번 건도 결국
+            # 카드 이름('건설')이 구성('재건')과 달랐던 문제다.
+            elsewhere = [
+                other.get("thema", "")
+                for other in (analysis.get("antwinnerSignals") or [])
+                if _norm_theme(other.get("thema", "")) not in names
+                and target in {_norm_name(c.get("stockname", "")) for c in (other.get("companies") or [])}
+            ]
+            roster_name = sig.get("thema", "")
+            return (f"'{roster_name}' 명단에 없음"
+                    + (f" · 실측 분류: {'·'.join(elsewhere)}" if elsewhere else ""))
+    return None
+
+
 # 완화 모드 — 시장이 조용해 통과 종목이 부족한 날, 탭을 비우느니 기준을 낮춘다.
 # 동전주 컷(MIN_PRICE)만은 완화하지 않는다. 이건 품질이 아니라 안전 문제다.
 RELAXED_TRADING_VALUE = 500_000_000
