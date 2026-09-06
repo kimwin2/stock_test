@@ -631,11 +631,11 @@ function renderMiniPriceChart(c, opts = {}) {
 //   직관: 외인·기관이 얼마나 채웠나          │
 // ─────────────────────────────────────────┘
 const SUPPLY_LEVELS = [
-  { key: 'strong-empty', label: '강한 빈집', desc: '외인·기관 거의 없음 — 매수 강한 자리' },
-  { key: 'empty',        label: '빈집',      desc: '외인·기관 아직 안 들어옴 — 매수 자리' },
-  { key: 'mid',          label: '중간',      desc: '매수세 들어오는 중 — 관망권' },
-  { key: 'full',         label: '찼음',      desc: '외인·기관 들어옴 — 추격 주의' },
-  { key: 'strong-full',  label: '강한 찼음', desc: '외인·기관 다 채워짐 — 추격 위험' },
+  { key: 'strong-empty', label: '강한 빈집', desc: '외인·기관 매수 거의 없음' },
+  { key: 'empty',        label: '빈집',      desc: '외인·기관 미진입' },
+  { key: 'mid',          label: '중간',      desc: '매수세 유입 중 · 관망권' },
+  { key: 'full',         label: '찼음',      desc: '외인·기관 진입 · 추격 주의' },
+  { key: 'strong-full',  label: '강한 찼음', desc: '외인·기관 매수 집중 · 추격 위험' },
 ];
 
 function supplyLevelIdx(pct) {
@@ -773,7 +773,7 @@ function renderSparkline(values, opts = {}) {
 // ─────────────────────────────────────────┘
 function renderBuySafetyPill(safety) {
   if (!safety || safety.error) return '';
-  const tip = `지수 국면 점수 ${safety.score}/100 — 오실레이터 방향과 이동평균 위치로 산출`;
+  const tip = `지수 국면 점수 ${safety.score}/100 · 오실레이터 방향 + 이동평균 위치`;
   return `<span class="safety-pill safety-pill-${safety.stage}" title="${tip}">${safety.stageEmoji} ${fEscape(safety.stageLabel)} ${safety.stageIndex + 1}/${safety.totalStages}단계</span>`;
 }
 
@@ -800,7 +800,7 @@ function renderMddMa3(history, close) {
               : '';
   return `
     <span class="sentiment-mdd" title="현재 누적 고점 대비 낙폭 (최근 120일)">MDD <strong style="color:${mddColor}">${mddStr}</strong></span>
-    <span class="sentiment-ma3" title="5일 이동평균선 — 종가가 위/아래인지로 단기 추세 판단">5일선 ${ma3Str} ${arrow}</span>
+    <span class="sentiment-ma3" title="5일 이동평균선 · 종가 위/아래로 단기 추세 판단">5일선 ${ma3Str} ${arrow}</span>
   `;
 }
 
@@ -1190,7 +1190,7 @@ function renderFilterStats(stats) {
   if (stats.droppedByVacancy)       parts.push(`빈집 아님 ${stats.droppedByVacancy}`);
   if (stats.droppedByScore)         parts.push(`점수 미달 ${stats.droppedByScore}`);
   if (stats.droppedByConcentration) parts.push(`섹터 편중 ${stats.droppedByConcentration}`);
-  const detail = parts.length ? ` — 제외: ${parts.join(' · ')}` : '';
+  const detail = parts.length ? ` · 제외: ${parts.join(' · ')}` : '';
   return `<div class="cand-filter-stats">검토 ${stats.beforeFilter}종목 → 조건 통과 ${stats.afterFilter}종목${fEscape(detail)}</div>`;
 }
 
@@ -1374,9 +1374,9 @@ async function loadFlow() {
 
     container.innerHTML = `
       <div class="tab-intro">
-        <b>수급·종목</b> — 오늘 <u>무엇을 볼지</u> 고르는 탭입니다.
-        외국인·기관이 <b>빠져나간 자리(빈집)</b> 중, 추세가 살아있고 주도 업종에 속한 종목만 남깁니다.
-        <span>종목을 눌러 펼치면 왜 뽑혔는지 근거가 나옵니다.</span>
+        <b>수급·종목</b> · 오늘 <u>볼 종목</u> 선별 탭.
+        외인·기관 <b>수급 빠짐(빈집)</b> + 추세 유지 + 주도 업종 소속 종목만 표시.
+        <span>종목 탭하면 선정 근거 표시.</span>
       </div>
       <div class="flow-meta">
         <span>업데이트: ${new Date(data.updatedAt).toLocaleString('ko-KR')}</span>
@@ -1389,7 +1389,7 @@ async function loadFlow() {
         ${buildLeadingValueCard(data.leadingValueTop, data.leadingSectorLabels)}
       </div>
       <details class="flow-collapsible">
-        <summary>▼ 정밀 분석 펼치기 (주트레이더용)</summary>
+        <summary>▼ 정밀 분석 (주트레이더용)</summary>
         <div class="flow-grid flow-grid-collapsed">
           ${buildSectorFlowCard(data.sectorFlows)}
           ${buildTICard(data.tradingIntensity)}
@@ -1403,7 +1403,7 @@ async function loadFlow() {
     console.error('flow load error:', err);
     container.innerHTML = `
       <div class="error-state">
-        <p>수급 데이터를 불러올 수 없습니다.</p>
+        <p>수급 데이터 로드 실패</p>
         <p style="font-size:0.8rem;color:#999">${fEscape(err.message)}</p>
         <button class="retry-btn" onclick="loadFlow()">다시 시도</button>
       </div>

@@ -154,7 +154,7 @@
     sheet(g.t,
       '<dl class="gloss">' +
       '<dd>' + g.d + '</dd>' +
-      '<div class="g-how"><b>어떻게 읽나</b><br>' + g.how + '</div>' +
+      '<div class="g-how"><b>읽는 법</b><br>' + g.how + '</div>' +
       '</dl>' +
       '<button class="btn btn-block" style="margin-top:18px" type="button" ' +
         (stacked ? 'data-sheet-back' : 'data-sheet-close') + '>' +
@@ -185,7 +185,7 @@
     var icon = o.icon || '<circle cx="12" cy="12" r="9"/><path d="M12 8v4.5M12 16h.01"/>';
     return '<div class="empty">' +
       '<div class="e-ic"><svg viewBox="0 0 24 24">' + icon + '</svg></div>' +
-      '<b>' + E(o.title || '표시할 내용이 없습니다') + '</b>' +
+      '<b>' + E(o.title || '표시할 내용 없음') + '</b>' +
       (o.desc ? '<p>' + o.desc + '</p>' : '') +
       (o.action ? '<button class="btn" type="button" ' + o.action.attr + '>' + E(o.action.label) + '</button>' : '') +
       '</div>';
@@ -195,10 +195,10 @@
   // 그대로 보여주면 사용자는 뭘 해야 할지 모른다.
   function humanErr(msg) {
     var m = String(msg || '');
-    if (/failed to fetch|load failed|networkerror/i.test(m)) return '네트워크에 연결할 수 없습니다. 연결을 확인해 주세요.';
-    if (/^HTTP 404/.test(m)) return '데이터 파일을 찾을 수 없습니다 (404).';
-    if (/^HTTP 5\d\d/.test(m)) return '서버가 응답하지 않습니다 (' + m + ').';
-    if (/^HTTP 403/.test(m)) return '데이터에 접근할 수 없습니다 (403).';
+    if (/failed to fetch|load failed|networkerror/i.test(m)) return '네트워크 연결 실패. 연결 상태 확인 필요.';
+    if (/^HTTP 404/.test(m)) return '데이터 파일 없음 (404).';
+    if (/^HTTP 5\d\d/.test(m)) return '서버 응답 없음 (' + m + ').';
+    if (/^HTTP 403/.test(m)) return '데이터 접근 불가 (403).';
     return m;
   }
 
@@ -210,7 +210,7 @@
     }, 0);
     return '<div class="empty">' +
       '<div class="e-ic"><svg viewBox="0 0 24 24"><path d="M12 3.8 21 19H3z"/><path d="M12 10v4M12 16.6h.01"/></svg></div>' +
-      '<b>데이터를 불러오지 못했습니다</b>' +
+      '<b>데이터 로드 실패</b>' +
       '<p>' + E(humanErr(msg)) + '</p>' +
       '<button class="btn btn-primary" type="button" id="' + id + '">다시 시도</button>' +
       '</div>';
@@ -295,7 +295,7 @@
     if (!hit.length) {
       searchBody.innerHTML = empty({
         title: '"' + E(q) + '" 검색 결과 없음',
-        desc: '분석 대상은 코스피·코스닥 시가총액 상위 종목입니다. 그 밖의 종목은 목록에 없습니다.'
+        desc: '분석 대상: 코스피·코스닥 시가총액 상위 종목'
       });
       return;
     }
@@ -404,8 +404,8 @@
     var url = apiUrl();
     if (!url) {
       fullBody.innerHTML = empty({
-        title: '차트 서버가 연결되어 있지 않습니다',
-        desc: 'index.html 의 <code>window.STOCK_CHART_API_URL</code> 을 확인해 주세요.'
+        title: '차트 서버 미연결',
+        desc: 'index.html 의 <code>window.STOCK_CHART_API_URL</code> 확인'
       });
       return;
     }
@@ -432,7 +432,7 @@
 
   function paintFull(data) {
     var cs = data.candles || [];
-    if (!cs.length) { fullBody.innerHTML = empty({ title: '이 기간의 캔들이 없습니다' }); return; }
+    if (!cs.length) { fullBody.innerHTML = empty({ title: '해당 기간 캔들 없음' }); return; }
     var last = cs[cs.length - 1], first = cs[0];
     var chg = first && first.c ? (last.c - first.c) / first.c * 100 : null;
     var isMin = fullState.tf === 'minute';

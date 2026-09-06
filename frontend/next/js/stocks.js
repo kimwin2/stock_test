@@ -98,8 +98,8 @@
     var all = f.buyCandidates || [];
     if (!all.length) {
       return UI.empty({
-        title: '오늘 조건을 통과한 종목이 없습니다',
-        desc: '큰손이 빠졌고 · 추세가 살아 있고 · 주도 업종인 종목이 오늘은 없다는 뜻입니다. 자리를 억지로 채우지 않습니다.'
+        title: '조건 통과 종목 없음',
+        desc: '수급 빠짐 · 추세 생존 · 주도 업종 세 조건을 모두 충족한 종목이 없음. 억지로 채우지 않음.'
       });
     }
 
@@ -127,13 +127,13 @@
       '</div>';
 
     var note = '<p style="font-size:.8125rem;color:var(--ink-3);padding:2px 2px 10px">' +
-      '외국인·기관 순매수가 <b>줄어든 자리</b> 중 10일선 위에서 추세가 살아 있고, 오늘 주도 업종에 속한 종목입니다.' +
+      '외인·기관 <b>매수 둔화</b> + 10일선 위 추세 유지 + 오늘 주도 업종 소속 종목.' +
       UI.info('vacancy') + '</p>';
 
     return head + note +
       '<section class="card"><div class="rows">' +
         (list.length ? list.map(function (c, i) { return row(c, i); }).join('')
-                     : '<div style="background:var(--surface)">' + UI.empty({ title: '이 업종에는 후보가 없습니다' }) + '</div>') +
+                     : '<div style="background:var(--surface)">' + UI.empty({ title: '해당 업종 후보 없음' }) + '</div>') +
       '</div></section>' +
       overflowFold(f);
   }
@@ -176,10 +176,10 @@
     var bySec = {};
     ov.forEach(function (o) { (bySec[o.sector || '기타'] = bySec[o.sector || '기타'] || []).push(o); });
     return '<details class="fold" style="margin-top:12px">' +
-      '<summary>업종 상한에 걸려 빠진 종목<span class="cnt">' + ov.length + '개</span></summary>' +
+      '<summary>업종 상한 제외 종목<span class="cnt">' + ov.length + '개</span></summary>' +
       '<div class="fold-body flush">' +
       '<p style="padding:12px 16px 4px;font-size:.8125rem;color:var(--ink-3)">' +
-        '조건은 다 통과했는데 같은 업종이 이미 자리를 채워 제외됐습니다. 여기가 많다는 건 그 업종이 그만큼 강하다는 뜻이기도 합니다.' +
+        '조건 통과했으나 업종별 상한 초과로 제외. 제외 종목이 많은 업종 = 그만큼 강한 업종.' +
         UI.info('overflow') + '</p>' +
       Object.keys(bySec).map(function (sec) {
         return '<div style="padding:10px 16px;border-top:1px solid var(--line)">' +
@@ -197,10 +197,10 @@
   /* ── 거래대금 상위 ──────────────────────────────────────── */
   function valueView(f) {
     var list = f.leadingValueTop || [];
-    if (!list.length) return UI.empty({ title: '거래대금 상위 목록이 없습니다' });
+    if (!list.length) return UI.empty({ title: '거래대금 상위 목록 없음' });
     return '<p style="font-size:.8125rem;color:var(--ink-3);padding:2px 2px 10px">' +
-      '주도 업종 안에서 <b>외인·기관이 가장 큰 돈을 넣고 있는</b> 종목입니다. 큰손이 빠졌는지와 무관하게 거래대금 순으로 세웁니다 — ' +
-      '이미 수급이 채워진 종목도 들어 있습니다.</p>' +
+      '주도 업종 내 <b>외인·기관 순매수 상위</b> 종목. 수급 빠짐 여부와 무관한 거래대금 순, ' +
+      '수급 유입 완료 종목 포함.</p>' +
       '<section class="card"><div class="rows">' +
       list.map(function (c, i) {
         var amt = c.institutionNet5d;
@@ -224,7 +224,7 @@
       '<summary>거래대금 강도<span class="cnt">' + ti.length + '종목</span></summary>' +
       '<div class="fold-body flush">' +
       '<p style="padding:12px 16px 4px;font-size:.8125rem;color:var(--ink-3)">' +
-        '자기 과거 대비 거래대금 수준(0~100)입니다. 바닥에서 올라오는 구간이 관심, 과열은 이미 붙은 자리입니다.' + UI.info('ti') + '</p>' +
+        '과거 대비 거래대금 수준(0~100). 바닥권 상승 구간 관심, 과열권은 자금 유입 완료.' + UI.info('ti') + '</p>' +
       '<div class="rows">' + ti.map(function (t) {
         var col = t.ti >= 80 ? 'var(--up)' : t.ti >= 60 ? 'var(--warn)' : t.ti >= 20 ? 'var(--ink-2)' : 'var(--down)';
         // 스파크라인은 글자가 없어서 배율이 변해도 뭉개지지 않는다. 고정 폭으로 그린다.
@@ -246,13 +246,13 @@
     });
     if (!ex.length) {
       return UI.empty({
-        title: '이탈 신호가 없습니다',
-        desc: '후보에 올랐던 종목 중 10일선을 내준 종목이 없습니다.',
+        title: '이탈 신호 없음',
+        desc: '후보 종목 중 10일선 이탈 종목 없음',
         icon: '<path d="M20 6 9 17l-5-5"/>'
       });
     }
     return '<p style="font-size:.8125rem;color:var(--ink-3);padding:2px 2px 10px">' +
-      '고점에서 밀리며 10일 이동평균선까지 내준 종목입니다. 추세가 꺾였다는 <b>사실만</b> 알립니다 — 매도 지시가 아닙니다.' +
+      '고점 대비 하락 후 10일 이동평균선 이탈 종목. 추세 이탈 <b>사실</b> 표시, 매도 신호 아님.' +
       UI.info('exit') + '</p>' +
       '<section class="card"><div class="rows">' + ex.map(function (e) {
         return '<button class="row" type="button" data-code="' + E(e.code) + '" data-name="' + E(e.name) + '">' +

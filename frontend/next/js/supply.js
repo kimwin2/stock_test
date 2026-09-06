@@ -36,13 +36,6 @@
     return Math.round(e).toLocaleString('ko-KR') + '억';
   }
 
-  /* 조사 — 받침이 있으면 '으로', 없으면 '로'. money() 는 '억'(받침 ㄱ) 또는
-     '조'(받침 없음) 로 끝난다. 붙여 쓰지 않으면 "787억 으로" 처럼 어색해진다. */
-  function euro(word) {
-    var last = String(word).slice(-1);
-    return word + (last === '조' ? '로' : '으로');
-  }
-
   /* ── 상황 판정 ────────────────────────────────────────────
      5일 순매수와 20일 순매수의 **부호 조합**으로 나눈다.
      이 네 가지는 트레이더에게 뜻이 완전히 다르고, 지금은 전부
@@ -75,7 +68,7 @@
      '빈집' 이라는 말을 쓰지 않는다. 상황을 그대로 말한다. */
   function headline(c) {
     var f = facts(c);
-    if (!f.situation) return '수급 데이터가 아직 부족합니다.';
+    if (!f.situation) return '수급 데이터 부족';
     var p = f.pace, pct;
     switch (f.situation.key) {
       case 'slowing':
@@ -90,23 +83,22 @@
           var peak = cum.reduce(function (a, v) { return Math.abs(v) > Math.abs(a) ? v : a; }, cum[0]);
           var now = cum[cum.length - 1];
           if (Math.abs(peak) > Math.abs(now) * 1.3) {
-            return '외인·기관 5일 합계가 ' + money(peak) + '에서 ' + euro(money(now)) +
-              ' 줄었습니다. 그날그날은 사고 있지만 들어오는 힘이 빠지는 중입니다.';
+            return '외인·기관 5일 합계 ' + money(peak) + ' → ' + money(now) + '. 매일 사고는 있지만 매수 강도 약화.';
           }
         }
         pct = (p && p.ratio != null) ? Math.round(p.ratio * 100) : null;
         return pct != null && pct < 90
-          ? '외인·기관이 계속 담고 있지만, 최근 5일 사들이는 속도가 지난 20일 평균의 ' + pct + '% 로 내려왔습니다.'
-          : '외인·기관이 담는 중이지만 속도가 예전만 못합니다.';
+          ? '외인·기관 매수 지속. 최근 5일 매수 속도는 20일 평균의 ' + pct + '%.'
+          : '외인·기관 매수 지속, 속도는 둔화.';
       case 'turning':
-        return '지난 20일은 ' + money(f.n20) + ' 담았는데, 최근 5일은 ' + money(Math.abs(f.n5)) + ' 팔았습니다. 방향이 바뀌었습니다.';
+        return '20일 ' + money(f.n20) + ' 순매수 → 최근 5일 ' + money(Math.abs(f.n5)) + ' 순매도. 방향 전환.';
       case 'selling':
-        return '최근 5일 동안 ' + money(Math.abs(f.n5)) + ' 팔았습니다'
+        return '최근 5일 ' + money(Math.abs(f.n5)) + ' 순매도'
           + (p && p.ratio != null && p.ratio > 1.2
-              ? ' — 20일 평균보다 ' + p.ratio.toFixed(1) + '배 빠른 속도입니다.'
+              ? '. 20일 평균 대비 ' + p.ratio.toFixed(1) + '배 속도.'
               : '.');
       case 'returning':
-        return '지난 20일은 ' + money(Math.abs(f.n20)) + ' 팔았는데, 최근 5일은 ' + money(f.n5) + ' 다시 담았습니다.';
+        return '20일 ' + money(Math.abs(f.n20)) + ' 순매도 → 최근 5일 ' + money(f.n5) + ' 순매수 전환.';
     }
     return '';
   }
@@ -118,11 +110,11 @@
     var parts = [];
     if (f.situation) {
       parts.push(f.situation.key === 'selling' || f.situation.key === 'turning'
-        ? '큰손이 아직 자리를 비워두고 있습니다'
-        : '큰손이 아직 자리를 다 채우지 않았습니다');
+        ? '외인·기관 미진입 상태'
+        : '외인·기관 매수 여력 남음');
     }
-    if (c.aboveMA10) parts.push('주가는 10일선 위에서 버티는 중입니다');
-    if (c.sector) parts.push('오늘 시장이 미는 업종(' + c.sector + ')입니다');
+    if (c.aboveMA10) parts.push('10일선 위 추세 유지');
+    if (c.sector) parts.push('오늘 주도 업종 (' + c.sector + ')');
     return parts;
   }
 
@@ -268,7 +260,7 @@
       barSvg + line + marks + axis + '</svg>' +
       '<p class="sup-legend"><i class="sw up"></i>산 날 <i class="sw dn"></i>판 날 ' +
       '<i class="sw ln"></i>최근 5일 합계' +
-      '<span class="hint">그날 사도, 5일 합계가 줄면 힘이 빠지는 중입니다</span></p>';
+      '<span class="hint">5일 합계 감소 = 매수 강도 약화</span></p>';
   }
 
   global.Supply = {

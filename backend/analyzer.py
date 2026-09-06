@@ -461,10 +461,10 @@ SYSTEM_PROMPT = """당신은 한국 주식시장 전문 애널리스트입니다
 
 5. **각 테마별 정보**:
    - themeName: 테마명 (**2~4글자로 간결하게**, 예: "광통신", "방산", "조선", "원전", "2차전지", "진단키트", "바이오". "중동전쟁 및 방산" 같이 길게 쓰지 마세요)
-   - headline: 테마 관련 핵심 뉴스 한줄 요약 (기사 제목 스타일, 50자 이내)
+   - headline: 테마 관련 핵심 뉴스 한줄 요약 (신문 기사 제목체, 50자 이내. 줄표(—)·말줄임(…)·"~입니다" 금지. 예: "SK증권, 자사주 중개 소식에 상한가")
    - representativeArticleIndex: 이 테마를 가장 잘 대표하는 기사 번호 (1부터 시작하는 정수). 기사 목록에 직접 대응하는 기사가 없으면 0
    - relatedStocks: 해당 테마의 대장주 후보 종목명 6개 (한국 상장종목만, 정확한 종목명, 전체 테마에서 중복 없이)
-   - reasoning: 이 테마를 선정한 이유 (1-2문장)
+   - reasoning: 선정 근거 (개조식 1~2문장, "~했다/~됐다/명사형" 종결. 수식어·해석어 없이 근거만)
 
 6. **선정 자율성**:
    - 당신의 목표는 예시를 맞히는 것이 아니라 오늘 실제 시장 데이터를 가장 잘 설명하는 테마를 찾는 것입니다
@@ -889,12 +889,12 @@ def _match_infostock_stocks_with_llm(
                 if (mover.get("name") or "").strip()
             ][:4]
             if not reasoning:
-                reasoning = "인포스탁 공개 테마표와 급등주 교집합 후보를 우선 반영했습니다."
+                reasoning = "인포스탁 테마표 × 급등주 교집합 우선 반영."
 
     if not matched_stocks:
         matched_stocks = _fallback_infostock_stock_match(signal, movers, stock_theme_hints)
         if matched_stocks and not reasoning:
-            reasoning = "가격 기반 테마 후보와 겹치는 급등주를 fallback으로 연결했습니다."
+            reasoning = "가격 기반 테마 후보와 겹치는 급등주 연결(폴백)."
 
     enriched = dict(signal)
     enriched["matchedStocks"] = matched_stocks[:4]
@@ -1780,7 +1780,7 @@ def _build_theme_from_price_candidate(candidate: dict, articles: list[dict]) -> 
         "headline": headline[:50],
         "representativeArticleIndex": article_idx,
         "relatedStocks": list(candidate.get("matchedStocks", []))[:6],
-        "reasoning": candidate.get("reasoning", "가격 기반 급등주 군집에서 포착된 강한 테마입니다."),
+        "reasoning": candidate.get("reasoning", "가격 기반 급등주 군집 포착 테마."),
         "injectedByPostProcess": True,
         "source": "price_signals",
         # 이 테마의 존재 근거인 클러스터 종목. 종목 선정 단계에서 이 중 하나도

@@ -107,8 +107,8 @@
     C.reload();
     var here = current;
     go(here, { restore: true });    // 새 데이터로 다시 그리되 보던 위치는 지킨다
-    C.flow().then(function () { global.UI.toast('최신 데이터로 갱신했습니다'); })
-      .catch(function () { global.UI.toast('갱신하지 못했습니다'); })
+    C.flow().then(function () { global.UI.toast('갱신 완료'); })
+      .catch(function () { global.UI.toast('갱신 실패'); })
       .then(function () {
         reloading = false;
         if (btn) btn.classList.remove('is-spin');

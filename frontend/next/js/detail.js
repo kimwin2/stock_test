@@ -19,8 +19,8 @@
       var hit = C.findStock(f, code);
       if (!hit) {
         global.UI.sheet(name || String(code), global.UI.empty({
-          title: '분석 대상에 없는 종목입니다',
-          desc: '코스피·코스닥 시가총액 상위 종목만 분석합니다.'
+          title: '분석 대상 외 종목',
+          desc: '분석 대상: 코스피·코스닥 시가총액 상위 종목'
         }));
         return;
       }
@@ -91,7 +91,7 @@
           wb.classList.toggle('is-on', on);
           wb.setAttribute('aria-pressed', String(on));
           wb.querySelector('span').textContent = on ? '관심 담김' : '관심 담기';
-          global.UI.toast(on ? '관심에 담았습니다' : '관심에서 뺐습니다');
+          global.UI.toast(on ? '관심 추가' : '관심 해제');
           global.App.refreshWatchDot();
         });
 
@@ -110,7 +110,7 @@
     var has = (c.priceHistory60d && c.priceHistory60d.length >= 2) || (c.ohlc60d && c.ohlc60d.length >= 2);
     if (!has) {
       return '<div class="d-sec"><h4>흐름</h4>' +
-        '<div class="chart-empty">이 종목은 60일 시계열을 계산하지 않았습니다.<br>“차트 크게”로 실시간 캔들을 볼 수 있습니다.</div></div>';
+        '<div class="chart-empty">60일 시계열 미산출 종목.<br>실시간 캔들은 “차트 크게”에서 확인.</div></div>';
     }
     return '<div class="d-sec">' +
       '<h4>흐름 <span style="text-transform:none;letter-spacing:0;font-weight:600">· 60거래일</span>' + global.UI.info('osc') + '</h4>' +
@@ -138,11 +138,11 @@
       } else if (src.via === 'turnover' && src.sharePct != null) {
         steps.push(['거래대금 쏠림', '시장 거래대금의 ' + src.sharePct + '%']);
       } else {
-        steps.push(['주도 업종 판정', '세 축 중 하나에서 통과']);
+        steps.push(['주도 업종 판정', '3축 중 1축 통과']);
       }
       steps.push([c.sector + ' 업종', '오늘 주도 ' + (rank + 1) + '위']);
     } else if (c.sector) {
-      steps.push([c.sector + ' 업종', '오늘 주도 업종은 아님']);
+      steps.push([c.sector + ' 업종', '오늘 주도 업종 아님']);
     }
 
     var eh = c.etfHoldings;
@@ -151,7 +151,7 @@
       steps.push([eh.top[0].etf + more + '이 편입', '합계 ' + eh.totalWeight + '%' +
         (eh.leadingCount ? ' · 주도 ETF 포함' : '')]);
     } else if (eh === null || (eh && !eh.count)) {
-      steps.push(['테마 ETF 미편입', '수급 근거만으로 올라온 종목']);
+      steps.push(['테마 ETF 미편입', '수급 근거 단독 선정']);
     }
 
     var last = [];
@@ -162,7 +162,7 @@
 
     if (!steps.length) return '';
 
-    return '<div class="d-sec"><h4>왜 이 종목인가' + global.UI.info('leading') + '</h4>' +
+    return '<div class="d-sec"><h4>선정 근거' + global.UI.info('leading') + '</h4>' +
       '<div class="path">' + steps.map(function (s, i) {
         return '<div class="path-step">' +
           '<span class="path-rail"><i class="path-dot"></i><i class="path-line"></i></span>' +
@@ -245,8 +245,7 @@
         ? row('수급 오실레이터', (c.oscLast * 1e4).toFixed(1) + 'bp' +
             (c.oscPercentile != null ? ' <span style="color:var(--ink-4)">· 1년 중 하위 ' + Math.round(c.oscPercentile) + '%</span>' : ''))
         : '') +
-      '</dl><p class="sup-note">오실레이터는 5일 합계가 자기 20일 흐름보다 빨라졌는지 느려졌는지를 잰 값입니다. ' +
-      '후보를 고를 때 이 값이 0 아래인 종목만 남깁니다.</p></details>';
+      '</dl><p class="sup-note">오실레이터 = 5일 합계의 20일 흐름 대비 가속/감속. 후보 선정 기준: 0 미만.</p></details>';
   }
 
   /* 10일 수급 히트맵은 제거했다 — '큰손 움직임' 의 막대가 같은 사실을

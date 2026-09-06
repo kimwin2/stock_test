@@ -16,10 +16,10 @@
      우리 지수 스케일은 참고 자료와 다르므로 숫자를 옮겨 적으면 틀린다.
      방향이 직관과 반대라(높을수록 어려움) 화면에 방향을 명시한다. */
   var CROWD_BANDS = [
-    { from: 90, label: '극단 쏠림', tone: 'up',   desc: '소수 업종만 독주합니다. 되돌림(순환매)이 나오는 자리입니다.' },
-    { from: 70, label: '어려운 장', tone: 'warn', desc: '일부 업종만 살아남는 구간입니다. 종목을 좁게 가져갑니다.' },
-    { from: 30, label: '보통',      tone: 'flat', desc: '주도 업종 위주로 흐르는 구간입니다.' },
-    { from: 0,  label: '편한 장',   tone: 'ok',   desc: '업종 간 편차가 좁아 종목 고르기가 수월한 구간입니다.' }
+    { from: 90, label: '극단 쏠림', tone: 'up',   desc: '소수 업종 독주. 순환매(되돌림) 출현 구간' },
+    { from: 70, label: '어려운 장', tone: 'warn', desc: '일부 업종만 상승. 종목 압축 필요' },
+    { from: 30, label: '보통',      tone: 'flat', desc: '주도 업종 위주 흐름' },
+    { from: 0,  label: '편한 장',   tone: 'ok',   desc: '업종 간 편차 축소. 종목 선별 용이' }
   ];
   function crowdBand(p) {
     for (var i = 0; i < CROWD_BANDS.length; i++) if (p >= CROWD_BANDS[i].from) return CROWD_BANDS[i];
@@ -67,11 +67,11 @@
       /* ── 히어로 ── */
       '<section class="hero">' +
         '<div class="hero-date">' + E(C.dateLine(f.updatedAt)) + '</div>' +
-        '<h1 class="hero-line">' + E(b.headline || '오늘 시장 요약이 아직 없습니다') + '</h1>' +
+        '<h1 class="hero-line">' + E(b.headline || '시장 요약 준비 중') + '</h1>' +
         '<div class="hero-answer">' +
           '<span class="ha-n num" style="color:' + (cands.length ? 'var(--up)' : 'var(--ink-3)') + '">' + cands.length + '</span>' +
           '<span class="ha-lab"><b>오늘 볼 종목</b>' +
-            '<span>수급이 빈 자리 ∩ 추세 생존 ∩ 주도 업종</span></span>' +
+            '<span>수급 빠짐 ∩ 추세 생존 ∩ 주도 업종</span></span>' +
           (cands.length ? '<button class="btn btn-primary" type="button" data-go="stocks">보기</button>' : '') +
         '</div>' +
       '</section>' +
@@ -112,7 +112,7 @@
       briefCard(b) +
 
       '<p style="font-size:.75rem;color:var(--ink-4);text-align:center;padding:8px 12px 0">' +
-        E(b.disclaimer || '이 화면은 데이터 서술이며 투자 권유가 아닙니다.') +
+        E(b.disclaimer || '데이터 요약 화면. 투자 권유 아님.') +
       '</p>' +
       '</div>';
 
@@ -127,7 +127,7 @@
     if (!(mins > 24 * 60)) return '';
     return '<div class="notice" style="margin-bottom:12px">' +
       '<svg viewBox="0 0 24 24"><path d="M12 3.8 21 19H3z"/><path d="M12 10v4M12 16.6h.01"/></svg>' +
-      '<span>데이터가 ' + E(C.ago(f.updatedAt)) + ' 것입니다. 평일 장중에만 갱신됩니다.</span></div>';
+      '<span>' + E(C.ago(f.updatedAt)) + ' 데이터 · 평일 장중 갱신</span></div>';
   }
 
   function cell(key, k, v, z, tone, d) {
@@ -186,8 +186,8 @@
   function candCard(f, cands) {
     if (!cands.length) {
       return '<section class="card card-pad">' + UI.empty({
-        title: '오늘 조건을 통과한 종목이 없습니다',
-        desc: '큰손이 빠졌고 · 추세가 살아 있고 · 주도 업종인 종목이 오늘은 없다는 뜻입니다. 무리해서 채우지 않습니다.'
+        title: '조건 통과 종목 없음',
+        desc: '수급 빠짐 · 추세 생존 · 주도 업종 세 조건을 모두 충족한 종목이 없음. 억지로 채우지 않음.'
       }) + '</section>';
     }
     return '<section class="card">' +
@@ -210,7 +210,7 @@
       '<span class="r-rk num">' + (i + 1) + '</span>' +
       '<span class="r-name"><b>' + E(c.name) + '</b></span>' +
       '<span class="r-meta">' + E(c.sector || '-') +
-        (d != null ? '<span class="depth" title="큰손이 빠진 정도 — 막대가 짧을수록 많이 빠졌다"><i><b style="width:' +
+        (d != null ? '<span class="depth" title="수급 위치 · 막대가 짧을수록 많이 빠짐"><i><b style="width:' +
           Math.max(6, 100 - d) + '%"></b></i>하위 ' + Math.round(d) + '%</span>' : '') +
         '<span class="tag">' + E(ss.label) + '</span>' +
       '</span>' +
@@ -225,19 +225,19 @@
     var fin = (f.buyCandidates || []).length;
     if (!fin || !st.beforeFilter) return '';
     var steps = [
-      ['분석한 종목', uni, '코스피·코스닥 시총 상위'],
-      ['주도 업종 소속', st.beforeFilter, '돈이 들어오는 업종만'],
-      ['수급이 빈 자리', Math.max(fin, st.beforeFilter - (st.droppedByVacancy || 0)), '외인·기관이 빠져나간 종목'],
-      ['추세 생존 + 자리 배분', fin, '10일선 위 · 업종당 상한 적용']
+      ['분석 종목', uni, '코스피·코스닥 시총 상위'],
+      ['주도 업종 소속', st.beforeFilter, '자금 유입 업종'],
+      ['수급 빠짐', Math.max(fin, st.beforeFilter - (st.droppedByVacancy || 0)), '외인·기관 매수 둔화 종목'],
+      ['추세 생존 + 업종 배분', fin, '10일선 위 · 업종당 상한 적용']
     ];
     var max = Math.max.apply(null, steps.map(function (s) { return s[1]; }).concat([1]));
     var dropped = [];
     if (st.droppedByTrend) dropped.push('추세 이탈 ' + st.droppedByTrend);
-    if (st.droppedByVacancy) dropped.push('큰손이 아직 있음 ' + st.droppedByVacancy);
+    if (st.droppedByVacancy) dropped.push('수급 유입 중 ' + st.droppedByVacancy);
     if (st.droppedByScore) dropped.push('점수 미달 ' + st.droppedByScore);
     if (st.droppedByConcentration) dropped.push('업종 상한 ' + st.droppedByConcentration);
 
-    return '<details class="fold"><summary>어떻게 ' + fin + '개로 좁혔나<span class="cnt">근거</span></summary>' +
+    return '<details class="fold"><summary>선정 과정<span class="cnt">' + fin + '개</span></summary>' +
       '<div class="fold-body"><div class="funnel">' +
       steps.map(function (s) {
         return '<div class="fn-row"><div class="fn-top"><b>' + E(s[0]) + '</b><span class="num">' +
@@ -247,7 +247,7 @@
       }).join('') +
       '</div>' +
       (dropped.length ? '<p class="fn-note" style="margin-top:12px">제외: ' + E(dropped.join(' · ')) + '</p>' : '') +
-      (st.scoreCutoffRelaxed ? '<p class="fn-note">후보가 적어 점수 커트라인만 완화했습니다. 추세·큰손 조건은 그대로입니다.</p>' : '') +
+      (st.scoreCutoffRelaxed ? '<p class="fn-note">후보 부족으로 점수 기준만 완화. 추세·수급 조건은 유지.</p>' : '') +
       '</div></details>';
   }
 
@@ -259,7 +259,7 @@
     return '<details class="fold"><summary>보유 점검 · 이탈 신호<span class="cnt">' + ex.length + '건</span></summary>' +
       '<div class="fold-body flush">' +
       '<p style="padding:12px 16px 4px;font-size:.8125rem;color:var(--ink-3)">' +
-        '고점에서 밀리며 10일선을 내준 종목입니다. 사실만 알립니다 — 매도 지시가 아닙니다.' + UI.info('exit') + '</p>' +
+        '고점 대비 하락 후 10일선 이탈 종목. 매도 신호 아님.' + UI.info('exit') + '</p>' +
       '<div class="rows">' + ex.slice(0, 12).map(function (e) {
         return '<button class="row" type="button" data-code="' + E(e.code) + '" data-name="' + E(e.name) + '">' +
           '<span class="r-rk"></span>' +
@@ -336,8 +336,8 @@
           (overlap ? '수급 겹침 ' + overlap : '겹침 없음') + '</span></div>' +
         '<div class="rows" style="margin-top:12px">' + rows + '</div>' +
         '<p style="padding:10px 16px 14px;font-size:.8125rem;color:var(--ink-3)">' +
-          (overlap ? '노란 종목은 재료가 돌면서 수급도 아직 빈 자리입니다.'
-                   : '오늘은 급등 재료와 큰손이 빠진 자리가 겹치는 종목이 없습니다. 이미 급등한 종목은 큰손이 들어와 있어 잘 겹치지 않습니다.') +
+          (overlap ? '노란 표시 = 재료 보유 + 수급 빠짐 종목'
+                   : '재료 보유 종목과 수급 빠짐 종목 겹침 없음. 급등 종목은 대개 수급 유입 완료 상태.') +
         '</p></section>';
     }).catch(function () { /* 재료가 없어도 오늘 화면은 성립한다 */ });
   }
@@ -368,8 +368,8 @@
       var q = (f.marketSentiment || {}).kosdaq || {};
       UI.sheet('시장 심리',
         '<p style="font-size:.9375rem;color:var(--ink-2)">' +
-          '공포·탐욕 지수는 <b>지금이 어떤 장인지</b>를 말합니다. 매수 신호가 아니라 배경입니다. ' +
-          '구간 이름(과열/강세/중립/약세/공포)은 <b>지수의 방향</b>으로 정하고, 숫자는 <b>수준</b>입니다 — 둘은 다른 축입니다.</p>' +
+          '공포·탐욕 지수 = 현재 <b>장세 배경</b>. 매수 신호 아님. ' +
+          '구간(과열/강세/중립/약세/공포)은 <b>지수 방향</b> 기준, 숫자는 <b>수준</b>. 두 축은 별개.</p>' +
         '<div class="kv" style="margin-top:14px">' +
           '<div><dt>KOSPI</dt><dd class="num">' + (k.fearGreed != null ? k.fearGreed.toFixed(1) : '-') + ' · ' + E(k.zone || '-') + '</dd></div>' +
           '<div><dt>KOSDAQ</dt><dd class="num">' + (q.fearGreed != null ? q.fearGreed.toFixed(1) : '-') + ' · ' + E(q.zone || '-') + '</dd></div>' +
@@ -391,13 +391,12 @@
       var band = s.band, cp = s.cp;
       UI.sheet('장 난이도 (쏠림)',
         '<p style="font-size:.9375rem;color:var(--ink-2)">' +
-          '주도 업종과 뒤처진 업종의 수익률 격차입니다. <b>높을수록 소수 업종만 오르는 장</b>이라 종목 고르기가 어렵습니다. ' +
-          '직관과 반대로 느껴질 수 있어 방향을 적어 둡니다.</p>' +
+          '주도 업종과 후행 업종의 수익률 격차. <b>높을수록 소수 업종 독주</b>, 종목 선별 어려움.</p>' +
         (band ? '<div class="notice" style="margin-top:14px;background:var(--surface-2);color:var(--ink-2)">' +
           '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5M12 16h.01"/></svg>' +
-          '<span><b>' + E(band.label) + '</b> — ' + E(band.desc) +
-          (cp != null ? ' 최근 1년 쏠림 이력에서 ' +
-            (cp <= 50 ? '하위 ' + Math.max(1, cp) : '상위 ' + Math.max(1, 100 - cp)) + '% 위치입니다.' : '') +
+          '<span><b>' + E(band.label) + '</b> · ' + E(band.desc) +
+          (cp != null ? ' · 1년 이력 ' +
+            (cp <= 50 ? '하위 ' + Math.max(1, cp) : '상위 ' + Math.max(1, 100 - cp)) + '%' : '') +
           '</span></div>' : '') +
         '<div class="d-sec"><h4>쏠림 추이</h4><div class="chart-box"><div id="cr-chart"></div></div></div>' +
         leadersLag(s.cr),
@@ -412,8 +411,8 @@
       var cash = s.cash;
       UI.sheet('현금 비중',
         '<p style="font-size:.9375rem;color:var(--ink-2)">' +
-          '공포·탐욕 지수와 쏠림 신호로 계산한 <b>참고용</b> 비중입니다. 지시가 아니라 상태 서술입니다. ' +
-          '과열이고 쏠림이 심하면 올라가고, 공포이고 분산되어 있으면 내려갑니다.</p>' +
+          '공포·탐욕 지수와 쏠림 신호로 산출한 <b>참고용</b> 비중. 매매 지시 아님. ' +
+          '과열+쏠림 → 상향, 공포+분산 → 하향.</p>' +
         '<div class="kv" style="margin-top:14px">' +
           '<div><dt>권고 현금</dt><dd class="num">' + (cash.cashPct != null ? cash.cashPct + '%' : '-') + '</dd></div>' +
           '<div><dt>구간</dt><dd>' + E(cash.level || '-') + '</dd></div>' +

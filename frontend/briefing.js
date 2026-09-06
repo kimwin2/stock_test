@@ -96,7 +96,7 @@ function zoneOf(marketNode, fgValue) {
 // 뜻을 모르는 사람에겐 여전히 필요한 정보라 지우지 않고, 기본은 접어두고
 // 필요한 사람만 펼치게 한다. 처음 보는 사람도 한 번 열면 되는 성격의 글이다.
 function whatIs(text) {
-  return `<details class="what-is"><summary>이게 무슨 뜻인가요?</summary><p>${bEscape(text)}</p></details>`;
+  return `<details class="what-is"><summary>용어 설명</summary><p>${bEscape(text)}</p></details>`;
 }
 
 // 오늘 시장을 한 문장으로. 구간 이름을 가장 크게 보여준다 — '38.7'만으로는
@@ -175,10 +175,10 @@ function buildMarketVerdict(fg, sentiment, flow) {
 // 대신 **자기 이력 대비 백분위**로 판정한다 — 참고 자료도 "0.3 넘으면
 // 90% 구간" 이라며 백분위로 말한다. 스케일이 달라도 백분위는 옮겨진다.
 const CROWD_BANDS = [
-  { from: 90, label: '극단 쏠림', tone: 'x', desc: '소수 업종 독주 — 되돌림(순환매)이 나오는 자리' },
+  { from: 90, label: '극단 쏠림', tone: 'x', desc: '소수 업종 독주 · 순환매(되돌림) 출현 구간' },
   { from: 70, label: '어려운 장', tone: 'hard', desc: '일부 업종만 살아남는 구간' },
   { from: 30, label: '보통', tone: 'mid', desc: '주도업종 위주로 흐르는 구간' },
-  { from: 0, label: '편한 장', tone: 'easy', desc: '업종 간 편차가 좁아 종목 고르기가 수월한 구간' },
+  { from: 0, label: '편한 장', tone: 'easy', desc: '업종 간 편차 축소 · 종목 선별 용이' },
 ];
 
 function crowdBandOf(pct) {
@@ -220,11 +220,11 @@ function buildCrowdingChart(flow, viewW) {
   const dirLabel = rising ? '올라가는 중' : (falling ? '내려가는 중' : '옆걸음');
   const dirMark = rising ? '▲' : (falling ? '▼' : '▬');
   let verdict;
-  if (rising && pct < 30) verdict = '바닥에서 올라오는 중 — 지금부터 어려워질 수 있는 자리';
-  else if (rising) verdict = '쏠림이 강해지는 중 — 살아남는 업종이 줄어드는 흐름';
-  else if (falling && pct >= 70) verdict = '고점에서 꺾이는 중 — 순환매로 풀리는 자리';
-  else if (falling) verdict = '쏠림이 풀리는 중 — 업종 간 편차가 좁아지는 흐름';
-  else verdict = '큰 변화 없이 이어지는 중';
+  if (rising && pct < 30) verdict = '바닥권 상승 전환 · 난이도 상승 구간';
+  else if (rising) verdict = '쏠림 강화 중 · 상승 업종 축소';
+  else if (falling && pct >= 70) verdict = '고점 하향 전환 · 순환매 구간';
+  else if (falling) verdict = '쏠림 완화 중 · 업종 간 편차 축소';
+  else verdict = '변화 없이 유지';
 
   // ── SVG ───────────────────────────────────────────────────────────
   // [2026-08-19 재작업] 예전에는 백분위 4구간을 **베이지·살구색 가로 띠**로
@@ -311,9 +311,9 @@ function buildCrowdingChart(flow, viewW) {
         <span class="cc-pct">6개월 분포 하위 <b>${pct}%</b></span>
         <span class="cc-axis">↓ 편한 장</span>
       </div>
-      ${whatIs('업종 쏠림은 업종별 6개월 수익률이 얼마나 벌어져 있는지를 하나의 수로 만든 값입니다. ' +
-        '높을수록 소수 업종만 오르고 나머지는 눌려 종목 고르기가 어려워지고, 낮을수록 업종 간 편차가 좁아 순환매가 돕니다. ' +
-        '지수의 절대값은 산출 방식마다 달라, 여기서는 최근 6개월 자기 이력 안에서의 위치(백분위)로 구간을 나눕니다.')}
+      ${whatIs('업종 쏠림 = 업종별 6개월 수익률 격차를 하나의 값으로 환산. ' +
+        '높음: 소수 업종 독주, 종목 선별 어려움. 낮음: 업종 간 편차 축소, 순환매 장. ' +
+        '구간은 최근 6개월 자기 이력 내 백분위 기준.')}
     </div>`;
 }
 
@@ -370,8 +370,8 @@ function buildThemeBridge(themeData, flow) {
       </div>
       <div class="tb-body">${rows}</div>
       <p class="tb-note">${total
-        ? '굵게 표시된 종목은 재료가 돌면서 수급도 아직 비어 있는 자리입니다.'
-        : '오늘은 급등 재료와 수급 빈집이 겹치는 종목이 없습니다. 급등 중인 종목은 이미 수급이 들어와 있어 잘 겹치지 않습니다.'}</p>
+        ? '굵은 표시 = 재료 보유 + 수급 빠짐 종목'
+        : '재료 보유 종목과 수급 빠짐 종목 겹침 없음. 급등 종목은 대개 수급 유입 완료 상태.'}</p>
       <button class="tb-more" type="button">재료·테마 탭에서 전체 보기</button>
     </div>`;
 }
@@ -480,7 +480,7 @@ function buildScreenResult(flow) {
         <span class="sr-meta">
           <em class="sr-sector-in">${bEscape(c.sector || '-')}</em>
           ${ss ? `<em class="sr-state ${ss.cls}">${bEscape(ss.label)}</em>` : ''}
-          <em class="sr-depth" title="자기 종목 수급 이력 대비 위치 — 낮을수록 깊은 빈집">
+          <em class="sr-depth" title="자기 수급 이력 내 위치 · 낮을수록 수급 빠짐">
             <i class="sr-depth-bar"><b style="width:${d.w}%"></b></i>
             ${bEscape(d.label)}
           </em>
@@ -501,7 +501,7 @@ function buildScreenResult(flow) {
         <span class="card-theme-name">조건 통과 종목</span>
         <span class="card-volume">${cands.length}개</span>
       </div>
-      ${whatIs('외국인·기관이 최근 5일 순매수를 줄인(수급이 빠진) 자리 중, 10일선 위에서 추세가 살아있는 종목만 남겼습니다. 빈집 깊이는 그 종목의 과거 수급 이력에서 지금이 얼마나 아래인지를 뜻합니다 — 낮을수록 매물이 비어 있습니다. 매수 권유가 아니라 관찰 대상입니다.')}
+      ${whatIs('외인·기관 최근 5일 순매수 둔화 + 10일선 위 추세 유지 종목. 깊이 = 해당 종목 과거 수급 이력 내 위치, 낮을수록 수급 빠짐. 매수 권유 아님.')}
       <div class="sr-body">${cands.slice(0, TOP_N).map(row).join('')}</div>
       ${cands.length > TOP_N ? `<details class="sr-rest">
         <summary>나머지 ${cands.length - TOP_N}종목 보기</summary>
@@ -522,7 +522,7 @@ function buildExitList(flow) {
         <span class="card-theme-name">이탈 신호</span>
         <span class="card-volume">${ex.length}건</span>
       </div>
-      ${whatIs('수급 빈집 화면에 올랐던 종목 중, 최근 고점에서 밀리면서 10일 이동평균선까지 내준 종목입니다. 추세가 꺾였다는 사실만 알립니다.')}
+      ${whatIs('후보 종목 중 최근 고점 대비 하락 후 10일 이동평균선 이탈. 추세 이탈 사실 표시, 매도 신호 아님.')}
       <div class="ex-head"><span>종목</span><span>업종</span><span>고점 대비</span><span>종가</span></div>
       <div class="ex-body">${ex
         .slice()
@@ -685,8 +685,8 @@ function buildDisclosureCard(disclosures) {
   if (!disclosures.available) {
     // 수집 실패와 키 미설정을 구분 — 키가 이미 설정된 사용자에게 잘못된 안내를 하지 않는다.
     const msg = disclosures.reason === 'fetch_failed'
-      ? '이번 회차에는 공시 데이터를 가져오지 못했습니다. 다음 갱신 때 다시 시도합니다.'
-      : '공시 데이터 미연결 — DART API 키 설정 후 표시됩니다.';
+      ? '이번 회차 공시 데이터 수집 실패 · 다음 갱신 시 재시도'
+      : '공시 데이터 미연결 · DART API 키 설정 후 표시';
     return `
       <div class="flow-card brief-card-dart">
         <div class="card-header"><span class="card-theme-name">DART 공시</span></div>
@@ -700,7 +700,7 @@ function buildDisclosureCard(disclosures) {
     return `
       <div class="flow-card brief-card-dart">
         <div class="card-header"><span class="card-theme-name">DART 공시</span></div>
-        <div class="brief-dart-empty">최근 3일 내 후보·유니버스 종목의 특이 공시가 없습니다.</div>
+        <div class="brief-dart-empty">최근 3일 후보·유니버스 종목 특이 공시 없음</div>
       </div>
     `;
   }
@@ -728,7 +728,7 @@ function buildDisclosureCard(disclosures) {
 // ─────────────────────────────────────────┘
 function sourceBadge(source) {
   if (source === 'llm') return '<span class="brief-badge brief-badge-rule">데이터 요약</span>';
-  if (source === 'sample') return '<span class="brief-badge brief-badge-sample">샘플 미리보기 — Lambda 배포 후 실데이터로 교체</span>';
+  if (source === 'sample') return '<span class="brief-badge brief-badge-sample">샘플 미리보기 · 배포 후 실데이터로 교체</span>';
   return '<span class="brief-badge brief-badge-rule">데이터 요약</span>';
 }
 
@@ -888,14 +888,14 @@ function buildFunnel(flow) {
   const before = st.beforeFilter || fin;
   const steps = [
     { label: '전체 분석 종목', n: uni || before, desc: '코스피·코스닥 시총 상위' },
-    { label: '주도 업종 소속', n: before, desc: '돈이 들어오는 업종만' },
-    { label: '수급이 빈 자리', n: Math.max(fin, before - (st.droppedByVacancy || 0)), desc: '외인·기관이 빠져나간 종목' },
-    { label: '추세 생존', n: fin, desc: '10일선 위 · 흐름이 살아있는 종목' },
+    { label: '주도 업종 소속', n: before, desc: '자금 유입 업종' },
+    { label: '수급 빠짐', n: Math.max(fin, before - (st.droppedByVacancy || 0)), desc: '외인·기관 매수 둔화 종목' },
+    { label: '추세 생존', n: fin, desc: '10일선 위 · 추세 유지 종목' },
   ];
   const max = Math.max(...steps.map(x => x.n), 1);
   return `
     <div class="fn">
-      <div class="fn-title">이렇게 좁혔습니다</div>
+      <div class="fn-title">선정 과정</div>
       ${steps.map((x, i) => `
         <div class="fn-row${i === steps.length - 1 ? ' fn-row-last' : ''}">
           <div class="fn-track">
@@ -1075,7 +1075,7 @@ async function loadBriefing() {
       console.error('briefing load error:', err);
       container.innerHTML = `
         <div class="error-state">
-          <p>시황을 불러올 수 없습니다.</p>
+          <p>시황 데이터 로드 실패</p>
           <p style="font-size:0.8rem;color:#999">${bEscape(err.message)}</p>
           <button class="retry-btn" onclick="loadBriefing()">다시 시도</button>
         </div>

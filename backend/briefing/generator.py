@@ -42,8 +42,8 @@ BRIEFING_SYSTEM_PROMPT = """당신은 한국 주식시장 데이터 브리핑 �
 6. **지표를 나열하지 말고 연결하세요.** 읽는 사람은 숫자를 이미 화면에서 봅니다.
    글의 값어치는 "여러 지표가 지금 무엇을 함께 말하고 있는가" 에 있습니다.
    나쁜 예: "공포·탐욕 지수는 41.6이다. 주도섹터는 A, B다."  ← 화면 복창
-   좋은 예: "쏠림은 6개월 최저 구간인데 5일째 올라오고 있고, 그 사이 주도섹터에서
-            반도체가 빠지고 소비재가 들어왔다 — 주도주가 교체되는 구간이다."
+   좋은 예: "쏠림은 6개월 최저 구간에서 5일째 상승. 그 사이 주도섹터에서 반도체가
+            빠지고 소비재가 진입. 주도주 교체 구간."
 7. **오늘의 핵심은 '변화' 입니다.** 수준(level)보다 방향(전환·진입·이탈)을 앞세우세요.
    변화가 없으면 "변화 없이 이어지고 있다" 고 그대로 쓰세요. 억지로 만들지 마세요.
 8. marketDifficulty 는 이 브리핑의 뼈대입니다. band 와 direction 을 반드시 해석에
@@ -53,6 +53,17 @@ BRIEFING_SYSTEM_PROMPT = """당신은 한국 주식시장 데이터 브리핑 �
 9. 화면에 이미 있는 숫자를 반복하기보다, 지표 사이의 관계를 말하세요.
    headline 은 오늘 시장의 상태를 한 문장으로 규정하는 문장이어야 합니다.
    "지수 41.6 기록" 같은 수치 복창은 headline 으로 실패입니다.
+
+문체 규칙 (증권사 데일리 리포트 어조, 위반 시 실패):
+10. 신문·리포트 평서체로 씁니다. 종결은 "~했다 / ~됐다 / ~이다 / 명사형" 만 허용.
+    "~합니다 / ~입니다 / ~세요" 같은 대화체 종결 금지.
+11. 문장은 짧게. 한 문장 40자 이내, 한 문장에 사실 하나. 쉼표로 절을 이어붙이지 마세요.
+12. 다음 표현 금지: 줄표(— 또는 –), 말줄임(…), "즉", "다만", "바로", "결국", "사실상",
+    "주목할 점은", "흥미로운", "중요한 것은", "라는 뜻이다", "라고 볼 수 있다",
+    "~기 때문이다", "~로 보인다", "~로 해석된다". 근거는 그냥 나열하고 해석어를 붙이지 마세요.
+13. 수식어를 붙이지 마세요("강력한", "뚜렷한", "눈에 띄는"). 수치와 방향만 적으세요.
+14. 독자에게 말을 걸지 마세요("참고하세요", "확인해 보세요"). 설명·훈계·요약 마무리 문장 금지.
+15. section body 는 개조식 문장 2~4개. 첫 문장이 결론, 뒤가 근거.
 
 출력은 JSON 만:
 {
@@ -232,37 +243,37 @@ def _fallback_sections(facts: dict, disclosures: dict) -> tuple[str, list[dict]]
     parts = []
     if fg.get("kospi") is not None:
         if fg.get("kospiDelta") is not None and abs(fg["kospiDelta"]) >= 0.05:
-            direction = "올라" if fg["kospiDelta"] > 0 else "내려"
-            parts.append(f"코스피 공포·탐욕 지수는 {fg['kospiPrev']}에서 {fg['kospi']}로 {direction} 있습니다.")
+            direction = "상승" if fg["kospiDelta"] > 0 else "하락"
+            parts.append(f"코스피 공포·탐욕 지수 {fg['kospiPrev']} → {fg['kospi']} {direction}.")
         else:
-            parts.append(f"코스피 공포·탐욕 지수는 {fg['kospi']} 입니다.")
+            parts.append(f"코스피 공포·탐욕 지수 {fg['kospi']}.")
     if fg.get("kosdaq") is not None:
-        parts.append(f"KOSDAQ 은 {fg['kosdaq']} 입니다.")
+        parts.append(f"코스닥 {fg['kosdaq']}.")
     if diff.get("band"):
         parts.append(
-            f"업종 쏠림은 최근 6개월 분포에서 하위 {diff.get('percentile')}% 자리로 "
-            f"'{diff['band']}' 구간이며 {diff.get('direction') or '옆걸음'} 입니다."
+            f"업종 쏠림은 6개월 분포 하위 {diff.get('percentile')}%, "
+            f"'{diff['band']}' 구간에서 {diff.get('direction') or '옆걸음'}."
         )
-    temp_body = " ".join(parts) or "시장 심리 데이터가 없습니다."
+    temp_body = " ".join(parts) or "시장 심리 데이터 없음."
 
     # 무엇이 바뀌었나 — 이 탭의 핵심. 수준이 아니라 변화를 앞세운다.
     parts = []
     now_sectors = sectors.get("now") or []
     if sectors.get("added"):
-        parts.append(f"주도 업종에 {', '.join(sectors['added'])} 이(가) 새로 들어왔습니다.")
+        parts.append(f"주도 업종 신규 진입: {', '.join(sectors['added'])}.")
     if sectors.get("removed"):
-        parts.append(f"{', '.join(sectors['removed'])} 은(는) 주도 업종에서 빠졌습니다.")
+        parts.append(f"주도 업종 이탈: {', '.join(sectors['removed'])}.")
     for t in (facts.get("vacancyZoneTransitions") or [])[:3]:
         if t.get("name"):
-            parts.append(f"{t['name']} 은(는) '{t['from']}' 에서 '{t['to']}' 존으로 옮겨갔습니다.")
+            parts.append(f"{t['name']} 수급 구간 '{t['from']}' → '{t['to']}'.")
     if not parts:
         # 변화가 없으면 없다고 쓴다. 억지로 만들면 매일 같은 글이 된다.
-        parts.append("직전 갱신 대비 주도 업종과 빈집 존에 바뀐 것은 없습니다.")
+        parts.append("직전 갱신 대비 주도 업종·수급 구간 변화 없음.")
         if now_sectors:
-            parts.append(f"주도 업종은 {', '.join(now_sectors[:5])} 그대로입니다.")
+            parts.append(f"주도 업종 {', '.join(now_sectors[:5])} 유지.")
     ec = facts.get("exitSignalCount")
     if ec:
-        parts.append(f"신고가 후 음전+10일선 이탈 매도 시그널은 {ec}건입니다.")
+        parts.append(f"고점 후 10일선 이탈 종목 {ec}건.")
     flow_body = " ".join(parts)
 
     # 돈의 방향 — 외인·기관 수급이 주도 업종과 맞물리는지
@@ -270,49 +281,49 @@ def _fallback_sections(facts: dict, disclosures: dict) -> tuple[str, list[dict]]
     ftop = flows.get("foreignerTop") or []
     otop = flows.get("organTop") or []
     if ftop:
-        parts.append(f"외국인은 최근 5일 {ftop[0]['sector']}({ftop[0]['amountEok']:,}억)을 가장 많이 사들였습니다.")
+        parts.append(f"외국인 5일 순매수 1위 {ftop[0]['sector']} {ftop[0]['amountEok']:,}억.")
     if otop:
-        parts.append(f"기관은 {otop[0]['sector']}({otop[0]['amountEok']:,}억)이 1위입니다.")
+        parts.append(f"기관 1위 {otop[0]['sector']} {otop[0]['amountEok']:,}억.")
     lead_set = set(now_sectors)
     aligned = [e["sector"] for e in (ftop[:3] + otop[:3]) if e["sector"] in lead_set]
     if aligned:
-        parts.append(f"이 가운데 {', '.join(dict.fromkeys(aligned))} 은(는) 주도 업종과 겹칩니다.")
+        parts.append(f"주도 업종과 겹침: {', '.join(dict.fromkeys(aligned))}.")
     elif ftop or otop:
-        parts.append("수급 상위 업종과 주도 업종이 겹치지 않습니다.")
-    vac_body = " ".join(parts) or "수급 데이터가 없습니다."
+        parts.append("수급 상위 업종과 주도 업종 불일치.")
+    vac_body = " ".join(parts) or "수급 데이터 없음."
 
     # 공시 체크
     parts = []
     cand_events = disclosures.get("candidateEvents") or []
     uni_events = disclosures.get("universeEvents") or []
     for e in cand_events[:4]:
-        parts.append(f"후보 종목 {e['name']} 은(는) '{e['category']}' 공시를 냈습니다.")
+        parts.append(f"후보 종목 {e['name']} '{e['category']}' 공시.")
     if not cand_events and uni_events:
         for e in uni_events[:3]:
-            parts.append(f"{e['name']} 이(가) '{e['category']}' 공시를 냈습니다.")
+            parts.append(f"{e['name']} '{e['category']}' 공시.")
     if not parts:
         if disclosures.get("available"):
-            parts.append("후보·유니버스 종목에 특이 공시가 없습니다.")
+            parts.append("후보·유니버스 종목 특이 공시 없음.")
         elif disclosures.get("reason") == "fetch_failed":
-            parts.append("이번 회차에는 공시 데이터를 가져오지 못했습니다 (다음 갱신 때 재시도).")
+            parts.append("이번 회차 공시 데이터 수집 실패 (다음 갱신 시 재시도).")
         else:
-            parts.append("공시 데이터 미연결 상태입니다 (DART API 키 설정 시 표시).")
+            parts.append("공시 데이터 미연결 (DART API 키 설정 시 표시).")
     dart_body = " ".join(parts)
 
     # 헤드라인 — 수치 복창 대신 '지금 어떤 국면인가' 를 규정한다.
     # 이것도 LLM 프롬프트와 같은 우선순위를 따른다: 변화 > 난이도 > 수준.
     if sectors.get("added") and sectors.get("removed"):
-        headline = f"주도 업종 교체 — {sectors['removed'][0]} 빠지고 {sectors['added'][0]} 진입"
+        headline = f"주도 업종 교체: {sectors['removed'][0]} 이탈, {sectors['added'][0]} 진입"
     elif sectors.get("added"):
-        headline = f"주도 업종에 {sectors['added'][0]} 새로 진입"
+        headline = f"주도 업종 신규 진입: {sectors['added'][0]}"
     elif diff.get("available") and diff.get("direction") != "옆걸음":
-        headline = f"업종 쏠림 {diff['direction']} — {diff['band']} 구간"
+        headline = f"업종 쏠림 {diff['direction']} · {diff['band']} 구간"
     elif diff.get("available"):
-        headline = f"{diff['band']} 구간에서 변화 없이 이어지는 중"
+        headline = f"{diff['band']} 구간 유지, 변화 없음"
     elif now_sectors:
-        headline = f"주도 업종 {now_sectors[0]} 중심의 수급 지속"
+        headline = f"주도 업종 {now_sectors[0]} 중심 수급 지속"
     else:
-        headline = "오늘의 수급 데이터 브리핑"
+        headline = "수급 데이터 브리핑"
 
     return headline, [
         {"title": "오늘 장", "body": temp_body},

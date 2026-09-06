@@ -129,7 +129,7 @@ async function fetchChart(code, timeframe, count) {
   const url = getChartApiUrl();
   if (!url) {
     // 프로덕션인데 window.STOCK_CHART_API_URL 가 주입 안 됨 → backend 배포 전.
-    throw new Error('차트 API 가 아직 배포되지 않았습니다. sam deploy 후 window.STOCK_CHART_API_URL 을 index.html 에 설정해 주세요.');
+    throw new Error('차트 API 미배포. sam deploy 후 index.html 에 window.STOCK_CHART_API_URL 설정 필요.');
   }
   const qs = new URLSearchParams({ code, timeframe, count: String(count) });
   const resp = await fetch(`${url}?${qs}`, { method: 'GET', mode: 'cors' });
@@ -406,7 +406,7 @@ function renderModalBody(state, body) {
       ${topSection}
       ${chartHeaderHTML()}
       <div class="chart-error">
-        <p>차트 데이터를 불러올 수 없습니다.</p>
+        <p>차트 데이터 로드 실패</p>
         <p class="chart-error-detail">${chartEscape(state.error)}</p>
         <button class="chart-retry-btn" data-action="retry">다시 시도</button>
       </div>

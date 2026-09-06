@@ -48,7 +48,7 @@ function renderThemeStaleNotice(grid, data) {
   el.id = 'theme-stale-notice';
   el.className = 'stale-notice';
   el.innerHTML = `
-    <strong>테마 갱신이 멈춰 있습니다</strong>
+    <strong>테마 갱신 중단</strong>
     <span>${escapeHTML(data.themesError)}${since ? ` · 마지막 성공 ${escapeHTML(since)}` : ''}</span>
   `;
   grid.parentNode.insertBefore(el, grid);
@@ -654,7 +654,7 @@ async function loadAndRender() {
     if (loading) loading.remove();
     grid.innerHTML = `
       <div class="error-state">
-        <p>데이터를 불러올 수 없습니다.</p>
+        <p>데이터 로드 실패</p>
         <p style="font-size:0.8rem;color:#999">${escapeHTML(err.message)}</p>
         <button class="retry-btn" onclick="location.reload()">다시 시도</button>
       </div>

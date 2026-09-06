@@ -17,9 +17,9 @@
     var saved = C.watchAll();
     if (!saved.length) {
       root.innerHTML = UI.empty({
-        title: '담아둔 종목이 없습니다',
-        desc: '종목을 눌러 상세를 열고 <b>관심 담기</b>를 누르면 여기에 모입니다.<br>' +
-              '다음 날 그 종목이 후보에 다시 들면 표시해 드립니다.',
+        title: '관심 종목 없음',
+        desc: '종목 상세에서 <b>관심 담기</b> 시 여기에 표시.<br>' +
+              '이후 후보 재진입 시 표시됨.',
         icon: '<path d="M12 4.8l2.3 4.7 5.2.8-3.75 3.65.9 5.15L12 16.65 7.35 19.1l.9-5.15L4.5 10.3l5.2-.8z"/>',
         action: { label: '오늘 볼 종목 보기', attr: 'data-go="stocks"' }
       });
@@ -71,8 +71,8 @@
     root.innerHTML =
       (err ? '<div class="notice" style="margin-bottom:12px">' +
         '<svg viewBox="0 0 24 24"><path d="M12 3.8 21 19H3z"/><path d="M12 10v4M12 16.6h.01"/></svg>' +
-        '<span>오늘 데이터를 못 받아 시세·상태를 채우지 못했습니다. (' + E(err) + ')</span></div>' : '') +
-      '<div class="sec-h"><h2>담아둔 종목</h2>' +
+        '<span>오늘 데이터 로드 실패 · 시세·상태 미표시 (' + E(err) + ')</span></div>' : '') +
+      '<div class="sec-h"><h2>관심 종목</h2>' +
         '<span class="sec-side">' + saved.length + '개' +
         (again ? ' · 오늘 후보 재진입 ' + again : '') + '</span></div>' +
       '<section class="card"><div class="rows">' + rows + '</div></section>' +
@@ -104,7 +104,7 @@
       var code = rm.dataset.remove;
       var name = (rm.closest('[data-code]') || {}).dataset ? rm.closest('[data-code]').dataset.name : '';
       C.watchToggle(code, name);
-      UI.toast('관심에서 뺐습니다');
+      UI.toast('관심 해제');
       global.App.refreshWatchDot();
       global.App.go('watch');
       return;
@@ -117,8 +117,8 @@
   // 전체 삭제는 되돌릴 수 없다. 한 번 묻는다.
   function confirmClear(n) {
     UI.sheet('관심 종목 전체 비우기',
-      '<p style="font-size:.9375rem;color:var(--ink-2)">담아둔 <b>' + n + '개</b>를 모두 지웁니다. ' +
-      '이 기기에만 저장된 목록이라 되돌릴 수 없습니다.</p>' +
+      '<p style="font-size:.9375rem;color:var(--ink-2)">관심 종목 <b>' + n + '개</b> 전체 삭제. ' +
+      '이 기기에만 저장된 목록으로 복구 불가.</p>' +
       '<div class="d-acts" style="margin-top:18px">' +
         '<button class="btn" type="button" data-sheet-close>취소</button>' +
         '<button class="btn btn-primary" type="button" id="w-yes" style="background:var(--up);color:#fff">전체 삭제</button>' +
@@ -127,7 +127,7 @@
           body.querySelector('#w-yes').addEventListener('click', function () {
             C.watchAll().forEach(function (w) { C.watchToggle(w.code); });
             UI.closeSheet();
-            UI.toast('전체 삭제했습니다');
+            UI.toast('전체 삭제 완료');
             global.App.refreshWatchDot();
             global.App.go('watch');
           });

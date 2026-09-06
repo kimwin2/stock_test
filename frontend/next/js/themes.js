@@ -28,8 +28,8 @@
     var themes = td.themes || [];
     if (!themes.length) {
       root.innerHTML = UI.empty({
-        title: '오늘 잡힌 테마가 없습니다',
-        desc: '뉴스·시그널·급등 클러스터 중 어느 것도 조건을 넘기지 못했습니다.'
+        title: '오늘 테마 없음',
+        desc: '뉴스·시그널·급등 클러스터 모두 조건 미충족'
       });
       return;
     }
@@ -40,7 +40,7 @@
         '<section class="card">' +
           '<div class="card-h"><h3>오늘의 테마 지도</h3>' + UI.info('theme') + '</div>' +
           '<p style="padding:4px 16px 10px;font-size:.75rem;color:var(--ink-4)">' +
-            '칸 크기 ≈ 거래대금(제곱근 보정) · 색 = 등락률 · 칸을 누르면 종목 상세</p>' +
+            '칸 크기 ≈ 거래대금(제곱근 보정) · 색 = 등락률 · 탭하면 종목 상세</p>' +
           '<div class="tmap" id="tmap" style="padding:0 10px 12px"></div>' +
         '</section>' +
         themes.map(card).join('') +
@@ -76,9 +76,9 @@
     var pre = q.premarketQuotes || 0;
     return '<div class="notice" style="margin-bottom:12px;background:var(--surface-2);color:var(--ink-2)">' +
       '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>' +
-      '<span><b>장 시작 전입니다.</b> ' +
-      (pre ? '넥스트레이드 프리마켓 체결가 기준 ' + pre + '종목 — 09:00 정규장 개장 후 다시 계산됩니다.'
-           : '아직 체결이 없어 등락률이 잡히지 않습니다. 09:00 개장 후 채워집니다.') +
+      '<span><b>장 시작 전</b> · ' +
+      (pre ? '넥스트레이드 프리마켓 체결가 기준 ' + pre + '종목. 09:00 정규장 개장 후 재계산'
+           : '체결 없음, 등락률 미산출. 09:00 개장 후 갱신') +
       '</span></div>';
   }
 
@@ -88,7 +88,7 @@
     if (!td.themesError) return '';
     return '<div class="notice" style="margin-bottom:12px">' +
       '<svg viewBox="0 0 24 24"><path d="M12 3.8 21 19H3z"/><path d="M12 10v4M12 16.6h.01"/></svg>' +
-      '<span><b>테마 갱신이 멈춰 있습니다.</b> ' + E(td.themesError) +
+      '<span><b>테마 갱신 중단</b> · ' + E(td.themesError) +
       (td.themesGeneratedAt ? ' · 마지막 성공 ' + E(C.stamp(td.themesGeneratedAt)) : '') + '</span></div>';
   }
 

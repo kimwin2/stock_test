@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stock Premium - 주식 테마 대시보드</title>
-  <meta name="description" content="실시간 주식 테마 분석 대시보드. 오늘의 주도 테마와 관련 종목을 한눈에 확인하세요.">
+  <meta name="description" content="실시간 주식 테마 분석 대시보드 · 오늘의 주도 테마와 관련 종목">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <!-- Pretendard — 국내 모던 금융/트레이딩 앱의 사실상 표준 한글 UI 서체.
        기존 Noto Serif KR 제목은 트레이딩 화면에서 신문 조판처럼 읽혀 걷어냈다. -->
@@ -34,7 +34,7 @@
       </div>
     </div>
     <div class="search-bar">
-      <input type="text" id="search-input" placeholder="종목명/종목코드를 입력하세요." autocomplete="off">
+      <input type="text" id="search-input" placeholder="종목명 / 종목코드" autocomplete="off">
       <button class="search-icon" title="검색" id="search-btn">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
@@ -57,7 +57,7 @@
       <div id="briefing-content">
         <div class="loading-state" id="briefing-loading">
           <div class="spinner"></div>
-          <p>오늘 시장을 정리하는 중...</p>
+          <p>시장 데이터 정리 중</p>
         </div>
       </div>
     </section>
