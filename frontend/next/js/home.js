@@ -130,11 +130,13 @@
       '<span>' + E(C.ago(f.updatedAt)) + ' 데이터 · 평일 장중 갱신</span></div>';
   }
 
+  // 13px 구간 라벨은 옅은 톤 위에서 강조색 그대로면 대비가 모자란다(주황 3.5:1).
+  function toneInk(t) { return (!t || t === 'flat') ? 'var(--ink-3)' : 'var(--' + t + '-ink)'; }
   function cell(key, k, v, z, tone, d) {
     return '<button class="st-cell" type="button" data-cell="' + key + '">' +
       '<span class="k">' + E(k) + '</span>' +
       '<span class="v" style="color:' + toneVar(tone) + '">' + E(v) + '</span>' +
-      '<span class="z" style="color:' + toneVar(tone) + '">' + E(z) + '</span>' +
+      '<span class="z" style="color:' + toneInk(tone) + '">' + E(z) + '</span>' +
       '<span class="d">' + E(d) + '</span></button>';
   }
 

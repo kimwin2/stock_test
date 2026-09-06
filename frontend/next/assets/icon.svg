@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#14171C"/>
+  <!-- 기준선 -->
+  <rect x="96" y="352" width="320" height="14" rx="7" fill="#3A414D"/>
+  <!-- 파란 봉 (하락) -->
+  <rect x="132" y="232" width="56" height="104" rx="10" fill="#5B9BFF"/>
+  <rect x="156" y="204" width="8" height="160" rx="4" fill="#5B9BFF"/>
+  <!-- 회색 봉 (보합) -->
+  <rect x="228" y="196" width="56" height="140" rx="10" fill="#939BA7"/>
+  <rect x="252" y="168" width="8" height="196" rx="4" fill="#939BA7"/>
+  <!-- 빨간 봉 (상승, 가장 높음) -->
+  <rect x="324" y="132" width="56" height="204" rx="10" fill="#FF5252"/>
+  <rect x="348" y="100" width="8" height="264" rx="4" fill="#FF5252"/>
+</svg>
