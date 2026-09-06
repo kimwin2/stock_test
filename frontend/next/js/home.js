@@ -71,7 +71,7 @@
         '<div class="hero-answer">' +
           '<span class="ha-n num" style="color:' + (cands.length ? 'var(--up)' : 'var(--ink-3)') + '">' + cands.length + '</span>' +
           '<span class="ha-lab"><b>오늘 볼 종목</b>' +
-            '<span>수급 빠짐 ∩ 추세 생존 ∩ 주도 업종</span></span>' +
+            '<span>수급 빠짐 · 추세 생존 · 주도 업종, 3조건 통과</span></span>' +
           (cands.length ? '<button class="btn btn-primary" type="button" data-go="stocks">보기</button>' : '') +
         '</div>' +
       '</section>' +
@@ -123,10 +123,14 @@
   /* ── 조각들 ─────────────────────────────────────────────── */
 
   function staleNotice(f) {
+    var ic = '<svg viewBox="0 0 24 24"><path d="M12 3.8 21 19H3z"/><path d="M12 10v4M12 16.6h.01"/></svg>';
+    if (C.isCached('flow')) {
+      return '<div class="notice" style="margin-bottom:12px">' + ic +
+        '<span><b>오프라인 · 저장본 표시</b> · ' + E(C.stamp(f.updatedAt)) + ' 기준. 연결되면 자동 갱신</span></div>';
+    }
     var mins = (Date.now() - new Date(f.updatedAt).getTime()) / 60000;
     if (!(mins > 24 * 60)) return '';
-    return '<div class="notice" style="margin-bottom:12px">' +
-      '<svg viewBox="0 0 24 24"><path d="M12 3.8 21 19H3z"/><path d="M12 10v4M12 16.6h.01"/></svg>' +
+    return '<div class="notice" style="margin-bottom:12px">' + ic +
       '<span>' + E(C.ago(f.updatedAt)) + ' 데이터 · 평일 장중 갱신</span></div>';
   }
 

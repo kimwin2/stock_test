@@ -93,9 +93,12 @@
     var txt = document.getElementById('tb-stamp-txt');
     if (!btn || !txt) return;
     C.flow().then(function (f) {
-      txt.textContent = C.ago(f.updatedAt);
-      btn.title = '데이터 기준 ' + new Date(f.updatedAt).toLocaleString('ko-KR') + ' · 눌러서 다시 받기';
-    }).catch(function () { txt.textContent = '실패'; btn.title = '눌러서 다시 받기'; });
+      var cached = C.isCached('flow');
+      txt.textContent = (cached ? '저장본 · ' : '') + C.ago(f.updatedAt);
+      btn.classList.toggle('is-offline', cached);
+      btn.title = (cached ? '오프라인 저장본 · ' : '') + '데이터 기준 ' +
+        new Date(f.updatedAt).toLocaleString('ko-KR') + ' · 눌러서 다시 받기';
+    }).catch(function () { txt.textContent = '실패'; btn.classList.remove('is-offline'); btn.title = '눌러서 다시 받기'; });
   }
 
   var reloading = false;
@@ -114,6 +117,22 @@
         if (btn) btn.classList.remove('is-spin');
         refreshStamp();
       });
+  }
+
+  /* ── 오프라인 ──────────────────────────────────────────────
+     서비스워커는 프로덕션(https)에서만 건다. 로컬 개발에서 켜 두면 방금
+     고친 파일 대신 저장본이 뜨는 일을 겪는다. 전략은 네트워크 우선이라
+     온라인에선 캐시가 화면에 나올 일이 없다(sw.js). */
+  function installOffline() {
+    var isLocal = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(global.location.hostname);
+    if ('serviceWorker' in navigator && global.location.protocol === 'https:' && !isLocal) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
+    global.addEventListener('offline', function () { global.UI.toast('오프라인 · 저장본 표시'); });
+    global.addEventListener('online', function () {
+      global.UI.toast('연결 복구 · 다시 받는 중');
+      reloadData();
+    });
   }
 
   /* ── 부팅 ──────────────────────────────────────────────── */
@@ -145,6 +164,7 @@
 
     refreshWatchDot();
     refreshStamp();
+    installOffline();
 
     var start = (global.location.hash || '').replace(/^#\/?/, '') || 'home';
     go(ROUTES[start] ? start : 'home');

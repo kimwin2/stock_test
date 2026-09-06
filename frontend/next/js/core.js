@@ -102,6 +102,10 @@
      flow 는 1.9MB 다. 탭을 옮길 때마다 다시 받으면 안 되므로
      프라미스를 캐시한다. 실패한 프라미스는 버려서 재시도가 되게 한다. */
   var cache = {};
+  // 서비스워커가 네트워크 실패 때 저장본을 돌려주면 X-Served-From: cache 를
+  // 붙인다. 화면은 이 표식으로 '저장본' 임을 밝혀야 한다 — 숫자만 보이면
+  // 사용자는 지금 장의 값으로 읽는다.
+  var servedFromCache = {};
 
   function getJSON(key) {
     if (cache[key]) return cache[key];
@@ -109,6 +113,7 @@
     var p = fetch(url + (url.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now())
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
+        servedFromCache[key] = r.headers.get('X-Served-From') === 'cache';
         return r.json();
       })
       .catch(function (e) {
@@ -121,7 +126,8 @@
 
   function flow()  { return getJSON('flow'); }
   function theme() { return getJSON('theme'); }
-  function reload() { cache = {}; }
+  function reload() { cache = {}; servedFromCache = {}; }
+  function isCached(key) { return !!servedFromCache[key || 'flow']; }
 
   /* ── 종목 인덱스 ────────────────────────────────────────────
      후보/거래대금상위/유니버스를 한 목록으로 합친다. 차트 히스토리를
@@ -328,7 +334,7 @@
     IS_PROD: IS_PROD, URLS: URLS,
     esc: esc, num: num, won: won, parseWon: parseWon, pct: pct, dirClass: dirClass,
     stamp: stamp, dateLine: dateLine, ago: ago,
-    flow: flow, theme: theme, reload: reload,
+    flow: flow, theme: theme, reload: reload, isCached: isCached,
     stockIndex: stockIndex, findStock: findStock,
     supplyState: supplyState, supplyLevel: supplyLevel, SUPPLY_LEVELS: SUPPLY_LEVELS,
     watchAll: watchAll, watchHas: watchHas, watchToggle: watchToggle,

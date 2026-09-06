@@ -271,6 +271,7 @@ a { color: inherit; }
 .tb-stamp:active { background: var(--surface-3); }
 .tb-stamp svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
 .tb-stamp.is-spin svg { animation: spin 900ms linear infinite; }
+.tb-stamp.is-offline { color: var(--warn-ink); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .icon-btn {
   width: var(--tap); height: var(--tap);
